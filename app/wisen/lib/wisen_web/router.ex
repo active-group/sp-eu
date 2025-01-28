@@ -18,7 +18,6 @@ defmodule WisenWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    live "/entry", EntryController, :index
   end
 
   # Other scopes may use custom stacks.
