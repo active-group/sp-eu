@@ -18,7 +18,7 @@ config :wisen, WisenWeb.Endpoint,
   # Change to `ip: {0, 0, 0, 0}` to allow access from other machines.
   http: [ip: {127, 0, 0, 1}, port: 4000],
   check_origin: false,
-  code_reloader: true,
+  code_reloader: false,
   debug_errors: true,
   secret_key_base: "gccGdgjErokN2OvGVJ5vFqd8emL3TYHPkkzcvMPI5C5somFI/nNYEmc59yvQu8wA",
   watchers: [
