@@ -14,8 +14,13 @@
         devShells = {
           default = pkgs.mkShell {
             packages = [
+
+              # Backend
               pkgs.elixir
               pkgs.elixir-ls
+
+              # Frontend
+              pkgs.nodejs
             ];
           };
         };
