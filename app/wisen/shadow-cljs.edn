@@ -1,0 +1,16 @@
+;; shadow-cljs configuration
+{:source-paths
+ ["frontend/src/dev"
+  "frontend/src/main"
+  "frontend/src/test"]
+
+ :dependencies
+ [[de.active-group/active-clojure "0.43.0"]
+  [de.active-group/reacl-c "0.11.7"]
+  [de.active-group/active-data "0.2.3"]]
+
+ :builds
+ {:frontend
+  {:target :browser
+   :modules {:main {:init-fn wisen.app/init}}
+   :output-dir "priv/static/assets"}}}
