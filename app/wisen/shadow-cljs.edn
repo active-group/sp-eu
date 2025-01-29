@@ -7,7 +7,9 @@
  :dependencies
  [[de.active-group/active-clojure "0.43.0"]
   [de.active-group/reacl-c "0.11.7"]
-  [de.active-group/active-data "0.2.3"]]
+  [de.active-group/reacl-c-basics "0.11.8"]
+  [de.active-group/active-data "0.2.3"]
+  [prismatic/schema "1.4.1"]]
 
  :builds
  {:frontend

@@ -8,4 +8,10 @@ defmodule WisenWeb.RoomChannel do
   def join("room:" <> _private_room_id, _params, _socket) do
     {:error, %{reason: "unauthorized"}}
   end
+
+  def handle_in("new-msg", %{"body" => body}, socket) do
+    push(socket, "new-state", %{body: "und ja moin"})
+
+    {:noreply, socket}
+  end
 end
