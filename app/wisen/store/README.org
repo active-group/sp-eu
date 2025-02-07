@@ -1,0 +1,4 @@
+* Triple Store
+
+This directory describes the triple store, using Apache Jena as its
+engine.
