@@ -1,0 +1,42 @@
+* SP-EU Durchstich
+
+** Search Frontend
+
+*** SPARQL query Eingabefeld
+*** query abschicken
+
+** Triple Store
+
+*** Endpunkt 1: SPARQL-query auflösen und RDF triple zurückgeben
+*** Endpunkt 2: Neue Triple empfangen und abspeichern
+
+** Display Frontend
+
+*** RDF triples anzeigen
+*** 1. allgemeine Darstellung (Subjekt, Prädikte, Objekt)
+*** 2. für ausgewählte Prädikate (location, address, events, ...) spezielle GUI
+
+** Triple Entry Frontend
+
+*** RDF triple anlegen
+*** An den Triple Store schicken
+
+** (Google Places API-Adapter)
+
+** (Knowledge-Graph-Adapter)
+
+** (Wikidata-Adapter)
+
+
+
+
+* Setup
+
+Once:
+npm install
+
+Dann:
+=mix phx.server=
+fürs Backend, mit Hot Code Reloading
+=npx shadow-cljs watch frontend=
+fürs Frontend, mit Hot Code Reloading
