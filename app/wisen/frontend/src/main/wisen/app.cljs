@@ -1,9 +1,9 @@
 (ns wisen.app
-  (:require [reacl-c.core :as c :include-macros true]
+  (:require [reacl-c-basics.forms.core :as forms]
+            [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [reacl-c.main :as cmain]
             [wisen.resource :as r]
-            [wisen.resource-editor :as resource-editor]
             ["phoenix" :as phx]))
 
 (defn init []
@@ -39,13 +39,29 @@
 (c/defn-effect channel-push [^phx/Channel chann cmd js-payload]
   (.push chann cmd js-payload))
 
+(c/defn-item query-form "has no public state" []
+  (c/isolate-state
+    ""
+    (forms/form {:onSubmit (fn [state event]
+                             (.preventDefault event)
+                             (println (pr-str state))
+                             (c/return :action state :state ""))}
+                (forms/input {:placeholder "Search query"})
+                (dom/button "Search"))))
+
 (c/defn-item toplevel []
   (c/with-state-as state
     (dom/div
+     {:style {:background "grey"}}
      (c/dynamic pr-str)
 
-     (c/isolate-state r/empty-resource
-                      (resource-editor/main))
+     (c/handle-action
+      (query-form)
+      (fn [st query]
+        (c/return :action (channel-push
+                           (:channel state)
+                           "search"
+                           #js {:query query}))))
 
      (c/focus :message
               (c/handle-action
@@ -53,8 +69,8 @@
                (fn [st ac]
                  (c/return :state (js->clj ac)))))
 
-     (dom/strong "Hello!")
-     (dom/button {:onclick (fn [_]
+     #_(dom/strong "Hello!")
+     #_(dom/button {:onclick (fn [_]
                              (c/return :action (channel-push (:channel state)
                                                              "new-msg"
                                                              #js {:body "ja moin"})))}
