@@ -18,6 +18,7 @@
               # Backend
               pkgs.elixir
               pkgs.elixir-ls
+              pkgs.clojure
 
               # Frontend
               pkgs.nodejs
