@@ -14,4 +14,10 @@ defmodule WisenWeb.RoomChannel do
 
     {:noreply, socket}
   end
+
+  def handle_in("search", %{"query" => query}, socket) do
+    push(socket, "new-state", %{body: [%{"subject" => "jürgen", "predicate" => "ist", "object" => "cool"}]})
+
+    {:noreply, socket}
+  end
 end
