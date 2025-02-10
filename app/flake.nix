@@ -22,8 +22,6 @@
 
               # Frontend
               pkgs.nodejs
-
-              pkgs.jdk
             ];
           };
         };
