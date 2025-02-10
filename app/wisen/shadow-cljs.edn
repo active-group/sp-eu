@@ -15,4 +15,4 @@
  {:frontend
   {:target :browser
    :modules {:main {:init-fn wisen.app/init}}
-   :output-dir "priv/static/assets"}}}
+   :output-dir "store/resources/public/js"}}}
