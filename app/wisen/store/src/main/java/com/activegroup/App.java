@@ -39,7 +39,7 @@ public class App {
             Model model = ModelFactory.createDefaultModel();
 
             // create the resource
-            Resource hirsch = model.createResource("https://hirsch-begegnungsstaette.de");
+            Resource hirsch = model.createResource("http://wisen.active-group.de/resource/a12345678");
             hirsch.addProperty(SchemaDO.name, "Hirsch Begegnungsstätte für Ältere e.V.");
 
             // Create the address resource
