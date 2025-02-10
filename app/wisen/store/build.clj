@@ -2,7 +2,7 @@
   (:require [clojure.tools.build.api :as b]))
 
 (def lib 'wisen/store)
-(def version (format "1.2.%s" (b/git-count-revs nil)))
+(def version (format "0.1.%s" (b/git-count-revs nil)))
 (def class-dir "target/classes")
 (def uber-file (format "target/%s-%s-standalone.jar" (name lib) version))
 
