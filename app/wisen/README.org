@@ -9,6 +9,8 @@ Then either:
 - Run backend server: =clj -M:backend -m wisen.backend.core=
 - Run backend repl: =clj -M:nrepl:backend -m nrepl.cmdline=
 
+The frontend then runs on =localhost:4321/index.html=.
+
 * SP-EU Durchstich
 
 ** Search Frontend
