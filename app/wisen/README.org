@@ -4,8 +4,10 @@ Once:
 npm install
 
 Start frontend watch: =clj -M:shadow-cljs:frontend watch :frontend=
-Run backend server: =clj -M:backend -m wisen.backend.core=
-Run backend repl: =clj -M:nrepl:backend -m nrepl.cmdline=
+
+Then either:
+- Run backend server: =clj -M:backend -m wisen.backend.core=
+- Run backend repl: =clj -M:nrepl:backend -m nrepl.cmdline=
 
 * SP-EU Durchstich
 
