@@ -1,4 +1,4 @@
-(ns store.core
+(ns wisen.backend.core
   (:gen-class)
   (:require [ring.adapter.jetty :as ring-jetty]
             [ring.middleware.resource])
@@ -20,18 +20,18 @@
      :body result-str}))
 
 (def main-handler
-  (ring.middleware.resource/wrap-resource handler "public"))
+  (ring.middleware.resource/wrap-resource handler "/"))
 
 (def server (atom nil))
 
-(defn- start-server! []
+(defn start-server! []
   (reset! server
           (ring-jetty/run-jetty
            main-handler
            {:port 4321
             :join? false})))
 
-(defn- stop-server! []
+(defn stop-server! []
   (reset! server (.stop @server)))
 
 (start-server!)
