@@ -4,7 +4,10 @@
             [reacl-c.main :as cmain]
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
-            [reacl-c-basics.ajax :as ajax]))
+            [reacl-c-basics.ajax :as ajax]
+            [wisen.frontend.promise :as promise]
+            [wisen.frontend.display :as display]
+            ["jsonld" :as jsonld]))
 
 (defn init []
   (js/console.log "init"))
@@ -20,10 +23,16 @@
                 (dom/button "Search"))))
 
 (defn search-request [query]
-  (ajax/POST "/search"
-             {:body {:query query}
-              :keywords? false
-              :response-format :json}))
+  (-> (ajax/POST "/search"
+              {:body {:query query}
+               #_#_:response-format "application/ld+json"})
+      (ajax/map-ok-response
+       (fn [body]
+         (js/JSON.parse body)))))
+
+(c/defn-item display-search-results [result-json]
+  (promise/call-with-promise-result (jsonld/expand result-json)
+                                    display/display-expanded))
 
 (c/defn-item toplevel []
   (c/with-state-as state
@@ -40,7 +49,15 @@
      (when-let [last-query (:last-query state)]
        (c/focus (lens/>> :results
                          (lens/member last-query))
-                (ajax/fetch (search-request last-query)))))))
+                (c/fragment
+                 (ajax/fetch (search-request last-query))
+
+                 ;; continue with successful search results
+                 (c/with-state-as response
+                   (when (and (ajax/response? response)
+                              (ajax/response-ok? response))
+                     (display-search-results (ajax/response-value response))
+                     ))))))))
 
 (cmain/run
   (.getElementById js/document "main")
