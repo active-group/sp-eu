@@ -1,3 +1,12 @@
+* Development
+
+Once:
+npm install
+
+Start frontend watch: =clj -M:shadow-cljs:frontend watch :frontend=
+Run backend server: =clj -M:backend -m wisen.backend.core=
+Run backend repl: =clj -M:nrepl:backend -m nrepl.cmdline=
+
 * SP-EU Durchstich
 
 ** Search Frontend
@@ -26,17 +35,3 @@
 ** (Knowledge-Graph-Adapter)
 
 ** (Wikidata-Adapter)
-
-
-
-
-* Setup
-
-Once:
-npm install
-
-Dann:
-=mix phx.server=
-fürs Backend, mit Hot Code Reloading
-=npx shadow-cljs watch frontend=
-fürs Frontend, mit Hot Code Reloading
