@@ -1,9 +1,8 @@
-(ns wisen.app
-  (:require [reacl-c-basics.forms.core :as forms]
-            [reacl-c.core :as c :include-macros true]
+(ns wisen.frontend.app
+  (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [reacl-c.main :as cmain]
-            [wisen.resource :as r]))
+            [reacl-c-basics.forms.core :as forms]))
 
 (defn init []
   (js/console.log "init"))

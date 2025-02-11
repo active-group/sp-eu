@@ -1,13 +1,10 @@
 {
-  "name": "wisen-frontend",
-  "version": "0.0.1",
-  "private": true,
-  "dependencies": {
-    "create-react-class": "^15.7.0",
-    "react": "^16.13.1 || ^17.0.0",
-    "react-dom": "^16.13.1 || ^17.0.0"
-  },
-  "devDependencies": {
-    "shadow-cljs": "2.28.20"
-  }
+    "name": "wisen-frontend",
+    "version": "0.1.0",
+    "private": true,
+    "dependencies": {
+        "create-react-class": "^15.7.0",
+        "react": "^16.13.1 || ^17.0.0",
+        "react-dom": "^16.13.1 || ^17.0.0"
+    }
 }

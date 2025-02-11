@@ -1,18 +1,8 @@
-;; shadow-cljs configuration
-{:source-paths
- ["frontend/src/dev"
-  "frontend/src/main"
-  "frontend/src/test"]
-
- :dependencies
- [[de.active-group/active-clojure "0.43.0"]
-  [de.active-group/reacl-c "0.11.7"]
-  [de.active-group/reacl-c-basics "0.11.8"]
-  [de.active-group/active-data "0.2.3"]
-  [prismatic/schema "1.4.1"]]
+{:deps
+ ;; Use deps.edn with alias :frontend to manage cljs dependencies
+ {:aliases [:frontend]}
 
  :builds
  {:frontend
   {:target :browser
-   :modules {:main {:init-fn wisen.app/init}}
-   :output-dir "store/resources/public/js"}}}
+   :modules {:main {:init-fn wisen.frontend.app/init}}}}}
