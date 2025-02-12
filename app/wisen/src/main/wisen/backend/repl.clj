@@ -1,14 +1,19 @@
 (ns wisen.backend.repl
-  (:require [wisen.backend.core :as core]))
+  (:require [wisen.backend.server :as server]
+            [wisen.backend.triple-store :as triple-store]))
 
 (defn start! []
-  (core/start-server!))
+  (triple-store/setup!)
+  (server/start!))
 
 (defn stop! []
-  (core/stop-server!))
+  (server/stop!))
 
 (defn restart! []
   (stop!)
   (start!))
 
-#_(restart!)
+(restart!)
+
+(triple-store/run-select-query!
+ "SELECT ?x WHERE { ?x <https://schema.org/name> \"Stadtseniorenrat Tübingen e.V.\"}")
