@@ -4,7 +4,8 @@
             [reitit.coercion.spec :as rcs]
             [reitit.ring.middleware.muuntaja :as m]
             [ring.middleware.resource]
-            [muuntaja.core])
+            [muuntaja.core]
+            [wisen.backend.triple-store :as triple-store])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -19,9 +20,21 @@
    :body {:id (mint-resource-url!)}})
 
 (defn get-resource [request]
-  (let [id (get-in request [:path-params :id])]
+  (let [id (get-in request [:path-params :id])
+        uri (str "http://wisen.active-group.de/resource/" id)
+        ;; TODO: injection!
+        q (str
+           "CONSTRUCT {<"
+           uri
+           "> ?p ?o .}
+          WHERE { <"
+           uri
+           "> ?p ?o . }")
+        result-model
+        (triple-store/run-construct-query! q)]
     {:status 200
-     :body {:id id}}))
+     :body (with-out-str
+             (.write result-model *out* "JSON-LD"))}))
 
 (def handler*
   (ring/ring-handler

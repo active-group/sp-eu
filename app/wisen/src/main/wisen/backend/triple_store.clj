@@ -61,6 +61,15 @@
          results (.execSelect qexec)]
      (gather-results '() results))))
 
+(defn run-construct-query!
+  "Run a SPARQL SELECT query"
+  ([q]
+   (with-read-model! (fn [model] (run-construct-query! model q))))
+  ([model q]
+   (let [qexec (QueryExecutionFactory/create q model)
+         graph (.execConstruct qexec)]
+     graph)))
+
 (defn- populate! [model]
   (let [hirsch (.createResource model "http://wisen.active-group.de/resource/a12345")
         _ (.addProperty hirsch SchemaDO/name "Hirsch Begegnungsstätte für Ältere e.V.")
