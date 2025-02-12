@@ -14,7 +14,7 @@
 
 (c/defn-item query-form "has no public state" []
   (c/isolate-state
-    ""
+    "CONSTRUCT { ?s ?p ?o . } WHERE { ?s ?p ?o . }"
     (forms/form {:onSubmit (fn [state event]
                              (.preventDefault event)
                              (println (pr-str state))
