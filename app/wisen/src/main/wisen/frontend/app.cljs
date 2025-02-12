@@ -17,7 +17,6 @@
     "CONSTRUCT { ?s ?p ?o . } WHERE { ?s ?p ?o . }"
     (forms/form {:onSubmit (fn [state event]
                              (.preventDefault event)
-                             (println (pr-str state))
                              (c/return :action state :state ""))}
                 (forms/input {:placeholder "Search query"})
                 (dom/button "Search"))))
@@ -38,27 +37,32 @@
 (c/defn-item toplevel []
   (c/with-state-as state
     (dom/div
-     {:style {:background "grey"}}
-     (c/dynamic pr-str)
+     {:style {:background "#eee"}}
 
-     (c/handle-action
-      (query-form)
-      (fn [st query]
-        (c/return :state (assoc st :last-query query))))
+     (dom/div
+      {:style {:padding 24}}
+      (c/dynamic pr-str)
 
-     ;; perform search queries
-     (when-let [last-query (:last-query state)]
-       (c/focus (lens/>> :results
-                         (lens/member last-query))
-                (c/fragment
-                 (ajax/fetch (search-request last-query))
+      (c/handle-action
+       (query-form)
+       (fn [st query]
+         (c/return :state (assoc st :last-query query))))
 
-                 ;; continue with successful search results
-                 (c/with-state-as response
-                   (when (and (ajax/response? response)
-                              (ajax/response-ok? response))
-                     (display-search-results (ajax/response-value response))
-                     ))))))))
+      ;; perform search queries
+      (when-let [last-query (:last-query state)]
+        (c/focus (lens/>> :results
+                          (lens/member last-query))
+                 (c/fragment
+                  (ajax/fetch (search-request last-query))
+
+                  ;; continue with successful search results
+                  (c/with-state-as response
+                    (when (and (ajax/response? response)
+                               (ajax/response-ok? response))
+                      (dom/div
+                       (dom/h2 "Search Results")
+                       (display-search-results (ajax/response-value response)))
+                      )))))))))
 
 (cmain/run
   (.getElementById js/document "main")
