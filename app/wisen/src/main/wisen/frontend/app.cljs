@@ -23,9 +23,10 @@
                 (dom/button "Search"))))
 
 (defn search-request [query]
-  (-> (ajax/POST "/search"
-              {:body {:query query}
-               #_#_:response-format "application/ld+json"})
+  (-> (ajax/POST "/api/search"
+                 {:body (js/JSON.stringify (clj->js {:query query}))
+                  :headers {:content-type "application/json"}
+                  #_#_:response-format "application/ld+json"})
       (ajax/map-ok-response
        (fn [body]
          (js/JSON.parse body)))))
