@@ -36,12 +36,22 @@
      :body (with-out-str
              (.write result-model *out* "JSON-LD"))}))
 
+(defn search [request]
+  (let [q (get-in request [:body-params :query])
+        result-model (triple-store/run-construct-query! q)]
+    {:status 200
+     :body (with-out-str
+             (.write result-model *out* "JSON-LD"))}))
+
 (def handler*
   (ring/ring-handler
    (ring/router
+
     ["/api"
+     ["/search" {:post {:handler search}}]
      ["/resource" {:post {:handler create-resource}}]
      ["/resource/:id" {:get {:handler get-resource}}]]
+
     ;; router data affecting all routes
     {:data {:muuntaja muuntaja.core/instance
             :coercion rcs/coercion
