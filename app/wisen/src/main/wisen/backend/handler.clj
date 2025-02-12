@@ -6,7 +6,8 @@
             [ring.middleware.resource]
             [muuntaja.core]
             [wisen.backend.triple-store :as triple-store]
-            [wisen.backend.resource :as r])
+            [wisen.backend.resource :as r]
+            [wisen.backend.jsonld :as jsonld])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -51,8 +52,14 @@
   (let [q (get-in request [:body-params :query])
         result-model (triple-store/run-construct-query! q)]
     {:status 200
-     :body (with-out-str
-             (.write result-model *out* "JSON-LD"))}))
+     :body (jsonld/model->json-ld-string result-model)}))
+
+(defn add-triples [request]
+  (let [body (slurp (get-in request [:body]))
+        model (jsonld/json-ld-string->model body)]
+    ;; merge model into triple store
+    (triple-store/add-model! model)
+    {:status 200}))
 
 (def handler*
   (ring/ring-handler
@@ -61,7 +68,8 @@
     [["/api"
       ["/search" {:post {:handler search}}]
       ["/resource" {:post {:handler create-resource}}]
-      ["/resource/:id" {:get {:handler get-resource-description}}]]
+      ["/resource/:id" {:get {:handler get-resource-description}}]
+      ["/triples" {:post {:handler add-triples}}]]
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303
