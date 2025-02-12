@@ -64,8 +64,8 @@
 (def handler*
   (ring/ring-handler
    (ring/router
-
-    [["/api"
+    [["/" {:get {:handler (fn [_] {:status 200 :body (slurp (clojure.java.io/resource "index.html"))})}}]
+     ["/api"
       ["/search" {:post {:handler search}}]
       ["/resource" {:post {:handler create-resource}}]
       ["/resource/:id" {:get {:handler get-resource-description}}]
