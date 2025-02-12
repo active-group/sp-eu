@@ -64,7 +64,7 @@
       ["/resource/:id" {:get {:handler get-resource-description}}]]
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
-     ;; don't directory resolve to a description. We use 303
+     ;; don't directly resolve to a description. We use 303
      ;; redirection to move clients over to /api/resource/abcdefg
      ["/resource/:id" {:get {:handler get-resource}}]]
 
