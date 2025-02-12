@@ -2,15 +2,7 @@
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
-            [reacl-c-basics.forms.core :as forms]
-            #_["jsonld" :as jsonld]))
-
-(defn graph? [json]
-  false
-  )
-
-(defn resource? [json]
-  false)
+            [reacl-c-basics.forms.core :as forms]))
 
 (defn display-property [prop]
   (dom/div
