@@ -71,6 +71,14 @@
          graph (.execConstruct qexec)]
      graph)))
 
+(defn add-model!
+  ([model-to-add]
+   (with-write-model!
+     (fn [base-model]
+       (add-model! base-model model-to-add))))
+  ([base-model model-to-add]
+   (.add base-model model-to-add)))
+
 (defn- populate! [model]
   (let [hirsch (.createResource model (str core/*base* "/resource/186fe001-7291-417e-ad9c-58fa6a8240bb"))
         _ (.addProperty hirsch SchemaDO/name "Hirsch Begegnungsstätte für Ältere e.V.")
