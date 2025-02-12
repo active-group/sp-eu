@@ -5,7 +5,8 @@
             [reitit.ring.middleware.muuntaja :as m]
             [ring.middleware.resource]
             [muuntaja.core]
-            [wisen.backend.triple-store :as triple-store])
+            [wisen.backend.triple-store :as triple-store]
+            [wisen.backend.resource :as r])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -19,9 +20,9 @@
   {:status 200
    :body {:id (mint-resource-url!)}})
 
-(defn get-resource [request]
+(defn get-resource-description [request]
   (let [id (get-in request [:path-params :id])
-        uri (str "http://wisen.active-group.de/resource/" id)
+        uri (r/uri-for-resource-id id)
         ;; TODO: injection!
         q (str
            "CONSTRUCT {<"
@@ -36,6 +37,16 @@
      :body (with-out-str
              (.write result-model *out* "JSON-LD"))}))
 
+(defn get-resource [request]
+  (try
+    (let [id (java.util.UUID/fromString
+              (get-in request [:path-params :id]))]
+      {:status 303
+       :headers {"Location" (r/description-url-for-resource-id id)}}
+      )
+    (catch Exception _e
+      {:status 400})))
+
 (defn search [request]
   (let [q (get-in request [:body-params :query])
         result-model (triple-store/run-construct-query! q)]
@@ -47,9 +58,14 @@
   (ring/ring-handler
    (ring/router
 
-    ["/api"
-     ["/search" {:post {:handler search}}]
-     ["/resource" {:post {:handler create-resource}}]
+    [["/api"
+      ["/search" {:post {:handler search}}]
+      ["/resource" {:post {:handler create-resource}}]
+      ["/resource/:id" {:get {:handler get-resource-description}}]]
+
+     ;; URIs a la http://.../resource/abcdefg are identifiers. They
+     ;; don't directory resolve to a description. We use 303
+     ;; redirection to move clients over to /api/resource/abcdefg
      ["/resource/:id" {:get {:handler get-resource}}]]
 
     ;; router data affecting all routes
