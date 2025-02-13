@@ -74,8 +74,17 @@
      {:style {:display "flex"}}
 
      (dom/div
+      {:style {:display "flex"}}
       (c/focus r/kind
                (forms/select
+                {:style {:appearance "none"
+                         :border ds/border
+                         :border-right 0
+                         :border-radius 0
+                         :border-top-left-radius "4px"
+                         :border-bottom-left-radius "4px"
+                         :background "#ddd"
+                         :padding "3px 8px"}}
                 (forms/option
                  {:value r/string-literal-kind}
                  "String")
@@ -86,9 +95,11 @@
 
      (cond
        (r/literal-string? x)
-       (dom/strong
-        (c/focus r/literal-string-value
-                 (forms/input {:type "text"})))
+       (c/focus r/literal-string-value
+                (forms/input {:type "text"
+                              :style {:border ds/border
+                                      :border-radius 0
+                                      :padding "3px 8px"}}))
 
        (r/resource? x)
        (resource-component)))
