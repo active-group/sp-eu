@@ -1,5 +1,6 @@
 (ns wisen.frontend.resource-component
   (:require [wisen.frontend.resource :as r]
+            [active.data.record :refer-macros [def-record] :refer [is-a?]]
             [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
@@ -24,38 +25,73 @@
 
 (declare part)
 
+(def-record delete-property [delete-property-property])
+
 (defn property-component []
   (c/with-state-as property
     (dom/div
-     (dom/div (pr-predicate (r/property-predicate property)))
-     (dom/div (c/focus r/property-object (part)))
-     )))
+     {:style {:display "flex"
+              :gap "16px"
+              :align-items "center"
+              :justify-content "space-between"}}
+     (dom/div
+      {:style {:flex 1}}
+      (dom/div (pr-predicate (r/property-predicate property)))
+      (dom/div (c/focus r/property-object (part))))
+     (dom/button {:onClick (constantly (c/return :action (delete-property delete-property-property
+                                                                          property)))}
+                 "Delete"))))
 
 (defn resource-component []
-  (c/focus r/resource-properties
-           (c/with-state-as properties
-             (ds/with-card-padding
-               (apply dom/div
+  (-> (c/focus r/resource-properties
+               (c/with-state-as properties
+                 (ds/with-card-padding
+                   (apply dom/div
 
-                      (interpose (dom/hr {:style {:border-top ds/border
-                                                  :border-width "1px 0 0 0"}})
-                                 (map-indexed (fn [idx _]
-                                                (c/focus (lens/at-index idx)
-                                                         (dom/div
-                                                          {:style {:padding "8px 0"}}
-                                                          (property-component))))
-                                              properties)))))))
+                          (interpose (dom/hr {:style {:border-top ds/border
+                                                      :border-width "1px 0 0 0"}})
+                                     (map-indexed (fn [idx property]
+                                                    (c/focus (lens/at-index idx)
+                                                             (dom/div
+                                                              {:style {:padding "8px 0"}}
+                                                              (property-component))))
+                                                  properties))))))
+
+      (c/handle-action (fn [resource action]
+                         (if (is-a? delete-property action)
+                           (let [property-to-delete (delete-property-property action)]
+                             (c/return :state (lens/overhaul resource
+                                                             r/resource-properties
+                                                             (fn [properties]
+                                                               (remove #{property-to-delete} properties)))))
+                           ;; else
+                           (c/return :action action)
+                           )))))
 
 (c/defn-item part []
   (c/with-state-as x
-    (cond
-      (r/literal-string? x)
-      (dom/strong
-       (c/focus r/literal-string-value
-                (forms/input {:type "text"})))
+    (dom/div
+     {:style {:display "flex"}}
 
-      (r/resource? x)
-      (resource-component))
+     (dom/div
+      (c/focus r/kind
+               (forms/select
+                (forms/option
+                 {:value r/string-literal-kind}
+                 "String")
+                (forms/option
+                 {:value r/resource-literal-kind}
+                 "Resource"))))
+
+
+     (cond
+       (r/literal-string? x)
+       (dom/strong
+        (c/focus r/literal-string-value
+                 (forms/input {:type "text"})))
+
+       (r/resource? x)
+       (resource-component)))
     ))
 
 
