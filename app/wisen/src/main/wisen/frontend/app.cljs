@@ -7,65 +7,46 @@
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.promise :as promise]
             [wisen.frontend.display :as display]
+            [wisen.frontend.routes :as routes]
+            [wisen.frontend.home :as home]
+            [wisen.frontend.search :as search]
+            [wisen.frontend.create :as create]
+            [wisen.frontend.edit :as edit]
+            [reacl-c-basics.pages.core :as routing]
             ["jsonld" :as jsonld]))
 
 (defn init []
   (js/console.log "init"))
 
-(c/defn-item query-form "has no public state" []
-  (c/isolate-state
-    "CONSTRUCT { ?s ?p ?o . } WHERE { ?s ?p ?o . }"
-    (forms/form {:onSubmit (fn [state event]
-                             (.preventDefault event)
-                             (c/return :action state :state ""))}
-                (forms/input {:placeholder "Search query"})
-                (dom/button "Search"))))
+(defn menu []
+  (dom/div
+   {:style {:padding 24}}
 
-(defn search-request [query]
-  (-> (ajax/POST "/api/search"
-                 {:body (js/JSON.stringify (clj->js {:query query}))
-                  :headers {:content-type "application/json"}
-                  #_#_:response-format "application/ld+json"})
-      (ajax/map-ok-response
-       (fn [body]
-         (js/JSON.parse body)))))
+   (dom/div {:style {:display "flex"
+                     :gap 8}}
 
-(c/defn-item display-search-results [result-json]
-  (promise/call-with-promise-result (jsonld/expand result-json)
-                                    display/display-expanded))
+            (dom/a {:href (routes/home)}
+                   "Wisen Web")
+
+            (dom/a {:href (routes/search)}
+                   "Search")
+
+            (dom/a {:href (routes/create)}
+                   "New resource"))))
 
 (c/defn-item toplevel []
-  (c/with-state-as state
-    (dom/div
-     {:style {:background "#eee"}}
+  (dom/div
+   {:style {:background "#eee"}}
 
-     (dom/div
-      {:style {:padding 24}}
-      (c/dynamic pr-str)
+   (menu)
 
-      (c/handle-action
-       (query-form)
-       (fn [st query]
-         (c/return :state (assoc st :last-query query))))
-
-      ;; perform search queries
-      (when-let [last-query (:last-query state)]
-        (c/focus (lens/>> :results
-                          (lens/member last-query))
-                 (c/fragment
-                  (ajax/fetch (search-request last-query))
-
-                  ;; continue with successful search results
-                  (c/with-state-as response
-                    (when (and (ajax/response? response)
-                               (ajax/response-ok? response))
-                      (dom/div
-                       (dom/h2 "Search Results")
-                       (display-search-results (ajax/response-value response)))
-                      )))))))))
+   (routing/html5-history-router
+    {routes/home home/main
+     routes/search search/main
+     routes/create create/main
+     routes/edit edit/main})))
 
 (cmain/run
   (.getElementById js/document "main")
-  (toplevel)
-  {:initial-state {:last-query nil
-                   :results {}}})
+  (toplevel))
+

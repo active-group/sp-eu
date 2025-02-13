@@ -1,10 +1,13 @@
 (ns wisen.backend.handler
-  (:require [reitit.ring :as ring]
+  (:require [hiccup.core :as h]
+            [reitit.ring :as ring]
             [reitit.ring.coercion :as rrc]
             [reitit.coercion.spec :as rcs]
             [reitit.ring.middleware.muuntaja :as m]
             [ring.middleware.resource]
+            [reacl-c-basics.pages.ring :as pages.ring]
             [muuntaja.core]
+            [wisen.frontend.routes :as frontend.routes]
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld])
@@ -90,5 +93,22 @@
 #_(handler* {:request-method :get
              :uri "/api/resource/foo"})
 
+(def client-response
+  {:status 200
+   :headers {"Content-Type" "text/html"}
+   :body (h/html [:html
+                  [:head
+                   [:title "Wisen Web"]
+                   [:meta {:charset "utf-8"}]
+                   [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+                   [:style "html, body {margin: 0; padding: 0;}"]]
+                  [:body
+                   [:div {:id "main"}]
+                   [:script {:type "text/javascript"
+                             :src "/js/main.js"
+                             :charset "UTF-8"}]]])})
+
 (def handler
-  (ring.middleware.resource/wrap-resource handler* "/"))
+  (-> handler*
+      (ring.middleware.resource/wrap-resource "/")
+      (pages.ring/wrap-client-routes frontend.routes/routes client-response)))
