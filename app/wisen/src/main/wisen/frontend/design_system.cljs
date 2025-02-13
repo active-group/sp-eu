@@ -4,7 +4,7 @@
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]))
 
-(def border "1px solid #bbb")
+(def border "1px solid #ddd")
 
 (dom/defn-dom card [attrs & children]
   (apply dom/div
