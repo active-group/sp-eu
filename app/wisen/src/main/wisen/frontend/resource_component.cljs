@@ -88,7 +88,6 @@
 
 (defn resource-component []
   (dom/div
-   {:style {:border "1px solid red"}}
    (-> (c/focus r/resource-properties
                 (c/with-state-as properties
                   (ds/with-card-padding
