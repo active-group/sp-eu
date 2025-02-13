@@ -42,31 +42,79 @@
                                                                           property)))}
                  "Delete"))))
 
+(def predicates
+  ["http://schema.org/name"
+   "http://schema.org/url"
+   "http://schema.org/geo"])
+
+(defn default-object-for-predicate [pred]
+  (cond
+    (= pred "http://schema.org/name")
+    (r/literal-string "Der gute Name")
+
+    (= pred "http://schema.org/geo")
+    (r/res
+     (r/prop "@type" "http://schema.org/GeoCoordinates")
+     (r/prop "http://schema.org/latitude" "0.0")
+     (r/prop "http://schema.org/longitude" "0.0"))
+
+    :else
+    (r/literal-string "")
+    ))
+
+(def predicate-options
+  (map (fn [pred]
+         (forms/option
+          {:value pred}
+          (pr-predicate pred)))
+       predicates
+       ))
+
+(c/defn-item add-property-button []
+  (c/with-state-as [resource predicate :local "http://schema.org/name"]
+    (dom/div
+     (c/focus lens/second
+              (apply
+               forms/select
+               predicate-options))
+
+     (dom/button {:onClick
+                  (fn [[resource predicate] _]
+                    (c/return :state [(r/assoc resource
+                                               predicate
+                                               (default-object-for-predicate predicate))
+                                      predicate]))}
+                 "Add property"))))
+
 (defn resource-component []
-  (-> (c/focus r/resource-properties
-               (c/with-state-as properties
-                 (ds/with-card-padding
-                   (apply dom/div
+  (dom/div
+   {:style {:border "1px solid red"}}
+   (-> (c/focus r/resource-properties
+                (c/with-state-as properties
+                  (ds/with-card-padding
+                    (apply dom/div
 
-                          (interpose (dom/hr {:style {:border-top ds/border
-                                                      :border-width "1px 0 0 0"}})
-                                     (map-indexed (fn [idx property]
-                                                    (c/focus (lens/at-index idx)
-                                                             (dom/div
-                                                              {:style {:padding "8px 0"}}
-                                                              (property-component))))
-                                                  properties))))))
+                           (interpose (dom/hr {:style {:border-top ds/border
+                                                       :border-width "1px 0 0 0"}})
+                                      (map-indexed (fn [idx property]
+                                                     (c/focus (lens/at-index idx)
+                                                              (dom/div
+                                                               {:style {:padding "8px 0"}}
+                                                               (property-component))))
+                                                   properties))))))
 
-      (c/handle-action (fn [resource action]
-                         (if (is-a? delete-property action)
-                           (let [property-to-delete (delete-property-property action)]
-                             (c/return :state (lens/overhaul resource
-                                                             r/resource-properties
-                                                             (fn [properties]
-                                                               (remove #{property-to-delete} properties)))))
-                           ;; else
-                           (c/return :action action)
-                           )))))
+       (c/handle-action (fn [resource action]
+                          (if (is-a? delete-property action)
+                            (let [property-to-delete (delete-property-property action)]
+                              (c/return :state (lens/overhaul resource
+                                                              r/resource-properties
+                                                              (fn [properties]
+                                                                (remove #{property-to-delete} properties)))))
+                            ;; else
+                            (c/return :action action)
+                            ))))
+
+   (add-property-button)))
 
 (c/defn-item part []
   (c/with-state-as x
@@ -102,8 +150,10 @@
                                       :padding "3px 8px"}}))
 
        (r/resource? x)
-       (resource-component)))
-    ))
+       (resource-component)
+
+       :else
+       (throw ::unknown-part)))))
 
 
 (defn main []
