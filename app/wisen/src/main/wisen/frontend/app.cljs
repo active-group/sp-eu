@@ -13,30 +13,43 @@
             [wisen.frontend.create :as create]
             [wisen.frontend.edit :as edit]
             [reacl-c-basics.pages.core :as routing]
+            [wisen.frontend.design-system :as ds]
             ["jsonld" :as jsonld]))
 
 (defn init []
   (js/console.log "init"))
 
 (defn menu []
-  (dom/div
-   {:style {:padding 24}}
+  (ds/padded-2
+   {:style {:background "#ddd"
+            :border-bottom ds/border}}
 
-   (dom/div {:style {:display "flex"
-                     :gap 8}}
+   (dom/menu {:style {:list-style-type "none"
+                      :padding 0
+                      :margin 0
+                      :display "flex"
+                      :gap 16}}
 
-            (dom/a {:href (routes/home)}
-                   "Wisen Web")
+             (dom/li
+              (dom/a {:href (routes/home)}
+                     "Wisen Web"))
 
-            (dom/a {:href (routes/search)}
-                   "Search")
+             (dom/li
+              (dom/a {:href (routes/search)}
+                     "Search"))
 
-            (dom/a {:href (routes/create)}
-                   "New resource"))))
+             (dom/li
+              (dom/a {:href (routes/create)}
+                     "New resource")))))
 
 (c/defn-item toplevel []
   (dom/div
-   {:style {:background "#eee"}}
+   {:style {:width "100%"
+            :height "100%"
+            :background "#eee"
+            :display "flex"
+            :flex-direction "column"
+            :overflow "hidden"}}
 
    (menu)
 
