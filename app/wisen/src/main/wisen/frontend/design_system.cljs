@@ -27,3 +27,9 @@
          (dom/merge-attributes attrs
                                {:style {:padding "3px 8px"}})
          children))
+
+(dom/defn-dom padded-2 [attrs & children]
+  (apply dom/div
+         (dom/merge-attributes attrs
+                               {:style {:padding "6px 16px"}})
+         children))

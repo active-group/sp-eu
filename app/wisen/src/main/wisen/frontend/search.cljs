@@ -7,16 +7,26 @@
             [wisen.frontend.promise :as promise]
             [wisen.frontend.display :as display]
             [wisen.frontend.routes :as routes]
+            [wisen.frontend.design-system :as ds]
             ["jsonld" :as jsonld]))
 
 (c/defn-item query-form "has no public state" []
   (c/isolate-state
-    "CONSTRUCT { ?s ?p ?o . } WHERE { ?s ?p ?o . }"
-    (forms/form {:onSubmit (fn [state event]
-                             (.preventDefault event)
-                             (c/return :action state :state ""))}
-                (forms/input {:placeholder "Search query"})
-                (dom/button "Search"))))
+   "CONSTRUCT { ?s ?p ?o . } WHERE { ?s ?p ?o . }"
+   (forms/form {:style {:margin 0}
+                :onSubmit (fn [state event]
+                            (.preventDefault event)
+                            (c/return :action state :state ""))}
+               (dom/div
+                {:style {:display "flex"
+                         :gap "16px"}}
+                (forms/input {:type "search"
+                              :placeholder "Search query"
+                              :style {:flex 1
+                                      :border "1px solid #d3d3d3"
+                                      :padding "8px 16px"
+                                      :border-radius "20px"}})
+                (dom/button "Search")))))
 
 (defn search-request [query]
   (-> (ajax/POST "/api/search"
@@ -34,10 +44,16 @@
 (c/defn-item main* []
   (c/with-state-as state
     (dom/div
-     (c/handle-action
-      (query-form)
-      (fn [st query]
-        (c/return :state (assoc st :last-query query))))
+     {:style {:display "flex"
+              :flex-direction "column"
+              :overflow "auto"}}
+
+     (ds/padded-2
+      {:style {:border-bottom ds/border}}
+      (c/handle-action
+       (query-form)
+       (fn [st query]
+         (c/return :state (assoc st :last-query query)))))
 
      ;; perform search queries
      (when-let [last-query (:last-query state)]
@@ -51,8 +67,10 @@
                    (when (and (ajax/response? response)
                               (ajax/response-ok? response))
                      (dom/div
-                      (dom/h2 "Search Results")
-                      (display-search-results (ajax/response-value response)))
+                      {:style {:overflow "auto"}}
+                      (ds/padded-2
+                       (dom/h2 "Search Results")
+                       (display-search-results (ajax/response-value response))))
                      ))))))))
 
 (c/defn-item main []
