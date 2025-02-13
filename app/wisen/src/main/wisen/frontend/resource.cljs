@@ -63,8 +63,13 @@
       resource-properties
       (remove #(= pred (property-predicate %))
               (resource-properties r))))
-    ([_ r]
-     r)))
+
+    ([old-resource new-resource]
+     (apply
+      res
+      (conj
+       (resource-properties new-resource)
+       (prop pred (lookup old-resource pred)))))))
 
 (def string-literal-kind ::string)
 (def resource-literal-kind ::resource)
