@@ -47,11 +47,6 @@
             (property-object prop)))
         (resource-properties r)))
 
-#_(defn dissoc [r pred]
-  (lens/overhaul r resource-properties
-                 (fn [props]
-                   (remove #(= pred (property-predicate %)) props))))
-
 (defn dissoc [pred]
   (fn
     ([r]
@@ -61,3 +56,29 @@
               (resource-properties r))))
     ([_ r]
      r)))
+
+(def string-literal-kind ::string)
+(def resource-literal-kind ::resource)
+
+(defn default-value-for-kind [kind]
+  (cond
+     (= kind string-literal-kind)
+     ""
+
+     (= kind resource-literal-kind)
+     (res (prop "predicate" "object"))))
+
+(defn kind
+  ([value]
+   (cond
+     (literal-string? value)
+     string-literal-kind
+
+     (resource? value)
+     resource-literal-kind))
+  ([value new-kind]
+   (if (= (kind value) new-kind)
+     ;; keep as-is
+     value
+     ;; change to new default
+     (default-value-for-kind new-kind))))
