@@ -16,9 +16,6 @@
             [wisen.frontend.design-system :as ds]
             ["jsonld" :as jsonld]))
 
-(defn init []
-  (js/console.log "init"))
-
 (defn menu []
   (ds/padded-2
    {:style {:background "#ddd"
@@ -42,7 +39,7 @@
               (dom/a {:href (routes/create)}
                      "New resource")))))
 
-(c/defn-item toplevel []
+(defn toplevel []
   (dom/div
    {:style {:width "100%"
             :height "100%"
@@ -59,7 +56,16 @@
      routes/create create/main
      routes/edit edit/main})))
 
-(cmain/run
-  (.getElementById js/document "main")
-  (toplevel))
+
+(defn ^:dev/after-load start []
+  (println "start")
+  (cmain/run
+    (.getElementById js/document "main")
+    (toplevel)))
+
+(defn init []
+  (println "init")
+  (start))
+
+(init)
 
