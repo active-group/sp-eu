@@ -100,7 +100,7 @@
                    [:title "Wisen Web"]
                    [:meta {:charset "utf-8"}]
                    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-                   [:style "html, body {margin: 0; padding: 0;}"]]
+                   [:style "* { font-family: 'Helvetica Neue', Helvetica, sans-serif; } html, body {margin: 0; padding: 0;}"]]
                   [:body
                    [:div {:id "main"}]
                    [:script {:type "text/javascript"

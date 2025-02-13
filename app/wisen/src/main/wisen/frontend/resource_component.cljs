@@ -37,7 +37,8 @@
              (ds/with-card-padding
                (apply dom/div
 
-                      (interpose (dom/hr)
+                      (interpose (dom/hr {:style {:border-top ds/border
+                                                  :border-width "1px 0 0 0"}})
                                  (map-indexed (fn [idx _]
                                                 (c/focus (lens/at-index idx)
                                                          (dom/div
