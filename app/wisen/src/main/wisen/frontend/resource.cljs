@@ -1,5 +1,5 @@
 (ns wisen.frontend.resource
-  (:refer-clojure :exclude [dissoc])
+  (:refer-clojure :exclude [dissoc assoc])
   (:require [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as r]
             [active.clojure.lens :as lens]))
@@ -9,6 +9,9 @@
 (def id ::id)
 
 ;; ---
+
+(defn literal-string [x]
+  x)
 
 (defn literal-string? [x]
   (string? x))
@@ -46,6 +49,12 @@
           (when (= pred (property-predicate prop))
             (property-object prop)))
         (resource-properties r)))
+
+(defn assoc [r pred value]
+  (resource
+   resource-properties
+   (concat (resource-properties r)
+           [(prop pred value)])))
 
 (defn dissoc [pred]
   (fn

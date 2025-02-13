@@ -16,6 +16,14 @@
                                     (r/prop "http://schema.org/latitude" "48.52105844145676")
                                     (r/prop "http://schema.org/longitude" "9.054090697517525")))))
 
+;; Confluence
+;; x -> y -> z
+;; x -> a -> z
+
+;; Cycle
+;; x -> y
+;; y -> x
+
 (defn main []
   (ds/padded-2
    {:style {:overflow "auto"}}
