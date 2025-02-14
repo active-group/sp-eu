@@ -105,7 +105,7 @@
                     (fn [old-properties]
                       (map (fn [property]
                              (if (= pred (property-predicate property))
-                               (prop pred (property-object property))
+                               (prop pred new-object)
                                property))
                            old-properties))))))
 
