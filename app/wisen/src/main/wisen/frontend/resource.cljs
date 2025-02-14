@@ -1,12 +1,14 @@
 (ns wisen.frontend.resource
-  (:refer-clojure :exclude [dissoc assoc])
+  (:refer-clojure :exclude [dissoc assoc type])
   (:require [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as r]
             [active.clojure.lens :as lens]))
 
 ;; Some predicates
 
-(def id ::id)
+(def id "@id")
+
+(def type "@type")
 
 ;; ---
 
