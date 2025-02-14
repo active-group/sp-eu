@@ -21,6 +21,9 @@
     "http://schema.org/geo"
     "The geo coordinates of the place"
 
+    "http://schema.org/description"
+    "Description"
+
     p))
 
 (defn pr-type [t]
@@ -57,7 +60,8 @@
   ["http://schema.org/name"
    "http://schema.org/url"
    "http://schema.org/areaServed"
-   "http://schema.org/geo"])
+   "http://schema.org/geo"
+   "http://schema.org/description"])
 
 (defn default-object-for-predicate [pred]
   (cond
