@@ -80,8 +80,8 @@
     (= pred "http://schema.org/geo")
     (r/res
      (r/prop "@type" "http://schema.org/GeoCoordinates")
-     (r/prop "http://schema.org/latitude" "0.0")
-     (r/prop "http://schema.org/longitude" "0.0"))
+     (r/prop "http://schema.org/latitude" "48.52105844145676")
+     (r/prop "http://schema.org/longitude" "9.054090697517525"))
 
     (= pred "http://schema.org/areaServed")
     (r/res
@@ -89,9 +89,9 @@
      (r/prop "http://schema.org/geoMidpoint"
              (r/res
               (r/prop "@type" "http://schema.org/GeoCoordinates")
-              (r/prop "http://schema.org/latitude" "0.0")
-              (r/prop "http://schema.org/longitude" "0.0")))
-     (r/prop "http://schema.org/geoRadius" "1000"))
+              (r/prop "http://schema.org/latitude" "48.52105844145676")
+              (r/prop "http://schema.org/longitude" "9.054090697517525")))
+     (r/prop "http://schema.org/geoRadius" "100"))
 
     :else
     (r/literal-string "")
@@ -150,6 +150,46 @@
 
    (add-property-button)))
 
+(defn- radius->zoom-level [radius]
+  (/ 1000 radius))
+
+(defn GeoCircle-component []
+  (c/with-state-as resource
+    (let [circle-lens (lens/++ (lens/>> (r/lookup "http://schema.org/geoMidpoint")
+                                        (lens/++ (r/lookup "http://schema.org/latitude")
+                                                 (r/lookup "http://schema.org/longitude")))
+                               (r/lookup "http://schema.org/geoRadius"))
+          [circle-center circle-radius] (circle-lens resource)]
+      (c/focus circle-lens
+               (dom/div
+                (c/focus (lens/>> lens/first lens/first)
+                         (dom/div
+                          "Center X:"
+                          (forms/input {:type "text"
+                                        :style {:border ds/border
+                                                :border-radius 0
+                                                :padding "3px 8px"}})))
+
+                (c/focus (lens/>> lens/first lens/second)
+                         (dom/div
+                          "Center Y:"
+                          (forms/input {:type "text"
+                                        :style {:border ds/border
+                                                :border-radius 0
+                                                :padding "3px 8px"}})))
+
+                (c/focus (lens/>> lens/second)
+                         (dom/div
+                          "Radius:"
+                          (forms/input {:type "text"
+                                        :style {:border ds/border
+                                                :border-radius 0
+                                                :padding "3px 8px"}})))
+
+                (leaflet/circle 
+                 circle-center
+                 (radius->zoom-level circle-radius)))))))
+
 (defn properties-component [type]
   (c/with-state-as resource
     (cond
@@ -163,6 +203,15 @@
                 (leaflet/position [(lens/yank resource (r/lookup "http://schema.org/latitude"))
                                    (lens/yank resource (r/lookup "http://schema.org/longitude"))]
                                   13)))
+
+      (and (= type "http://schema.org/GeoCircle")
+           (lens/yank resource (r/lookup "http://schema.org/geoMidpoint"))
+           (lens/yank resource (lens/>> (r/lookup "http://schema.org/geoMidpoint")
+                                        (r/lookup "http://schema.org/latitude")))
+           (lens/yank resource (lens/>> (r/lookup "http://schema.org/geoMidpoint")
+                                        (r/lookup "http://schema.org/longitude")))
+           (lens/yank resource (r/lookup "http://schema.org/geoRadius")))
+      (GeoCircle-component)
 
       :else
       (properties-component-raw)
@@ -230,7 +279,10 @@
        (resource-component)
 
        :else
-       (throw ::unknown-part)))))
+       (dom/div {:style {:background "red"
+                         :padding 64}}
+                (pr-str x))
+       #_(throw ::unknown-part)))))
 
 
 (defn main []
