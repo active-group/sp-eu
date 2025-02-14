@@ -93,11 +93,21 @@
 (defn resource? [x]
   (record/is-a? resource x))
 
-(defn lookup [r pred]
-  (some (fn [prop]
-          (when (= pred (property-predicate prop))
-            (property-object prop)))
-        (resource-properties r)))
+(defn lookup [pred]
+  (fn
+    ([r]
+     (some (fn [prop]
+             (when (= pred (property-predicate prop))
+               (property-object prop)))
+           (resource-properties r)))
+    ([r new-object]
+     (lens/overhaul r resource-properties
+                    (fn [old-properties]
+                      (map (fn [property]
+                             (if (= pred (property-predicate property))
+                               (prop pred (property-object property))
+                               property))
+                           old-properties))))))
 
 (defn assoc [r pred value]
   (resource
@@ -118,7 +128,7 @@
       res
       (conj
        (resource-properties new-resource)
-       (prop pred (lookup old-resource pred)))))))
+       (prop pred ((lookup pred) old-resource)))))))
 
 (def string-literal-kind ::string)
 (def resource-literal-kind ::resource)

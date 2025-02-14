@@ -102,7 +102,15 @@
                    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
                    [:style "html, body {margin: 0; padding: 0;
                    font-family: 'Helvetica Neue', Helvetica,
-                   sans-serif;}"]]
+                   sans-serif;}"]
+                   ;; TODO: use these two leaflet resources via node module (package.json)
+                   [:link {:rel "stylesheet"
+                           :href "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                           :integrity "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+                           :crossorigin ""}]
+                   [:script {:src "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                             :integrity "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+                             :crossorigin ""}]]
                   [:body
                    [:div {:id "main"}]
                    [:script {:type "text/javascript"

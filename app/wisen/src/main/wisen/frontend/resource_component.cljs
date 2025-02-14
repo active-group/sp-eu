@@ -5,7 +5,16 @@
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
-            [wisen.frontend.design-system :as ds]))
+            [wisen.frontend.design-system :as ds]
+            [wisen.frontend.leaflet :as leaflet]))
+
+#_(defn setup-map! []
+  (let [mp (.map leaflet "the-map")
+        tile-layer (.tileLayer leaflet "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                               #js {:maxZoom 19,
+                                    :attribution "&copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a>"})]
+    (.setView mp #js [51, 0] 13)
+    (.addTo tile-layer mp)))
 
 (defn pr-predicate [p]
   (case p
@@ -112,56 +121,78 @@
                                       predicate]))}
                  "Add property"))))
 
+(defn properties-component-raw []
+  (dom/div
+   (-> (c/focus r/resource-properties
+                (c/with-state-as properties
+                  (ds/with-card-padding
+                    (apply dom/div
+
+                           (interpose (dom/hr {:style {:border-top ds/border
+                                                       :border-width "1px 0 0 0"}})
+                                      (map-indexed (fn [idx property]
+                                                     (c/focus (lens/at-index idx)
+                                                              (dom/div
+                                                               {:style {:padding "8px 0"}}
+                                                               (property-component))))
+                                                   properties))))))
+
+       (c/handle-action (fn [resource action]
+                          (if (is-a? delete-property action)
+                            (let [property-to-delete (delete-property-property action)]
+                              (c/return :state (lens/overhaul resource
+                                                              r/resource-properties
+                                                              (fn [properties]
+                                                                (remove #{property-to-delete} properties)))))
+                            ;; else
+                            (c/return :action action)
+                            ))))
+
+   (add-property-button)))
+
+(defn properties-component [type]
+  (c/with-state-as resource
+    (cond
+      (and (= type "http://schema.org/GeoCoordinates")
+           (lens/yank resource (r/lookup "http://schema.org/latitude"))
+           (lens/yank resource (r/lookup "http://schema.org/longitude")))
+      (dom/div
+       (properties-component-raw)
+       (c/focus (lens/++ (r/lookup "http://schema.org/latitude")
+                         (r/lookup "http://schema.org/longitude"))
+                (leaflet/position [(lens/yank resource (r/lookup "http://schema.org/latitude"))
+                                   (lens/yank resource (r/lookup "http://schema.org/longitude"))]
+                                  13)))
+
+      :else
+      (properties-component-raw)
+      )))
+
 (defn resource-component []
   (c/with-state-as resource
-    (ds/card
-     ;; header
-     (dom/div {:style {:display "flex"
-                       :justify-content "space-between"
-                       :border-bottom ds/border}}
+    (let [type ((r/lookup r/type) resource)]
+      (ds/card
+       ;; header
+       (dom/div {:style {:display "flex"
+                         :justify-content "space-between"
+                         :border-bottom ds/border}}
 
-              (ds/padded-1
-               {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
-               (if-let [type (r/lookup resource r/type)]
-                 (pr-type type)
-                 "Resource"))
+                (ds/padded-1
+                 {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
+                 (if (some? type)
+                   (pr-type type)
+                   "Resource"))
 
-              (ds/padded-1
-               {:style {:color "#555"
-                        :font-size "14px"}}
-               (if-let [uri (r/lookup resource r/id)]
-                 uri
-                 "_")))
-     ;; body
-     (c/focus (lens/>> (r/dissoc r/id)
-                       (r/dissoc r/type))
-              (dom/div
-               (-> (c/focus r/resource-properties
-                            (c/with-state-as properties
-                              (ds/with-card-padding
-                                (apply dom/div
-
-                                       (interpose (dom/hr {:style {:border-top ds/border
-                                                                   :border-width "1px 0 0 0"}})
-                                                  (map-indexed (fn [idx property]
-                                                                 (c/focus (lens/at-index idx)
-                                                                          (dom/div
-                                                                           {:style {:padding "8px 0"}}
-                                                                           (property-component))))
-                                                               properties))))))
-
-                   (c/handle-action (fn [resource action]
-                                      (if (is-a? delete-property action)
-                                        (let [property-to-delete (delete-property-property action)]
-                                          (c/return :state (lens/overhaul resource
-                                                                          r/resource-properties
-                                                                          (fn [properties]
-                                                                            (remove #{property-to-delete} properties)))))
-                                        ;; else
-                                        (c/return :action action)
-                                        ))))
-
-               (add-property-button))))))
+                (ds/padded-1
+                 {:style {:color "#555"
+                          :font-size "14px"}}
+                 (if-let [uri ((r/lookup r/id) resource)]
+                   uri
+                   "_")))
+       ;; body
+       (c/focus (lens/>> (r/dissoc r/id)
+                         (r/dissoc r/type))
+                (properties-component type))))))
 
 (c/defn-item part []
   (c/with-state-as x
