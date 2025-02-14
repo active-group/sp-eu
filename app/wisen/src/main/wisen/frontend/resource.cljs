@@ -4,6 +4,53 @@
             [active.data.realm :as r]
             [active.clojure.lens :as lens]))
 
+;; Linkworker-AirTable columns and their mappings to schema.org vocabulary:
+
+;; Organisation/Name
+;; name
+
+;; Bezirk
+;; areaServed ?
+
+;; Zielgruppe
+;; ??
+
+;; Zielgruppenspezifisch...
+;; ?
+
+;; Angebot Kategorie
+;; keywords
+
+;; Aktivitätsbeschreibung
+;; description
+
+;; Ort & Erreichbarkeit
+;; location
+
+;; Wartezeit
+;; ??
+
+;; Teilnahmebedingungen
+;; ??
+
+;; AnsprechpartnerIn
+;; email, telephone, contactPoint(s)
+
+;; Persönlicher Kontakt
+;; email, telephone, contactPoint(s)
+
+;; Öffnungszeiten
+;; openingHours
+
+;; Barrierefreiheit
+;; <none> (accessibilityFeature ist für elektronische Medien)
+
+;; Link
+;; url
+
+;; Auf Freiwilligensuche
+;; unklar, vielleicht via (makesOffer ->) JobPosting -> employmentUnit
+
 ;; Some predicates
 
 (def id "@id")
