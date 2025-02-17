@@ -13,7 +13,7 @@
    (r/prop "http://schema.org/url" "https://hirsch-begegnungsstaette.de")
    (r/prop "http://schema.org/geo" (r/res
                                     nil
-                                    (r/prop "@type" "http://schema.org/GeoCoordinates")
+                                    (r/prop r/type "http://schema.org/GeoCoordinates")
                                     (r/prop "http://schema.org/latitude" "48.52105844145676")
                                     (r/prop "http://schema.org/longitude" "9.054090697517525")))))
 
