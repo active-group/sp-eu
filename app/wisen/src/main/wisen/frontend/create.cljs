@@ -7,11 +7,12 @@
 
 (def sample-resource
   (r/res
-   (r/prop r/id "http://example.org/hirsch")
+   "http://example.org/hirsch"
    (r/prop "http://schema.org/name" "Hirsch")
    (r/prop "http://schema.org/email" "hirsch@example.org")
    (r/prop "http://schema.org/url" "https://hirsch-begegnungsstaette.de")
    (r/prop "http://schema.org/geo" (r/res
+                                    nil
                                     (r/prop "@type" "http://schema.org/GeoCoordinates")
                                     (r/prop "http://schema.org/latitude" "48.52105844145676")
                                     (r/prop "http://schema.org/longitude" "9.054090697517525")))))
