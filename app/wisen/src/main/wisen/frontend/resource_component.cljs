@@ -79,15 +79,18 @@
 
     (= pred "http://schema.org/geo")
     (r/res
+     nil
      (r/prop "@type" "http://schema.org/GeoCoordinates")
      (r/prop "http://schema.org/latitude" "48.52105844145676")
      (r/prop "http://schema.org/longitude" "9.054090697517525"))
 
     (= pred "http://schema.org/areaServed")
     (r/res
+     nil
      (r/prop "@type" "http://schema.org/GeoCircle")
      (r/prop "http://schema.org/geoMidpoint"
              (r/res
+              nil
               (r/prop "@type" "http://schema.org/GeoCoordinates")
               (r/prop "http://schema.org/latitude" "48.52105844145676")
               (r/prop "http://schema.org/longitude" "9.054090697517525")))
@@ -235,12 +238,11 @@
                 (ds/padded-1
                  {:style {:color "#555"
                           :font-size "14px"}}
-                 (if-let [uri ((r/lookup r/id) resource)]
+                 (if-let [uri (r/resource-id resource)]
                    uri
                    "_")))
        ;; body
-       (c/focus (lens/>> (r/dissoc r/id)
-                         (r/dissoc r/type))
+       (c/focus (r/dissoc r/type)
                 (properties-component type))))))
 
 (c/defn-item part []

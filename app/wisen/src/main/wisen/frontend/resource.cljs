@@ -53,8 +53,6 @@
 
 ;; Some predicates
 
-(def id "@id")
-
 (def type "@type")
 
 ;; ---
@@ -73,8 +71,7 @@
 ;; Jena: property = predicate
 ;; Here: property = predicate + object
 (def-record property
-  [property-predicate :- (r/union r/string
-                                  (r/enum id))
+  [property-predicate :- r/string
 
    property-object :- (r/union r/string
                                (r/delay resource))])
@@ -88,10 +85,13 @@
   (record/is-a? property x))
 
 (def-record resource
-  [resource-properties :- (r/sequence-of property)])
+  [resource-id :- r/string
+   resource-properties :- (r/sequence-of property)])
 
-(defn res [& props]
-  (resource resource-properties props))
+(defn res [ident & props]
+  (resource
+   resource-id ident
+   resource-properties props))
 
 (defn resource? [x]
   (record/is-a? resource x))
@@ -122,6 +122,7 @@
   (fn
     ([r]
      (resource
+      resource-id (resource-id r)
       resource-properties
       (remove #(= pred (property-predicate %))
               (resource-properties r))))
@@ -129,6 +130,7 @@
     ([old-resource new-resource]
      (apply
       res
+      (resource-id old-resource)
       (conj
        (resource-properties new-resource)
        (prop pred ((lookup pred) old-resource)))))))
@@ -142,7 +144,7 @@
      ""
 
      (= kind resource-literal-kind)
-     (res (prop "predicate" "object"))))
+     (res nil (prop "predicate" "object"))))
 
 (defn kind
   ([value]
