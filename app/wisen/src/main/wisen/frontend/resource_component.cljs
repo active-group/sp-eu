@@ -80,18 +80,18 @@
     (= pred "http://schema.org/geo")
     (r/res
      nil
-     (r/prop "@type" "http://schema.org/GeoCoordinates")
+     (r/prop r/type "http://schema.org/GeoCoordinates")
      (r/prop "http://schema.org/latitude" "48.52105844145676")
      (r/prop "http://schema.org/longitude" "9.054090697517525"))
 
     (= pred "http://schema.org/areaServed")
     (r/res
      nil
-     (r/prop "@type" "http://schema.org/GeoCircle")
+     (r/prop r/type "http://schema.org/GeoCircle")
      (r/prop "http://schema.org/geoMidpoint"
              (r/res
               nil
-              (r/prop "@type" "http://schema.org/GeoCoordinates")
+              (r/prop r/type "http://schema.org/GeoCoordinates")
               (r/prop "http://schema.org/latitude" "48.52105844145676")
               (r/prop "http://schema.org/longitude" "9.054090697517525")))
      (r/prop "http://schema.org/geoRadius" "100"))
