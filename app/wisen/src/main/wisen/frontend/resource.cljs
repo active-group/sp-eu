@@ -69,6 +69,9 @@
 
 (declare resource)
 
+;; We use the term `property` differently than in Apache Jena.
+;; Jena: property = predicate
+;; Here: property = predicate + object
 (def-record property
   [property-predicate :- (r/union r/string
                                   (r/enum id))
