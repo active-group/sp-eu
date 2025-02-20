@@ -3,13 +3,14 @@
 Once:
 npm install
 
-Start frontend watch: =clj -M:shadow-cljs:frontend watch :frontend=
+Start frontend watch (with tests): =clj -M:shadow-cljs:frontend watch :frontend :test=
 
 Then either:
 - Run backend server: =clj -M:backend -m wisen.backend.main=
 - Run backend repl: =clj -M:nrepl:backend -m nrepl.cmdline=
 
-The frontend then runs on =localhost:4321/index.html=.
+The frontend then runs on =http://localhost:4321=. The cljs test
+display is at =http://localhost:9501/=
 
 * SP-EU Durchstich
 

@@ -1,4 +1,4 @@
-{:paths ["src/main" "src/dev" "public"]
+{:paths ["src/main" "src/dev" "test" "public"]
 
  ;; common dependencies
  :deps {de.active-group/active-clojure {:mvn/version "0.44.1"}
