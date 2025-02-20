@@ -64,6 +64,13 @@
     (triple-store/add-model! model)
     {:status 200}))
 
+(defn edit-triples [request]
+  (let [body (slurp (get-in request [:body]))
+        query (get body :query)
+        model (jsonld/json-ld-string->model (get body :model))]
+    (triple-store/edit-model! query model)
+    {:status 200}))
+
 (def handler*
   (ring/ring-handler
    (ring/router
@@ -71,7 +78,8 @@
       ["/search" {:post {:handler search}}]
       ["/resource" {:post {:handler create-resource}}]
       ["/resource/:id" {:get {:handler get-resource-description}}]
-      ["/triples" {:post {:handler add-triples}}]]
+      ["/triples" {:post {:handler add-triples}
+                   :put {:handler edit-triples}}]]
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303
