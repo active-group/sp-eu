@@ -5,4 +5,8 @@
  :builds
  {:frontend
   {:target :browser
-   :modules {:main {:init-fn wisen.frontend.app/init}}}}}
+   :modules {:main {:init-fn wisen.frontend.app/init}}}
+  :test {:target :browser-test
+         :test-dir "target/public/test"
+         :devtools {:http-port 9501
+                    :http-root "target/public/test"}}}}
