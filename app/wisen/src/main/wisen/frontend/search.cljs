@@ -41,6 +41,58 @@
   (promise/call-with-promise-result (jsonld/expand result-json)
                                     display/display-expanded))
 
+(defn quick-search->sparql [m]
+  (let [ty (case (:type m)
+             :organization "<http://schema.org/Organization>"
+             :place "<http://schema.org/Place>"
+             :offer "<http://schema.org/Offer>"
+             :event "<http://schema.org/Event>")]
+    (str "CONSTRUCT { ?s ?p ?o .
+                      ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " ty ".
+                      ?s <http://schema.org/keywords> ?keywords . }
+          WHERE { ?s ?p ?o .
+                  ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " ty ".
+                  ?s <http://schema.org/keywords> ?keywords .
+                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\")) }")))
+
+(c/defn-item quick-search []
+  (c/isolate-state {:type :organization
+                    :target :elderly
+                    :tags ["education"]}
+                   (forms/form
+                    {:onSubmit (fn [state event]
+                                 (.preventDefault event)
+                                 (c/return :action (quick-search->sparql state)))
+                     :style {:display "flex"
+                             :gap "16px"}}
+                    (dom/div "I'm looking for ")
+                    (c/focus :type
+                             (forms/select
+                              (forms/option {:value :organization}
+                                            "organizations")
+                              (forms/option {:value :place}
+                                            "places")
+                              (forms/option {:value :offer}
+                                            "offers")
+                              (forms/option {:value :event}
+                                            "events")))
+                    (dom/div "targeted towards")
+                    (c/focus :target
+                             (forms/select
+                              (forms/option {:value :elderly}
+                                            "elderly")
+                              (forms/option {:value :queer}
+                                            "queer")
+                              (forms/option {:value :immigrants}
+                                            "immigrants")
+                              ))
+
+                    (dom/div "with tag")
+                    (c/focus (lens/>> :tags lens/first)
+                             (forms/input))
+
+                    (dom/button {:type "submit"} "Search"))))
+
 (c/defn-item main* []
   (c/with-state-as state
     (dom/div
@@ -51,7 +103,9 @@
      (ds/padded-2
       {:style {:border-bottom ds/border}}
       (c/handle-action
-       (query-form)
+       (dom/div
+        (query-form)
+        (quick-search))
        (fn [st query]
          (c/return :state (assoc st :last-query query)))))
 
