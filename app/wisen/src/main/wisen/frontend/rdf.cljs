@@ -1,5 +1,5 @@
 (ns wisen.frontend.rdf
-  (:refer-clojure :exclude [symbol?])
+  (:refer-clojure :exclude [symbol? merge])
   (:require [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as r]
             [active.clojure.lens :as lens]
@@ -60,6 +60,14 @@
    (fn [node]
      (empty? (ingoing graph node)))
    (subjects graph)))
+
+(defn merge [g1 g2]
+  (let [gres (rdflib/graph)]
+    (.addAll gres (.-statements g1))
+    (.addAll gres (.-statements g2))
+    gres))
+
+;; ---
 
 (defn make-symbol [string]
   (rdflib/sym string))
