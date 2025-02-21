@@ -8,7 +8,9 @@
             [wisen.frontend.display :as display]
             [wisen.frontend.routes :as routes]
             [wisen.frontend.design-system :as ds]
+            [wisen.frontend.rdf :as rdf]
             ["jsonld" :as jsonld]))
+
 
 (c/defn-item query-form "has no public state" []
   (c/isolate-state
@@ -33,13 +35,13 @@
                  {:body (js/JSON.stringify (clj->js {:query query}))
                   :headers {:content-type "application/json"}
                   #_#_:response-format "application/ld+json"})
-      (ajax/map-ok-response
+      #_(ajax/map-ok-response
        (fn [body]
          (js/JSON.parse body)))))
 
-(c/defn-item display-search-results [result-json]
-  (promise/call-with-promise-result (jsonld/expand result-json)
-                                    display/display-expanded))
+(c/defn-item display-search-results [json-string]
+  (promise/call-with-promise-result (rdf/json-ld-string->graph-promise json-string)
+                                    display/main))
 
 (defn quick-search->sparql [m]
   (let [ty (case (:type m)
@@ -48,9 +50,11 @@
              :offer "<http://schema.org/Offer>"
              :event "<http://schema.org/Event>")]
     (str "CONSTRUCT { ?s ?p ?o .
+                      ?o ?p2 ?o2 .
                       ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " ty ".
                       ?s <http://schema.org/keywords> ?keywords . }
           WHERE { ?s ?p ?o .
+                  ?o ?p2 ?o2 .
                   ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " ty ".
                   ?s <http://schema.org/keywords> ?keywords .
                   FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\")) }")))

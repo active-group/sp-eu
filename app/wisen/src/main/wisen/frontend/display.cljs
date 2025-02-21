@@ -3,64 +3,66 @@
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
-            [wisen.frontend.design-system :as ds]))
+            [wisen.frontend.design-system :as ds]
+            [wisen.frontend.rdf :as rdf]))
 
-(defn display-object [obj]
+;; [ ] Fix links for confluences
+;; [ ] Load all properties
+;; [ ] Focus
+;; [ ] Patterns for special GUIs
+;; [ ] Style
+
+
+(defn predicate-component [pred]
+  (rdf/symbol-uri pred))
+
+(declare node-component)
+
+(defn property [graph links property]
+  (let [[links* it] (node-component graph links (rdf/property-object property))]
+    [links*
+     (dom/div
+      (dom/div (predicate-component (rdf/property-predicate property)))
+      (dom/div {:style {:margin-left "2em"}} it))]))
+
+(defn node-component [graph links x]
   (cond
-    (sequential? obj)
-    (apply dom/ul (map display-object obj))
+    (or (rdf/symbol? x)
+        (rdf/blank-node? x))
+    (if-let [link (get links (rdf/node-uri x))]
+      [links (dom/a {:href (str "#" link)} "Go #")]
+      (let [link-here (rdf/symbol-uri x)
+            links* (assoc links (rdf/symbol-uri x) link-here)
+            [links** lis] (reduce (fn [[links its] prop]
+                                    (let [[links* it] (property graph links prop)]
+                                      [links* (conj its it)]))
+                                  [links* []]
+                                  (rdf/subject-properties graph x))]
+        [links**
+         (dom/div
+          {:id link-here
+           :style {:border "1px solid gray"
+                   :padding 12}}
+          (rdf/symbol-uri x)
+          (dom/button {:onclick ::TODO} "Load all properties")
+          (apply
+           dom/ul
+           lis))]))
 
-    (and (map? obj)
-         (some? (get obj "@value")))
-    (get obj "@value")
+    (rdf/literal-string? x)
+    [links (rdf/literal-string-value x)]
 
-    :else
-    (pr-str obj)))
+    (rdf/collection? x)
+    [links (pr-str x)]))
 
-(defn display-property [prop]
-  (c/fragment
-   (dom/dt (first prop))
-   (dom/dd (display-object (second prop)))))
-
-(defn display-resource [res]
-  (ds/card
-   (dom/div {:style {:display "flex"
-                     :justify-content "space-between"
-                     #_#_:border-bottom ds/border}}
-
-            (ds/padded-1
-             {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
-             "Resource")
-
-            (ds/padded-1
-             {:style {:color "#555"
-                      :font-size "14px"}}
-             (get res "@id")))
-
-   (ds/with-card-padding
-     (apply dom/dl
-            (map display-property
-                 (dissoc res "@id"))))))
-
-(c/defn-item display-expanded [result-json]
-  (js/console.log result-json)
+(defn main [graph]
   (dom/div
-   "TODO"
-   (cond
-     ;; assume a list of resources
-     (array? result-json)
-     (apply dom/ul
-            {:style {:list-style-type "none"
-                     :padding 0
-                     :display "flex"
-                     :flex-direction "column"
-                     :gap "12px"}}
-
-            (map (fn [res]
-                   (dom/li
-                    (display-resource (js->clj res))))
-                 result-json))
-
-     ;; assume a single resource
-     (object? result-json)
-     (display-resource (js->clj result-json)))))
+   (pr-str graph)
+   (dom/hr)
+   (apply
+    dom/div
+    (second (reduce (fn [[links its] x]
+                      (let [[links* it] (node-component graph links x)]
+                        [links* (conj its it)]))
+                    [{} []]
+                    (rdf/roots graph))))))
