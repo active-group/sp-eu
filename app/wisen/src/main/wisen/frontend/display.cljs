@@ -70,10 +70,6 @@
        (c/handle-action
         (load-more uri (:level local-state))
         (fn [[graph local-state] response]
-          (println (pr-str (ajax/response-value response)))
-          (println "---")
-          (println (pr-str (rdf/merge graph (ajax/response-value response))))
-          (println "<<<")
           (if (ajax/response-ok? response)
             (c/return :state [(rdf/merge graph (ajax/response-value response))
                               (-> local-state
