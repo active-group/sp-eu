@@ -12,7 +12,7 @@
 ;; [x] Load all properties
 ;; [ ] Focus
 ;; [ ] Patterns for special GUIs
-;; [ ] Style
+;; [x] Style
 
 (defn- special-property? [property]
   (let [predicate (rdf/property-predicate property)
@@ -114,7 +114,8 @@
                                               :error nil}]
     (c/fragment
      (c/focus (lens/>> lens/second :go)
-              (dom/button {:onclick (constantly true)} "Load more"))
+              (dom/button {:style {}
+                           :onclick (constantly true)} "Load more"))
 
      (when-let [error (:error local-state)]
        (dom/div
@@ -143,7 +144,9 @@
     [links*
      (dom/div
       (dom/div (predicate-component (rdf/property-predicate property)))
-      (dom/div {:style {:margin-left "2em"}} it))]))
+      (dom/div {:style {:margin-left "0em"
+                        :margin-top "1ex"
+                        :display "flex"}} it))]))
 
 (defn resource-component [graph links x]
   (let [uri (rdf/node-uri x)
@@ -163,28 +166,33 @@
       ;; header
       (dom/div {:style {:display "flex"
                         :justify-content "space-between"
-                        :border-bottom ds/border}}
+                        :align-items "center"
+                        :background "rgba(0,0,0,0.1)"}}
 
-               (ds/padded-1
-                {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
-                (if-let [type (rdf/resource-type graph x)]
-                  (pr-type type)
-                  "Resource"))
+               (dom/div
+                (ds/padded-1
+                 {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
+                 (if-let [type (rdf/resource-type graph x)]
+                   (pr-type type)
+                   "Resource"))
 
-               (ds/padded-1
-                {:style {:color "#555"
-                         :font-size "14px"}}
-                uri))
+                (ds/padded-1
+                 {:style {:color "#555"
+                          :font-size "12px"}}
+                 uri))
 
-      (when (rdf/symbol? x)
-        (load-more-button uri))
+               (when (rdf/symbol? x)
+                 (ds/padded-1
+                  (load-more-button uri))))
 
-      (apply
-       dom/ul
-       {:style {:display "flex"
-                :flex-direction "column"
-                :gap "2ex"}}
-       lis))]))
+      (when-not (empty? lis)
+        (ds/with-card-padding
+          (apply
+           dom/ul
+           {:style {:display "flex"
+                    :flex-direction "column"
+                    :gap "2ex"}}
+           lis))))]))
 
 (defn node-component [graph links x]
   (cond
