@@ -62,9 +62,12 @@
                                               :error nil}]
     (c/fragment
      (c/focus (lens/>> lens/second :go)
-              (dom/div
-               (pr-str local-state)
-               (dom/button {:onclick (constantly true)} "Load all properties")))
+              (dom/button {:onclick (constantly true)} "Load more"))
+
+     (when-let [error (:error local-state)]
+       (dom/div
+        "Oh no, an error occurred"
+        (dom/div (pr-str error))))
 
      (when (:go local-state)
        (c/handle-action
@@ -130,7 +133,7 @@
 (defn main []
   (c/with-state-as graph
     (dom/div
-     (pr-str graph)
+     #_(pr-str graph)
      (dom/hr)
      (apply
       dom/div
