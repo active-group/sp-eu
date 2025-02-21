@@ -117,7 +117,9 @@
     (c/fragment
      (c/focus (lens/>> lens/second :go)
               (dom/button {:style {}
-                           :onclick (constantly true)} "Load more"))
+                           :onclick (constantly true)} (if (> (:level local-state) 0)
+                                                         "v"
+                                                         ">")))
 
      (when-let [error (:error local-state)]
        (dom/div
