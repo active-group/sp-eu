@@ -41,7 +41,7 @@
 
 (c/defn-item display-search-results [json-string]
   (promise/call-with-promise-result (rdf/json-ld-string->graph-promise json-string)
-                                    display/main))
+                                    display/readonly))
 
 (defn quick-search->sparql [m]
   (let [ty (case (:type m)

@@ -3,6 +3,8 @@
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
+            [reacl-c-basics.ajax :as ajax]
+            [wisen.frontend.promise :as promise]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]))
 
@@ -12,6 +14,59 @@
 ;; [ ] Patterns for special GUIs
 ;; [ ] Style
 
+(defn- load-more-query [uri]
+  (str "CONSTRUCT { <" uri "> ?p ?o .
+                    ?o ?p2 ?o2 . }
+          WHERE { <" uri "> ?p ?o .
+                  ?o ?p2 ?o2 . }"))
+
+(defn- load-more-request [uri]
+  (ajax/POST "/api/search"
+                 {:body (js/JSON.stringify (clj->js {:query (load-more-query uri)}))
+                  :headers {:content-type "application/json"}
+                  #_#_:response-format "application/ld+json"}))
+
+(defn- load-more [uri]
+  (c/with-state-as [state response :local nil]
+    (c/fragment
+     (c/focus lens/second
+              (ajax/fetch (load-more-request uri)))
+
+     (when (ajax/response? response)
+       (if (ajax/response-ok? response)
+         (promise/call-with-promise-result
+          (rdf/json-ld-string->graph-promise (ajax/response-value response))
+          (fn [response-graph]
+            (c/once
+             (fn [_]
+               (c/return :action (ajax/ok-response response-graph))))))
+         (c/once
+          (fn [_]
+            (c/return :action response))))))))
+
+(defn- load-more-button [uri]
+  (c/with-state-as [graph local-state :local {:go false
+                                              :level 1
+                                              :error nil}]
+    (c/fragment
+     (c/focus (lens/>> lens/second :go)
+              (dom/button {:onclick (constantly true)} "Load all properties"))
+
+     (when (:go local-state)
+       (c/handle-action
+        (load-more uri)
+        (fn [[graph local-state] response]
+          (println (pr-str (ajax/response-value response)))
+          (println "---")
+          (println (pr-str (rdf/merge graph (ajax/response-value response))))
+          (println "<<<")
+          (if (ajax/response-ok? response)
+            (c/return :state [(rdf/merge graph (ajax/response-value response))
+                              (-> local-state
+                                  (assoc :go false)
+                                  (update :level inc))])
+            (c/return :state [graph
+                              (assoc local-state :error (ajax/response-value response))]))))))))
 
 (defn predicate-component [pred]
   (rdf/symbol-uri pred))
@@ -26,8 +81,9 @@
       (dom/div {:style {:margin-left "2em"}} it))]))
 
 (defn resource-component [graph links x]
-  (let [link-here (rdf/symbol-uri x)
-        links* (assoc links (rdf/symbol-uri x) link-here)
+  (let [uri (rdf/node-uri x)
+        link-here uri
+        links* (assoc links uri link-here)
         [links** lis] (reduce (fn [[links its] prop]
                                 (let [[links* it] (property graph links prop)]
                                   [links* (conj its it)]))
@@ -38,9 +94,10 @@
       {:id link-here
        :style {:border "1px solid gray"
                :padding 12}}
-      (rdf/symbol-uri x)
+      uri
 
-      (dom/button {:onclick ::TODO} "Load all properties")
+      (when (rdf/symbol? x)
+        (load-more-button uri))
 
       (apply
        dom/ul
@@ -60,14 +117,18 @@
     (rdf/collection? x)
     [links (pr-str x)]))
 
-(defn main [graph]
-  (dom/div
-   (pr-str graph)
-   (dom/hr)
-   (apply
-    dom/div
-    (second (reduce (fn [[links its] x]
-                      (let [[links* it] (node-component graph links x)]
-                        [links* (conj its it)]))
-                    [{} []]
-                    (rdf/roots graph))))))
+(defn main []
+  (c/with-state-as graph
+    (dom/div
+     (pr-str graph)
+     (dom/hr)
+     (apply
+      dom/div
+      (second (reduce (fn [[links its] x]
+                        (let [[links* it] (node-component graph links x)]
+                          [links* (conj its it)]))
+                      [{} []]
+                      (rdf/roots graph)))))))
+
+(defn readonly [graph]
+  (c/isolate-state graph (main)))
