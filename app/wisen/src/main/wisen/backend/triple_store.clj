@@ -1,5 +1,6 @@
 (ns wisen.backend.triple-store
-  (:require [wisen.backend.core :as core])
+  (:require [wisen.backend.core :as core]
+            [wisen.backend.skolem :as skolem])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -18,6 +19,7 @@
        (f model)
        (.commit dataset)
        (catch Exception e
+         (println (pr-str e))
          (.abort dataset))
        (finally
          (.end dataset))))))
@@ -77,7 +79,7 @@
      (fn [base-model]
        (add-model! base-model model-to-add))))
   ([base-model model-to-add]
-   (.add base-model model-to-add)))
+   (.add base-model (skolem/skolemize-model model-to-add "foobar"))))
 
 (defn edit-model!
   ([base-query replacing-model]
