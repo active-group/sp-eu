@@ -14,23 +14,35 @@
 ;; [ ] Patterns for special GUIs
 ;; [ ] Style
 
-(defn- load-more-query [uri]
-  (str "CONSTRUCT { <" uri "> ?p ?o .
-                    ?o ?p2 ?o2 . }
-          WHERE { <" uri "> ?p ?o .
-                  ?o ?p2 ?o2 . }"))
+(defn- triple-pattern* [current-level target-level]
+  (if (> current-level target-level)
+    ""
+    (str (str "?x" current-level " ?p" current-level " ?x" (inc current-level) " .")
+         "\n"
+         (triple-pattern* (inc current-level) target-level))))
 
-(defn- load-more-request [uri]
+(defn- triple-pattern [level]
+  (triple-pattern* 1 level))
+
+(defn- load-more-query [uri level]
+  (str "CONSTRUCT { <" uri "> ?p ?x1 .
+                   " (triple-pattern level) " }
+          WHERE { <" uri "> ?p ?x1 .
+                  " (triple-pattern level) " }"))
+
+(load-more-query "foobar" 2)
+
+(defn- load-more-request [uri level]
   (ajax/POST "/api/search"
-                 {:body (js/JSON.stringify (clj->js {:query (load-more-query uri)}))
+                 {:body (js/JSON.stringify (clj->js {:query (load-more-query uri level)}))
                   :headers {:content-type "application/json"}
                   #_#_:response-format "application/ld+json"}))
 
-(defn- load-more [uri]
+(defn- load-more [uri level]
   (c/with-state-as [state response :local nil]
     (c/fragment
      (c/focus lens/second
-              (ajax/fetch (load-more-request uri)))
+              (ajax/fetch (load-more-request uri level)))
 
      (when (ajax/response? response)
        (if (ajax/response-ok? response)
@@ -46,15 +58,17 @@
 
 (defn- load-more-button [uri]
   (c/with-state-as [graph local-state :local {:go false
-                                              :level 1
+                                              :level 0
                                               :error nil}]
     (c/fragment
      (c/focus (lens/>> lens/second :go)
-              (dom/button {:onclick (constantly true)} "Load all properties"))
+              (dom/div
+               (pr-str local-state)
+               (dom/button {:onclick (constantly true)} "Load all properties")))
 
      (when (:go local-state)
        (c/handle-action
-        (load-more uri)
+        (load-more uri (:level local-state))
         (fn [[graph local-state] response]
           (println (pr-str (ajax/response-value response)))
           (println "---")
