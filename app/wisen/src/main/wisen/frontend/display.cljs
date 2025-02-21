@@ -10,7 +10,7 @@
 
 ;; [ ] Fix links for confluences
 ;; [x] Load all properties
-;; [ ] Focus
+;; [x] Focus
 ;; [ ] Patterns for special GUIs
 ;; [x] Style
 
@@ -153,6 +153,10 @@
                         :margin-top "1ex"
                         :display "flex"}} it))]))
 
+(defn- focus-query [uri]
+  (str "CONSTRUCT { <" uri "> ?p ?o . }
+          WHERE { <" uri "> ?p ?o . }"))
+
 (defn resource-component [graph links x]
   (let [uri (rdf/node-uri x)
         link-here uri
@@ -170,9 +174,13 @@
 
       ;; header
       (dom/div {:style {:display "flex"
-                        :justify-content "space-between"
+                        :justify-content "flex-start"
                         :align-items "center"
                         :background "rgba(0,0,0,0.1)"}}
+
+               (when (rdf/symbol? x)
+                 (ds/padded-1
+                  (load-more-button uri)))
 
                (dom/div
                 (ds/padded-1
@@ -186,9 +194,12 @@
                           :font-size "12px"}}
                  uri))
 
-               (when (rdf/symbol? x)
-                 (ds/padded-1
-                  (load-more-button uri))))
+               (ds/padded-1
+                (dom/button {:onClick
+                             (fn [_]
+                               (c/return :action
+                                         (focus-query uri)))}
+                                        "Focus")))
 
       (when-let [name (rdf/resource-name graph x)]
         (ds/with-card-padding

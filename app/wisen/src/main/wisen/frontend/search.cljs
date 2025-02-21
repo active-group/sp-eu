@@ -97,37 +97,37 @@
 
 (c/defn-item main* []
   (c/with-state-as state
-    (dom/div
-     {:style {:display "flex"
-              :flex-direction "column"
-              :overflow "auto"}}
+    (-> (dom/div
+         {:style {:display "flex"
+                  :flex-direction "column"
+                  :overflow "auto"}}
 
-     (ds/padded-2
-      {:style {:border-bottom ds/border}}
-      (c/handle-action
-       (dom/div
-        (query-form)
-        (quick-search))
-       (fn [st query]
-         (c/return :state (assoc st :last-query query)))))
+         (ds/padded-2
+          {:style {:border-bottom ds/border}}
+          (dom/div
+           (query-form)
+           (quick-search)))
 
-     ;; perform search queries
-     (when-let [last-query (:last-query state)]
-       (c/focus (lens/>> :results
-                         (lens/member last-query))
-                (c/fragment
-                 (ajax/fetch (search-request last-query))
+         ;; perform search queries
+         (when-let [last-query (:last-query state)]
+           (c/focus (lens/>> :results
+                             (lens/member last-query))
+                    (c/fragment
+                     (ajax/fetch (search-request last-query))
 
-                 ;; continue with successful search results
-                 (c/with-state-as response
-                   (when (and (ajax/response? response)
-                              (ajax/response-ok? response))
-                     (dom/div
-                      {:style {:overflow "auto"}}
-                      (ds/padded-2
-                       (dom/h2 "Search Results")
-                       (display-search-results (ajax/response-value response))))
-                     ))))))))
+                     ;; continue with successful search results
+                     (c/with-state-as response
+                       (when (and (ajax/response? response)
+                                  (ajax/response-ok? response))
+                         (dom/div
+                          {:style {:overflow "auto"}}
+                          (ds/padded-2
+                           (dom/h2 "Search Results")
+                           (display-search-results (ajax/response-value response))))
+                         ))))))
+        (c/handle-action
+         (fn [st query]
+           (c/return :state (assoc st :last-query query)))))))
 
 (c/defn-item main []
   (c/isolate-state
