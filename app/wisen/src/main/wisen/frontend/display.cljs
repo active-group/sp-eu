@@ -17,7 +17,9 @@
 (defn- special-property? [property]
   (let [predicate (rdf/property-predicate property)
         uri (rdf/symbol-uri predicate)]
-    (some #{uri} ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"])))
+    (some #{uri} ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                  "http://schema.org/name"
+                  "http://schema.org/description"])))
 
 (defn pr-type [t]
   (let [uri (rdf/symbol-uri t)]
@@ -135,7 +137,8 @@
                               (assoc local-state :error (ajax/response-value response))]))))))))
 
 (defn predicate-component [pred]
-  (pr-predicate pred))
+  (dom/strong
+   (pr-predicate pred)))
 
 (declare node-component)
 
@@ -184,6 +187,14 @@
                (when (rdf/symbol? x)
                  (ds/padded-1
                   (load-more-button uri))))
+
+      (when-let [name (rdf/resource-name graph x)]
+        (ds/with-card-padding
+          (dom/div {:style {:font-size "2em"}}
+                   name)))
+
+      (when-let [description (rdf/resource-description graph x)]
+        (ds/with-card-padding description))
 
       (when-not (empty? lis)
         (ds/with-card-padding
