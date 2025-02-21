@@ -50,11 +50,9 @@
              :offer "<http://schema.org/Offer>"
              :event "<http://schema.org/Event>")]
     (str "CONSTRUCT { ?s ?p ?o .
-                      ?o ?p2 ?o2 .
                       ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " ty ".
                       ?s <http://schema.org/keywords> ?keywords . }
           WHERE { ?s ?p ?o .
-                  ?o ?p2 ?o2 .
                   ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " ty ".
                   ?s <http://schema.org/keywords> ?keywords .
                   FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\")) }")))
