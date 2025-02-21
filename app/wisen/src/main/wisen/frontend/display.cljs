@@ -25,29 +25,34 @@
       (dom/div (predicate-component (rdf/property-predicate property)))
       (dom/div {:style {:margin-left "2em"}} it))]))
 
+(defn resource-component [graph links x]
+  (let [link-here (rdf/symbol-uri x)
+        links* (assoc links (rdf/symbol-uri x) link-here)
+        [links** lis] (reduce (fn [[links its] prop]
+                                (let [[links* it] (property graph links prop)]
+                                  [links* (conj its it)]))
+                              [links* []]
+                              (rdf/subject-properties graph x))]
+    [links**
+     (dom/div
+      {:id link-here
+       :style {:border "1px solid gray"
+               :padding 12}}
+      (rdf/symbol-uri x)
+
+      (dom/button {:onclick ::TODO} "Load all properties")
+
+      (apply
+       dom/ul
+       lis))]))
+
 (defn node-component [graph links x]
   (cond
     (or (rdf/symbol? x)
         (rdf/blank-node? x))
     (if-let [link (get links (rdf/node-uri x))]
       [links (dom/a {:href (str "#" link)} "Go #")]
-      (let [link-here (rdf/symbol-uri x)
-            links* (assoc links (rdf/symbol-uri x) link-here)
-            [links** lis] (reduce (fn [[links its] prop]
-                                    (let [[links* it] (property graph links prop)]
-                                      [links* (conj its it)]))
-                                  [links* []]
-                                  (rdf/subject-properties graph x))]
-        [links**
-         (dom/div
-          {:id link-here
-           :style {:border "1px solid gray"
-                   :padding 12}}
-          (rdf/symbol-uri x)
-          (dom/button {:onclick ::TODO} "Load all properties")
-          (apply
-           dom/ul
-           lis))]))
+      (resource-component graph links x))
 
     (rdf/literal-string? x)
     [links (rdf/literal-string-value x)]
