@@ -9,10 +9,62 @@
             [wisen.frontend.rdf :as rdf]))
 
 ;; [ ] Fix links for confluences
-;; [ ] Load all properties
+;; [x] Load all properties
 ;; [ ] Focus
 ;; [ ] Patterns for special GUIs
 ;; [ ] Style
+
+(defn- special-property? [property]
+  (let [predicate (rdf/property-predicate property)
+        uri (rdf/symbol-uri predicate)]
+    (some #{uri} ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"])))
+
+(defn pr-type [t]
+  (let [uri (rdf/symbol-uri t)]
+    (case uri
+      "http://schema.org/GeoCoordinates"
+      "Geo coordinates"
+
+      "http://schema.org/GeoCircle"
+      "Geo circle"
+
+      "http://schema.org/Organization"
+      "Organization"
+
+      uri
+      )))
+
+(defn pr-predicate [p]
+  (let [uri (rdf/symbol-uri p)]
+    (case uri
+      "http://schema.org/name"
+      "Name"
+
+      "http://schema.org/email"
+      "E-Mail"
+
+      "http://schema.org/url"
+      "Website"
+
+      "http://schema.org/geo"
+      "The geo coordinates of the place"
+
+      "http://schema.org/description"
+      "Description"
+
+      "http://schema.org/keywords"
+      "Keywords"
+
+      "http://schema.org/areaServed"
+      "Area served"
+
+      "http://schema.org/latitude"
+      "Latitude"
+
+      "http://schema.org/longitude"
+      "Longitude"
+
+      uri)))
 
 (defn- triple-pattern* [current-level target-level]
   (if (> current-level target-level)
@@ -82,7 +134,7 @@
                               (assoc local-state :error (ajax/response-value response))]))))))))
 
 (defn predicate-component [pred]
-  (rdf/symbol-uri pred))
+  (pr-predicate pred))
 
 (declare node-component)
 
@@ -98,22 +150,40 @@
         link-here uri
         links* (assoc links uri link-here)
         [links** lis] (reduce (fn [[links its] prop]
-                                (let [[links* it] (property graph links prop)]
-                                  [links* (conj its it)]))
+                                (if (special-property? prop)
+                                  [links its]
+                                  (let [[links* it] (property graph links prop)]
+                                    [links* (conj its (dom/li it))])))
                               [links* []]
                               (rdf/subject-properties graph x))]
     [links**
-     (dom/div
-      {:id link-here
-       :style {:border "1px solid gray"
-               :padding 12}}
-      uri
+     (ds/card
+      {:id link-here}
+
+      ;; header
+      (dom/div {:style {:display "flex"
+                        :justify-content "space-between"
+                        :border-bottom ds/border}}
+
+               (ds/padded-1
+                {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
+                (if-let [type (rdf/resource-type graph x)]
+                  (pr-type type)
+                  "Resource"))
+
+               (ds/padded-1
+                {:style {:color "#555"
+                         :font-size "14px"}}
+                uri))
 
       (when (rdf/symbol? x)
         (load-more-button uri))
 
       (apply
        dom/ul
+       {:style {:display "flex"
+                :flex-direction "column"
+                :gap "2ex"}}
        lis))]))
 
 (defn node-component [graph links x]

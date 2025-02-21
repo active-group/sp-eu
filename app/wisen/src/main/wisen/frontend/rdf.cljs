@@ -128,3 +128,12 @@
 
     (collection? x)
     (pr-str x)))
+
+;; shorthands
+
+(defn resource-type [graph res]
+  (first
+   (subject-predicate-objects
+    graph
+    res
+    (make-symbol "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"))))
