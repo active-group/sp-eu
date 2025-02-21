@@ -1,5 +1,6 @@
 (ns wisen.backend.triple-store
   (:require [wisen.backend.core :as core]
+            [wisen.backend.jsonld]
             [wisen.backend.skolem :as skolem])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
@@ -92,14 +93,14 @@
      (.add replaced-model replacing-model))))
 
 (defn- populate! [model]
-  (let [hirsch (.createResource model (str core/*base* "/resource/186fe001-7291-417e-ad9c-58fa6a8240bb"))
-        _ (.addProperty hirsch SchemaDO/name "Hirsch Begegnungsstätte für Ältere e.V.")
-        _ (.addProperty hirsch SchemaDO/email "hirsch-begegnung@t-online.de")
-        stadtseniorenrat (.createResource model (str core/*base* "/resource/b87eb15d-b1e8-4a63-a5ab-3661626ab32f"))
-        _ (.addProperty stadtseniorenrat SchemaDO/name "Stadtseniorenrat Tübingen e.V.")
-        _ (.addProperty stadtseniorenrat SchemaDO/email "info@stadtseniorenrat-tuebingen.de")
-        _ (.addProperty stadtseniorenrat SchemaDO/url "https://www.stadtseniorenrat-tuebingen.de")]
-    model))
+  (let [mdl (wisen.backend.jsonld/json-ld-string->model
+             "{\"@id\": \"http://example.org/hurnson\",
+     \"@type\": \"http://schema.org/Organization\",
+     \"http://schema.org/name\": \"foobsbla\",
+     \"http://schema.org/keywords\": \"education, fun, play\",
+     \"http://schema.org/areaServed\":
+        {\"@type\": \"http://schema.org/GeoCircle\", \"http://schema.org/geoMidpoint\": {\"@type\": \"http://schema.org/GeoCoordinates\", \"http://schema.org/latitude\": 48, \"http://schema.org/longitude\": 9}}}")]
+    (add-model! model mdl)))
 
 (def dbname "devdb")
 
