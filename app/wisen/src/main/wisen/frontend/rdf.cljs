@@ -76,6 +76,19 @@
 (defn blank-node? [x]
   (instance? rdflib/BlankNode x))
 
+(defn blank-node-uri [x]
+  (.-value x))
+
+(defn node-uri [x]
+  (assert (or (symbol? x)
+              (blank-node? x)))
+  (cond
+    (symbol? x)
+    (symbol-uri x)
+
+    (blank-node? x)
+    (blank-node-uri x)))
+
 (defn make-literal-string [string]
   (rdflib/literal string))
 

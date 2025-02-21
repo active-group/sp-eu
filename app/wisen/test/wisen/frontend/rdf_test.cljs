@@ -12,6 +12,40 @@
                        "foaf:knows" {"@id" "http://example.org/bob"
                                      "foaf:name" "Bob"}})))
 
+(def jsonld-2
+  "{
+    \"@graph\": [
+        {
+            \"@id\": \"_:b0\",
+            \"http://schema.org/geoMidpoint\": {
+                \"@id\": \"_:b1\"
+            },
+            \"@type\": \"http://schema.org/GeoCircle\"
+        },
+        {
+            \"@id\": \"_:b2\",
+            \"http://schema.org/geoMidpoint\": {
+                \"@id\": \"_:b3\"
+            },
+            \"@type\": \"http://schema.org/GeoCircle\"
+        },
+        {
+            \"@id\": \"http://example.org/hurnson\",
+            \"http://schema.org/areaServed\": [
+                {
+                    \"@id\": \"_:b0\"
+                },
+                {
+                    \"@id\": \"_:b2\"
+                }
+            ],
+            \"http://schema.org/keywords\": \"education, fun, play\",
+            \"@type\": \"http://schema.org/Organization\"
+        }
+    ]
+}
+")
+
 (def g (rdf/json-ld-string->graph-promise jsonld))
 
 (deftest types-test
@@ -43,6 +77,10 @@
              (testing "subjects"
                (is (= '("http://example.org/alice" "http://example.org/bob")
                       (map rdf/symbol-uri (rdf/subjects g)))))
+
+             (testing "roots"
+               (is (= '("http://example.org/alice")
+                      (map rdf/symbol-uri (rdf/roots g)))))
 
              (testing "subject-properties"
                (let [props (rdf/subject-properties g (rdf/make-symbol "http://example.org/alice"))]
