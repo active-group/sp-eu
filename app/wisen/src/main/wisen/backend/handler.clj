@@ -125,7 +125,16 @@
                              :src "/js/main.js"
                              :charset "UTF-8"}]]])})
 
+(defn- wrap-caching [handler default]
+  (fn [request]
+    (let [response (handler request)]
+      (when response
+        (update-in response [:headers "cache-control"]
+                   (fn [v]
+                     (or v default)))))))
+
 (def handler
   (-> handler*
       (ring.middleware.resource/wrap-resource "/")
+      (wrap-caching "max-age=0")
       (pages.ring/wrap-client-routes frontend.routes/routes client-response)))
