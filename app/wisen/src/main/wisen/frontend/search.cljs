@@ -1,6 +1,7 @@
 (ns wisen.frontend.search
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
+            [active.data.record :as record :refer-macros [def-record]]
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
@@ -11,6 +12,17 @@
             [wisen.frontend.rdf :as rdf]
             ["jsonld" :as jsonld]))
 
+(def-record focus-query-action
+  [focus-query-action-query])
+
+(defn make-focus-query-action [q]
+  (focus-query-action focus-query-action-query q))
+
+(def-record expand-by-query-action
+  [expand-by-query-action-query])
+
+(defn make-expand-by-query-action [q]
+  (expand-by-query-action expand-by-query-action-query q))
 
 (c/defn-item query-form "has no public state" []
   (c/isolate-state
@@ -18,7 +30,7 @@
    (forms/form {:style {:margin 0}
                 :onSubmit (fn [state event]
                             (.preventDefault event)
-                            (c/return :action state :state ""))}
+                            (c/return :action (make-focus-query-action state) :state ""))}
                (dom/div
                 {:style {:display "flex"
                          :gap "16px"}}
@@ -30,7 +42,7 @@
                                       :border-radius "20px"}})
                 (dom/button "Search")))))
 
-(defn search-request [query]
+(defn sparql-request [query]
   (-> (ajax/POST "/api/search"
                  {:body (js/JSON.stringify (clj->js {:query query}))
                   :headers {:content-type "application/json"}
@@ -38,10 +50,6 @@
       #_(ajax/map-ok-response
        (fn [body]
          (js/JSON.parse body)))))
-
-(c/defn-item display-search-results [json-string]
-  (promise/call-with-promise-result (rdf/json-ld-string->graph-promise json-string)
-                                    display/readonly))
 
 (defn quick-search->sparql [m]
   (let [ty (case (:type m)
@@ -64,7 +72,8 @@
                    (forms/form
                     {:onSubmit (fn [state event]
                                  (.preventDefault event)
-                                 (c/return :action (quick-search->sparql state)))
+                                 (c/return :action (make-focus-query-action
+                                                    (quick-search->sparql state))))
                      :style {:display "flex"
                              :gap "16px"}}
                     (dom/div "I'm looking for ")
@@ -95,42 +104,89 @@
 
                     (dom/button {:type "submit"} "Search"))))
 
+(defn run-query [q]
+  (c/isolate-state
+   nil
+   (c/fragment
+    (ajax/fetch (sparql-request q))
+
+    (c/with-state-as response
+      (when (ajax/response? response)
+        (if (ajax/response-ok? response)
+          (promise/call-with-promise-result
+           (rdf/json-ld-string->graph-promise (ajax/response-value response))
+           (fn [response-graph]
+             (c/once
+              (fn [_]
+                (c/return :action (ajax/ok-response response-graph))))))
+          (c/once
+           (fn [_]
+             (c/return :action response)))))))))
+
 (c/defn-item main* []
   (c/with-state-as state
-    (-> (dom/div
-         {:style {:display "flex"
-                  :flex-direction "column"
-                  :overflow "auto"}}
+    (c/fragment
 
-         (ds/padded-2
-          {:style {:border-bottom ds/border}}
-          (dom/div
-           (query-form)
-           (quick-search)))
+     ;; may trigger queries
+     (-> (dom/div
+          {:style {:display "flex"
+                   :flex-direction "column"
+                   :overflow "auto"}}
 
-         ;; perform search queries
-         (when-let [last-query (:last-query state)]
-           (c/focus (lens/>> :results
-                             (lens/member last-query))
-                    (c/fragment
-                     (ajax/fetch (search-request last-query))
+          (ds/padded-2
+           {:style {:border-bottom ds/border}}
+           (dom/div
+            (query-form)
+            (quick-search))
 
-                     ;; continue with successful search results
-                     (c/with-state-as response
-                       (when (and (ajax/response? response)
-                                  (ajax/response-ok? response))
-                         (dom/div
-                          {:style {:overflow "auto"}}
-                          (ds/padded-2
-                           (dom/h2 "Search Results")
-                           (display-search-results (ajax/response-value response))))
-                         ))))))
-        (c/handle-action
-         (fn [st query]
-           (c/return :state (assoc st :last-query query)))))))
+           ;; display when we have a graph
+           (when-let [graph (:graph state)]
+             (display/readonly graph make-focus-query-action make-expand-by-query-action))
+           ))
+
+         (c/handle-action
+          (fn [st ac]
+            (cond
+              (record/is-a? focus-query-action ac)
+              (c/return :state (assoc st :last-focus-query (focus-query-action-query ac)))
+
+              (record/is-a? expand-by-query-action ac)
+              (c/return :state (assoc st :last-expand-by-query (expand-by-query-action-query ac)))
+
+              :else
+              (c/return :action ac)))))
+
+     ;; perform focus query
+     (when-let [last-focus-query (:last-focus-query state)]
+       (-> (run-query last-focus-query)
+           (c/handle-action (fn [st ac]
+                              ;; TODO: error handling
+                              (if (and (ajax/response? ac)
+                                       (ajax/response-ok? ac))
+                                (c/return :state
+                                          (-> st
+                                              (assoc :graph (ajax/response-value ac))
+                                              (dissoc :last-focus-query)))
+                                (c/return :action ac))))))
+
+     ;; perform expand-by query
+     (when-let [last-expand-by-query (:last-expand-by-query state)]
+       (-> (run-query last-expand-by-query)
+           (c/handle-action (fn [st ac]
+                              ;; TODO: error handling
+                              (if (and (ajax/response? ac)
+                                       (ajax/response-ok? ac))
+                                (c/return :state
+                                          (-> st
+                                              (update :graph
+                                                      (fn [g]
+                                                        (rdf/merge g (ajax/response-value ac))))
+                                              (dissoc :last-expand-by-query)))
+                                (c/return :action ac)))))))))
 
 (c/defn-item main []
   (c/isolate-state
-   {:last-query nil
-    :results {}}
+   {:last-focus-query nil
+    :last-expand-by-query nil
+    :graph nil}
    (main*)))
