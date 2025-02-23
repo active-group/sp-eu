@@ -129,6 +129,19 @@
     (collection? x)
     (pr-str x)))
 
+(defn make-statement [s p o]
+  (rdflib/Statement. s p o))
+
+(defn statement? [x]
+  (instance? rdflib/Statement x))
+
+;; ---
+
+(defn statements->graph [stmts]
+  (let [g (rdflib/graph)]
+    (.addAll g (clj->js stmts))
+    g))
+
 ;; shorthands
 
 (defn resource-type [graph res]

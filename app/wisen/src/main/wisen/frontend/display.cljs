@@ -6,7 +6,8 @@
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.promise :as promise]
             [wisen.frontend.design-system :as ds]
-            [wisen.frontend.rdf :as rdf]))
+            [wisen.frontend.rdf :as rdf]
+            [wisen.frontend.tree :as tree]))
 
 ;; [ ] Fix links for confluences
 ;; [x] Load all properties
@@ -15,58 +16,55 @@
 ;; [x] Style
 
 (defn- special-property? [property]
-  (let [predicate (rdf/property-predicate property)
-        uri (rdf/symbol-uri predicate)]
-    (some #{uri} ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                  "http://schema.org/name"
-                  "http://schema.org/description"])))
+  (let [predicate (tree/property-predicate property)]
+    (some #{predicate} ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                        "http://schema.org/name"
+                        "http://schema.org/description"])))
 
 (defn pr-type [t]
-  (let [uri (rdf/symbol-uri t)]
-    (case uri
-      "http://schema.org/GeoCoordinates"
-      "Geo coordinates"
+  (case t
+    "http://schema.org/GeoCoordinates"
+    "Geo coordinates"
 
-      "http://schema.org/GeoCircle"
-      "Geo circle"
+    "http://schema.org/GeoCircle"
+    "Geo circle"
 
-      "http://schema.org/Organization"
-      "Organization"
+    "http://schema.org/Organization"
+    "Organization"
 
-      uri
-      )))
+    t
+    ))
 
 (defn pr-predicate [p]
-  (let [uri (rdf/symbol-uri p)]
-    (case uri
-      "http://schema.org/name"
-      "Name"
+  (case p
+    "http://schema.org/name"
+    "Name"
 
-      "http://schema.org/email"
-      "E-Mail"
+    "http://schema.org/email"
+    "E-Mail"
 
-      "http://schema.org/url"
-      "Website"
+    "http://schema.org/url"
+    "Website"
 
-      "http://schema.org/geo"
-      "The geo coordinates of the place"
+    "http://schema.org/geo"
+    "The geo coordinates of the place"
 
-      "http://schema.org/description"
-      "Description"
+    "http://schema.org/description"
+    "Description"
 
-      "http://schema.org/keywords"
-      "Keywords"
+    "http://schema.org/keywords"
+    "Keywords"
 
-      "http://schema.org/areaServed"
-      "Area served"
+    "http://schema.org/areaServed"
+    "Area served"
 
-      "http://schema.org/latitude"
-      "Latitude"
+    "http://schema.org/latitude"
+    "Latitude"
 
-      "http://schema.org/longitude"
-      "Longitude"
+    "http://schema.org/longitude"
+    "Longitude"
 
-      uri)))
+    p))
 
 (defn- triple-pattern* [current-level target-level]
   (if (> current-level target-level)
@@ -142,108 +140,123 @@
   (dom/strong
    (pr-predicate pred)))
 
-(declare node-component)
+(declare tree-component)
 
-(defn property [graph links property]
-  (let [[links* it] (node-component graph links (rdf/property-object property))]
-    [links*
-     (dom/div
-      (dom/div (predicate-component (rdf/property-predicate property)))
-      (dom/div {:style {:margin-left "0em"
-                        :margin-top "1ex"
-                        :display "flex"}} it))]))
+(defn property-component [prop]
+  (dom/div
+   (dom/div (predicate-component (tree/property-predicate prop)))
+   (dom/div {:style {:margin-left "0em"
+                     :margin-top "1ex"
+                     :display "flex"}}
+            (tree-component (tree/property-object prop)))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
           WHERE { <" uri "> ?p ?o . }"))
 
-(defn resource-component [graph links x]
-  (let [uri (rdf/node-uri x)
-        link-here uri
-        links* (assoc links uri link-here)
-        [links** lis] (reduce (fn [[links its] prop]
-                                (if (special-property? prop)
-                                  [links its]
-                                  (let [[links* it] (property graph links prop)]
-                                    [links* (conj its (dom/li it))])))
-                              [links* []]
-                              (rdf/subject-properties graph x))]
-    [links**
-     (ds/card
-      {:id link-here}
+(defn- node-type [node]
+  (some (fn [prop]
+          (when (= (tree/property-predicate prop)
+                   "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+            (let [obj (tree/property-object prop)]
+              (when (tree/node? obj)
+                (tree/node-uri obj)))))
+        (tree/node-properties node)))
 
-      ;; header
-      (dom/div {:style {:display "flex"
-                        :justify-content "flex-start"
-                        :align-items "center"
-                        :background "rgba(0,0,0,0.1)"}}
+(defn- node-name [node]
+  (some (fn [prop]
+          (when (= (tree/property-predicate prop)
+                   "http://schema.org/name")
+            (let [obj (tree/property-object prop)]
+              (when (tree/literal-string? obj)
+                (tree/literal-string-value obj)))))
+        (tree/node-properties node)))
 
-               (when (rdf/symbol? x)
-                 (ds/padded-1
-                  (load-more-button uri)))
+(defn- node-description [node]
+  (some (fn [prop]
+          (when (= (tree/property-predicate prop)
+                   "http://schema.org/description")
+            (let [obj (tree/property-object prop)]
+              (when (tree/literal-string? obj)
+                (tree/literal-string-value obj)))))
+        (tree/node-properties node)))
 
-               (dom/div
-                (ds/padded-1
-                 {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
-                 (if-let [type (rdf/resource-type graph x)]
-                   (pr-type type)
-                   "Resource"))
+(defn- node-component [node]
+  (let [uri (tree/node-uri node)
+        lis (mapcat (fn [prop]
+                      (if (special-property? prop)
+                        []
+                        [(dom/li
+                          (property-component prop))]))
+                    (tree/node-properties node))]
+    (ds/card
+     {:id uri}
 
-                (ds/padded-1
-                 {:style {:color "#555"
-                          :font-size "12px"}}
-                 uri))
+     ;; header
+     (dom/div {:style {:display "flex"
+                       :justify-content "flex-start"
+                       :align-items "center"
+                       :background "rgba(0,0,0,0.1)"}}
+
+              (ds/padded-1
+               (load-more-button uri))
+
+              (dom/div
+               (ds/padded-1
+                {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
+                (if-let [type (node-type node)]
+                  (pr-type type)
+                  "Resource"))
+
 
                (ds/padded-1
-                (dom/button {:onClick
-                             (fn [_]
-                               (c/return :action
-                                         (focus-query uri)))}
-                                        "Focus")))
+                {:style {:color "#555"
+                         :font-size "12px"}}
+                uri))
 
-      (when-let [name (rdf/resource-name graph x)]
-        (ds/with-card-padding
-          (dom/div {:style {:font-size "2em"}}
-                   name)))
+              (ds/padded-1
+               (dom/button {:onClick
+                            (fn [_]
+                              (c/return :action
+                                        (focus-query uri)))}
+                           "Focus")))
 
-      (when-let [description (rdf/resource-description graph x)]
-        (ds/with-card-padding description))
+     (when-let [name (node-name node)]
+       (ds/with-card-padding
+         (dom/div {:style {:font-size "2em"}}
+                  name)))
 
-      (when-not (empty? lis)
-        (ds/with-card-padding
-          (apply
-           dom/ul
-           {:style {:display "flex"
-                    :flex-direction "column"
-                    :gap "2ex"}}
-           lis))))]))
+     (when-let [description (node-description node)]
+         (ds/with-card-padding description))
 
-(defn node-component [graph links x]
+     (when-not (empty? lis)
+       (ds/with-card-padding
+         (apply
+          dom/ul
+          {:style {:display "flex"
+                   :flex-direction "column"
+                   :gap "2ex"}}
+          lis))))))
+
+(defn tree-component [tree]
   (cond
-    (or (rdf/symbol? x)
-        (rdf/blank-node? x))
-    (if-let [link (get links (rdf/node-uri x))]
-      [links (dom/a {:href (str "#" link)} "Go #")]
-      (resource-component graph links x))
+    (tree/node? tree)
+    (node-component tree)
 
-    (rdf/literal-string? x)
-    [links (rdf/literal-string-value x)]
+    (tree/literal-string? tree)
+    (tree/literal-string-value tree)
 
-    (rdf/collection? x)
-    [links (pr-str x)]))
+    (tree/ref? tree)
+    (dom/div "REF: " (tree/ref-uri tree))))
+
+(c/defn-item main* []
+  (c/with-state-as trees
+    (apply
+     dom/div
+     (map tree-component trees))))
 
 (defn main []
-  (c/with-state-as graph
-    (dom/div
-     #_(pr-str graph)
-     (dom/hr)
-     (apply
-      dom/div
-      (second (reduce (fn [[links its] x]
-                        (let [[links* it] (node-component graph links x)]
-                          [links* (conj its it)]))
-                      [{} []]
-                      (rdf/roots graph)))))))
+  (c/focus tree/graph<->trees (main*)))
 
 (defn readonly [graph]
   (c/isolate-state graph (main)))
