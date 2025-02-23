@@ -7,13 +7,20 @@
             [wisen.frontend.promise :as promise]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
-            [wisen.frontend.tree :as tree]))
+            [wisen.frontend.tree :as tree]
+            [active.data.record :as record :refer-macros [def-record]]))
 
 ;; [ ] Fix links for confluences
 ;; [x] Load all properties
 ;; [x] Focus
 ;; [ ] Patterns for special GUIs
 ;; [x] Style
+
+(def-record focus-query-action
+  [focus-query-action-query])
+
+(def-record expand-by-query-action
+  [expand-by-query-action-query])
 
 (defn- special-property? [property]
   (let [predicate (tree/property-predicate property)]
@@ -66,75 +73,18 @@
 
     p))
 
-(defn- triple-pattern* [current-level target-level]
-  (if (> current-level target-level)
-    ""
-    (str (str "?x" current-level " ?p" current-level " ?x" (inc current-level) " .")
-         "\n"
-         (triple-pattern* (inc current-level) target-level))))
-
-(defn- triple-pattern [level]
-  (triple-pattern* 1 level))
-
-(defn- load-more-query [uri level]
-  (str "CONSTRUCT { <" uri "> ?p ?x1 .
-                   " (triple-pattern level) " }
-          WHERE { <" uri "> ?p ?x1 .
-                  " (triple-pattern level) " }"))
-
-(load-more-query "foobar" 2)
-
-(defn- load-more-request [uri level]
-  (ajax/POST "/api/search"
-                 {:body (js/JSON.stringify (clj->js {:query (load-more-query uri level)}))
-                  :headers {:content-type "application/json"}
-                  #_#_:response-format "application/ld+json"}))
-
-(defn- load-more [uri level]
-  (c/with-state-as [state response :local nil]
-    (c/fragment
-     (c/focus lens/second
-              (ajax/fetch (load-more-request uri level)))
-
-     (when (ajax/response? response)
-       (if (ajax/response-ok? response)
-         (promise/call-with-promise-result
-          (rdf/json-ld-string->graph-promise (ajax/response-value response))
-          (fn [response-graph]
-            (c/once
-             (fn [_]
-               (c/return :action (ajax/ok-response response-graph))))))
-         (c/once
-          (fn [_]
-            (c/return :action response))))))))
+(defn- load-more-query [uri]
+  (str "CONSTRUCT { <" uri "> ?p ?x1 . }
+          WHERE { <" uri "> ?p ?x1 . }"))
 
 (defn- load-more-button [uri]
-  (c/with-state-as [graph local-state :local {:go false
-                                              :level 0
-                                              :error nil}]
-    (c/fragment
-     (c/focus (lens/>> lens/second :go)
-              (dom/button {:style {}
-                           :onclick (constantly true)} (if (> (:level local-state) 0)
-                                                         "v"
-                                                         ">")))
-
-     (when-let [error (:error local-state)]
-       (dom/div
-        "Oh no, an error occurred"
-        (dom/div (pr-str error))))
-
-     (when (:go local-state)
-       (c/handle-action
-        (load-more uri (:level local-state))
-        (fn [[graph local-state] response]
-          (if (ajax/response-ok? response)
-            (c/return :state [(rdf/merge graph (ajax/response-value response))
-                              (-> local-state
-                                  (assoc :go false)
-                                  (update :level inc))])
-            (c/return :state [graph
-                              (assoc local-state :error (ajax/response-value response))]))))))))
+  (dom/button
+   {:style {}
+    :onclick (fn [_]
+               (c/return :action
+                         (expand-by-query-action expand-by-query-action-query
+                                                 (load-more-query uri))))}
+   (if ::TODO "v" ">")))
 
 (defn predicate-component [pred]
   (dom/strong
@@ -218,7 +168,8 @@
                (dom/button {:onClick
                             (fn [_]
                               (c/return :action
-                                        (focus-query uri)))}
+                                        (focus-query-action focus-query-action-query
+                                                            (focus-query uri))))}
                            "Focus")))
 
      (when-let [name (node-name node)]
@@ -255,8 +206,20 @@
      dom/div
      (map tree-component trees))))
 
-(defn main []
-  (c/focus tree/graph<->trees (main*)))
+(defn main [make-focus-query-action make-expand-by-query-action]
+  (c/handle-action
+   (c/focus tree/graph<->trees (main*))
+   (fn [_ ac]
+     (c/return :action
+               (cond
+                 (record/is-a? focus-query-action ac)
+                 (make-focus-query-action (focus-query-action-query ac))
 
-(defn readonly [graph]
-  (c/isolate-state graph (main)))
+                 (record/is-a? expand-by-query-action ac)
+                 (make-expand-by-query-action (expand-by-query-action-query ac))
+
+                 :else
+                 ac)))))
+
+(defn readonly [graph make-focus-query-action make-expand-by-query-action]
+  (c/isolate-state graph (main make-focus-query-action make-expand-by-query-action)))
