@@ -1,0 +1,13 @@
+* No blank nodes
+
+RDF allows for blank nodes, i.e. nodes without a global
+identifier. These blank nodes are problematic in many use cases,
+especially for updates. E.g. if have a blank node with a property
+"latitude: 48", and the user wants to change this to "latitude: 49",
+we have no way of knowing whether the user wants to create a new blank
+node with the updates property or she wants to update the existing
+property.
+
+Ramifications:
+- The frontend has to generate IDs. We use UUIDs for that.
+- The backend may want to skolemize on ingress.
