@@ -1,4 +1,4 @@
-(ns wisen.frontend.display
+(ns wisen.frontend.editor
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]

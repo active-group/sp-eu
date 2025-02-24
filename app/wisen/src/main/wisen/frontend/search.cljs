@@ -6,7 +6,7 @@
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.promise :as promise]
-            [wisen.frontend.display :as display]
+            [wisen.frontend.editor :as editor]
             [wisen.frontend.routes :as routes]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
@@ -141,7 +141,7 @@
 
            ;; display when we have a graph
            (when-let [graph (:graph state)]
-             (display/readonly graph make-focus-query-action make-expand-by-query-action))
+             (editor/readonly graph make-focus-query-action make-expand-by-query-action))
            ))
 
          (c/handle-action
