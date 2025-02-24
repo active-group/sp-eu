@@ -38,6 +38,22 @@
 (def-record node [node-uri :- URI
                   node-properties :- (realm/sequence-of property)])
 
+(defn node-object-for-predicate [predicate]
+  (fn
+    ([node]
+     (some (fn [prop]
+             (when (= (property-predicate prop) predicate)
+               (property-object prop)))
+           (node-properties node)))
+    ([node new-object]
+     (lens/overhaul node node-properties
+                    (fn [props]
+                      (map (fn [prop]
+                             (if (= (property-predicate prop) predicate)
+                               (property-object prop new-object)
+                               prop))
+                           props))))))
+
 (defn node? [x]
   (record/is-a? node x))
 
