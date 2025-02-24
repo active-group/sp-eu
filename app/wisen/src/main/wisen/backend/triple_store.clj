@@ -1,7 +1,8 @@
 (ns wisen.backend.triple-store
   (:require [wisen.backend.core :as core]
             [wisen.backend.jsonld]
-            [wisen.backend.skolem :as skolem])
+            [wisen.backend.skolem :as skolem]
+            [wisen.common.change-api :as change-api])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -91,6 +92,43 @@
    (let [replaced-model (run-construct-query! base-model base-query)]
      (.deleteAll replaced-model)
      (.add replaced-model replacing-model))))
+
+(defn unpack-statement [^Model model stmt]
+  (let [obj (change-api/statement-object stmt)
+        s (.createResource model (change-api/statement-subject stmt))
+        p (.createProperty model (change-api/statement-predicate stmt))
+        o (cond
+            (change-api/literal-string? obj)
+            (change-api/literal-string-value obj)
+            (change-api/uri? obj)
+            (change-api/uri-value obj))]
+    (.createStatement ^Model model s p o)))
+
+(defn edit-model!
+  ([changes]
+   (with-write-model!
+     (fn [base-model]
+       (edit-model! base-model changes))))
+  ([base-model changes]
+   (let [additions (filter change-api/add? changes)
+         deletions (filter change-api/delete? changes)]
+     (.remove base-model
+              (map (fn [deletion]
+                     (unpack-statement base-model (change-api/delete-statement deletion)))
+                   deletions))
+     (.add base-model
+           (map (fn [addition]
+                  (unpack-statement base-model (change-api/add-statement addition)))
+                additions)))))
+
+#_(edit-model! [(change-api/delete change-api/delete-statement
+                                 (change-api/statement change-api/statement-subject "http://subject.com"
+                                                       change-api/statement-predicate "http://predicate.com"
+                                                       change-api/statement-object "http://object.com"))
+              (change-api/add change-api/add-statement
+                              (change-api/statement change-api/statement-subject "http://subject.com"
+                                                    change-api/statement-predicate "http://predicate.com"
+                                                    change-api/statement-object "http://object2.com"))])
 
 (defn- populate! [model]
   (let [mdl (wisen.backend.jsonld/json-ld-string->model

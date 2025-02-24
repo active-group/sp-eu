@@ -10,7 +10,9 @@
             [wisen.frontend.routes :as frontend.routes]
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.resource :as r]
-            [wisen.backend.jsonld :as jsonld])
+            [wisen.backend.jsonld :as jsonld]
+            [clojure.edn :as edn]
+            [wisen.common.change-api :as change-api])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
