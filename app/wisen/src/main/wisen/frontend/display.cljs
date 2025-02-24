@@ -92,13 +92,15 @@
 
 (declare tree-component)
 
-(defn property-component [prop]
-  (dom/div
-   (dom/div (predicate-component (tree/property-predicate prop)))
-   (dom/div {:style {:margin-left "0em"
-                     :margin-top "1ex"
-                     :display "flex"}}
-            (tree-component (tree/property-object prop)))))
+(c/defn-item property-component []
+  (c/with-state-as prop
+    (dom/div
+     (dom/div (predicate-component (tree/property-predicate prop)))
+     (dom/div {:style {:margin-left "0em"
+                       :margin-top "1ex"
+                       :display "flex"}}
+              (c/focus tree/property-object
+                       (tree-component))))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
@@ -131,80 +133,88 @@
                 (tree/literal-string-value obj)))))
         (tree/node-properties node)))
 
-(defn- node-component [node]
-  (let [uri (tree/node-uri node)
-        lis (mapcat (fn [prop]
-                      (if (special-property? prop)
-                        []
-                        [(dom/li
-                          (property-component prop))]))
-                    (tree/node-properties node))]
-    (ds/card
-     {:id uri}
+(defn- node-component []
+  (println "node-component")
+  (c/with-state-as node
+    (let [uri (tree/node-uri node)]
+      (ds/card
+       {:id uri}
 
-     ;; header
-     (dom/div {:style {:display "flex"
-                       :justify-content "flex-start"
-                       :align-items "center"
-                       :background "rgba(0,0,0,0.1)"}}
+       ;; header
+       (dom/div {:style {:display "flex"
+                         :justify-content "flex-start"
+                         :align-items "center"
+                         :background "rgba(0,0,0,0.1)"}}
 
-              (ds/padded-1
-               (load-more-button uri))
+                (ds/padded-1
+                 (load-more-button uri))
 
-              (dom/div
-               (ds/padded-1
-                {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
-                (if-let [type (node-type node)]
-                  (pr-type type)
-                  "Resource"))
+                (dom/div
+                 (ds/padded-1
+                  {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
+                  (if-let [type (node-type node)]
+                    (pr-type type)
+                    "Resource"))
 
 
-               (ds/padded-1
-                {:style {:color "#555"
-                         :font-size "12px"}}
-                uri))
+                 (ds/padded-1
+                  {:style {:color "#555"
+                           :font-size "12px"}}
+                  uri))
 
-              (ds/padded-1
-               (dom/button {:onClick
-                            (fn [_]
-                              (c/return :action
-                                        (focus-query-action focus-query-action-query
-                                                            (focus-query uri))))}
-                           "Focus")))
+                (ds/padded-1
+                 (dom/button {:onClick
+                              (fn [_]
+                                (c/return :action
+                                          (focus-query-action focus-query-action-query
+                                                              (focus-query uri))))}
+                             "Focus")))
 
-     (when-let [name (node-name node)]
-       (ds/with-card-padding
-         (dom/div {:style {:font-size "2em"}}
-                  name)))
+       (when-let [name (node-name node)]
+         (ds/with-card-padding
+           (dom/div {:style {:font-size "2em"}}
+                    name)))
 
-     (when-let [description (node-description node)]
+       (when-let [description (node-description node)]
          (ds/with-card-padding description))
 
-     (when-not (empty? lis)
-       (ds/with-card-padding
-         (apply
-          dom/ul
-          {:style {:display "flex"
-                   :flex-direction "column"
-                   :gap "2ex"}}
-          lis))))))
+       (let [props (tree/node-properties node)]
+         (when-not (empty? props)
+           (c/focus tree/node-properties
+                    (ds/with-card-padding
+                      (apply
+                       dom/ul
+                       {:style {:display "flex"
+                                :flex-direction "column"
+                                :gap "2ex"}}
+                       (map-indexed (fn [idx prop]
+                                      (when-not (special-property? prop)
+                                        (dom/li
+                                         (c/focus (lens/at-index idx)
+                                                  (property-component)))))
+                                    props))))))))))
 
-(defn tree-component [tree]
-  (cond
-    (tree/node? tree)
-    (node-component tree)
+(defn tree-component []
+  (c/with-state-as tree
+    (cond
+      (tree/node? tree)
+      (node-component)
 
-    (tree/literal-string? tree)
-    (tree/literal-string-value tree)
+      (tree/literal-string? tree)
+      (c/focus tree/literal-string-value
+               (forms/input))
 
-    (tree/ref? tree)
-    (dom/div "REF: " (tree/ref-uri tree))))
+      (tree/ref? tree)
+      (dom/div "REF: " (tree/ref-uri tree)))))
 
 (c/defn-item main* []
   (c/with-state-as trees
     (apply
      dom/div
-     (map tree-component trees))))
+     (map-indexed (fn [idx _]
+                    (c/focus (lens/at-index idx)
+                             (tree-component)))
+                  trees))))
 
 (defn main [make-focus-query-action make-expand-by-query-action]
   (c/handle-action
