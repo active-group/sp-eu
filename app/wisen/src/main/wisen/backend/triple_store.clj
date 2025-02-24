@@ -93,16 +93,28 @@
      (.deleteAll replaced-model)
      (.add replaced-model replacing-model))))
 
-(defn unpack-statement [^Model model stmt]
+(defn add-statement! [^Model model stmt]
   (let [obj (change-api/statement-object stmt)
         s (.createResource model (change-api/statement-subject stmt))
         p (.createProperty model (change-api/statement-predicate stmt))
         o (cond
             (change-api/literal-string? obj)
-            (change-api/literal-string-value obj)
+            (.createLiteral model (change-api/literal-string-value obj))
             (change-api/uri? obj)
-            (change-api/uri-value obj))]
-    (.createStatement ^Model model s p o)))
+            (.createResource model (change-api/uri-value obj)))]
+    (.add ^Model model s p o)))
+
+(defn remove-statement! [^Model model stmt]
+  (println "remove-statement! " (pr-str stmt))
+  (let [obj (change-api/statement-object stmt)
+        s (.createResource model (change-api/statement-subject stmt))
+        p (.createProperty model (change-api/statement-predicate stmt))
+        o (cond
+            (change-api/literal-string? obj)
+            (.createLiteral model (change-api/literal-string-value obj))
+            (change-api/uri? obj)
+            (.createResource model (change-api/uri-value obj)))]
+    (.remove ^Model model s p o)))
 
 (defn edit-model!
   ([changes]
@@ -112,23 +124,23 @@
   ([base-model changes]
    (let [additions (filter change-api/add? changes)
          deletions (filter change-api/delete? changes)]
-     (.remove base-model
-              (map (fn [deletion]
-                     (unpack-statement base-model (change-api/delete-statement deletion)))
-                   deletions))
-     (.add base-model
-           (map (fn [addition]
-                  (unpack-statement base-model (change-api/add-statement addition)))
-                additions)))))
+
+     (doall
+      (for [addition additions]
+        (add-statement! base-model (change-api/add-statement addition))))
+
+     (doall
+      (for [deletion deletions]
+        (remove-statement! base-model (change-api/delete-statement deletion)))))))
 
 #_(edit-model! [(change-api/delete change-api/delete-statement
                                  (change-api/statement change-api/statement-subject "http://subject.com"
                                                        change-api/statement-predicate "http://predicate.com"
-                                                       change-api/statement-object "http://object.com"))
+                                                       change-api/statement-object (change-api/make-literal-string "http://object3.com")))
               (change-api/add change-api/add-statement
                               (change-api/statement change-api/statement-subject "http://subject.com"
                                                     change-api/statement-predicate "http://predicate.com"
-                                                    change-api/statement-object "http://object2.com"))])
+                                                    change-api/statement-object (change-api/make-literal-string "http://object4.com")))])
 
 (defn- populate! [model]
   (let [mdl (wisen.backend.jsonld/json-ld-string->model
@@ -142,7 +154,7 @@
          \"@id\": \"http://example.org/hirschAreaServed\",
          \"http://schema.org/geoMidpoint\": {\"@type\": \"http://schema.org/GeoCoordinates\",
                                              \"@id\": \"http://example.org/hirschGeoCoordinates\",
-                                             \"http://schema.org/latitude\": 48, \"http://schema.org/longitude\": 9}}}")]
+                                             \"http://schema.org/latitude\": \"48\", \"http://schema.org/longitude\": \"9\"}}}")]
     (add-model! model mdl)))
 
 (def dbname "devdb")
