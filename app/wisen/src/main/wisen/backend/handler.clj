@@ -67,10 +67,10 @@
     {:status 200}))
 
 (defn edit-triples [request]
-  (let [body (slurp (get-in request [:body]))
-        query (get body :query)
-        model (jsonld/json-ld-string->model (get body :model))]
-    (triple-store/edit-model! query model)
+  (let [changes (map change-api/edn->change
+                     (get-in request
+                             [:body-params :changes]))]
+    (triple-store/edit-model! changes)
     {:status 200}))
 
 (def handler*

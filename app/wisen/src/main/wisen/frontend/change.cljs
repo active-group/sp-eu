@@ -2,6 +2,7 @@
   (:require [wisen.frontend.tree :as tree]
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
+            [wisen.common.change-api :as change-api]
             [clojure.set :as set]))
 
 
@@ -144,3 +145,36 @@
 (defn delta-trees [ts1 ts2]
   (delta-statements (trees-statements ts1)
                     (trees-statements ts2)))
+
+
+;; conversions
+
+(defn statement->api [s]
+  (change-api/make-statement
+   (change-api/make-uri
+    (tree/uri-string
+     (statement-subject s)))
+
+   (change-api/make-uri
+    (tree/uri-string
+     (statement-predicate s)))
+
+   (let [obj (statement-object s)]
+     (cond
+       (tree/literal-string? obj)
+       (change-api/make-literal-string
+        (tree/literal-string-value obj))
+
+       (tree/uri? obj)
+       (change-api/make-uri
+        (tree/uri-string obj))))))
+
+(defn change->api [ch]
+  (cond
+    (record/is-a? delete ch)
+    (change-api/make-delete (statement->api
+                             (delete-statement ch)))
+
+    (record/is-a? add ch)
+    (change-api/make-add (statement->api
+                          (add-statement ch)))))
