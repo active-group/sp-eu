@@ -1,5 +1,6 @@
 (ns wisen.frontend.tree
   "Tools to turn arbitrary RDF graphs into trees with references."
+  (:refer-clojure :exclude [uri?])
   (:require [wisen.frontend.rdf :as rdf]
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
@@ -8,6 +9,15 @@
 (declare tree)
 
 (def URI realm/string)
+
+(defn make-uri [s]
+  s)
+
+(defn uri? [s]
+  (string? s))
+
+(defn uri-string [uri]
+  uri)
 
 (def-record ref [ref-uri :- URI])
 
