@@ -1,0 +1,13 @@
+* Wisen data model based on RDF
+
+Decision: The data model of the wisen application shall be based on the Resource Description Framework.
+
+Drivers:
+- The data that moves through the app doesn't conform to closed
+  schemata, therefore an open data model is needed.
+- The data potentially originates at many different locations on the
+  web. With the semantic web and RDF there is already a solution to
+  this problem of federated data.
+- We want to use LLMs to translate natural language into formal
+  descriptions. We conjecture that LLMs perform better with these
+  translations if the target schema is widely known.
