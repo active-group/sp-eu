@@ -138,7 +138,11 @@
      \"http://schema.org/description\": \"Wir sind ein Verein von aktiven älteren und jüngeren Menschen, die dieses Haus seit 1982 betreiben, mit Hilfe weniger bezahlter Mitarbeiter*innen. Neben diesen Hauptamtlichen bringen sich etwa 100 Ehrenamtliche in den unterschiedlichsten Bereichen ein – im Vorstand, in der Cafeteria, als Kurs- und Gruppenleiter oder als Referenten. Die Zielgruppe sind vorwiegend ältere Menschen, aber jeder ist willkommen. Angebote gibt es im Bereich der Erwachsenenbildung: Vorträge, Diskussionsrunden zu aktuellen Themen, Sprachkurse, Gesprächskreise sowie Kurse im kreativen, sportlichen und Freizeitbereich. Die Cafeteria mit ca. 80 Plätzen bietet Möglichkeiten für informelle Kontakte, öffentliche PC-Nutzung und Internetzugang, Spiel und Gespräche bei Bewirtung.\",
      \"http://schema.org/keywords\": \"education, fun, play\",
      \"http://schema.org/areaServed\":
-        {\"@type\": \"http://schema.org/GeoCircle\", \"http://schema.org/geoMidpoint\": {\"@type\": \"http://schema.org/GeoCoordinates\", \"http://schema.org/latitude\": 48, \"http://schema.org/longitude\": 9}}}")]
+        {\"@type\": \"http://schema.org/GeoCircle\",
+         \"@id\": \"http://example.org/hirschAreaServed\",
+         \"http://schema.org/geoMidpoint\": {\"@type\": \"http://schema.org/GeoCoordinates\",
+                                             \"@id\": \"http://example.org/hirschGeoCoordinates\",
+                                             \"http://schema.org/latitude\": 48, \"http://schema.org/longitude\": 9}}}")]
     (add-model! model mdl)))
 
 (def dbname "devdb")
