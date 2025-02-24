@@ -94,49 +94,63 @@
 
 (declare tree-component)
 
-(c/defn-item property-component []
-  (c/with-state-as prop
-    (dom/div
-     (dom/div (predicate-component (tree/property-predicate prop)))
-     (dom/div {:style {:margin-left "0em"
-                       :margin-top "1ex"
-                       :display "flex"}}
-              (c/focus tree/property-object
-                       (tree-component))))))
+(c/defn-item property-component [predicate]
+  (c/with-state-as obj
+    (when-let [value-item (case predicate
+                            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                            nil
+
+                            "http://schema.org/name"
+                            (c/focus tree/literal-string-value
+                                     (forms/input {:style {:font-size "2em"
+                                                           :width "100%"}}))
+
+                            "http://schema.org/description"
+                            (c/focus tree/literal-string-value
+                                     (forms/textarea {:style {:width "100%"
+                                                              :min-height "6em"}}))
+
+                            (dom/div {:style {:margin-left "0em"
+                                              :margin-top "1ex"
+                                              :display "flex"}}
+                                     (tree-component)))]
+      (dom/div
+       (dom/div (predicate-component predicate))
+       value-item))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
           WHERE { <" uri "> ?p ?o . }"))
 
 (defn- node-type [node]
-  (some (fn [prop]
-          (when (= (tree/property-predicate prop)
-                   "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-            (let [obj (tree/property-object prop)]
-              (when (tree/node? obj)
-                (tree/node-uri obj)))))
-        (tree/node-properties node)))
+  (when-let [obj ((tree/node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") node)]
+    (when (tree/node? obj)
+      (tree/node-uri obj))))
 
-(defn- node-name [node]
-  (some (fn [prop]
-          (when (= (tree/property-predicate prop)
-                   "http://schema.org/name")
-            (let [obj (tree/property-object prop)]
-              (when (tree/literal-string? obj)
-                (tree/literal-string-value obj)))))
-        (tree/node-properties node)))
+(def predicate-priority
+  ["http://schema.org/name"
+   "http://schema.org/description"
+   "http://schema.org/keywords"])
 
-(defn- node-description [node]
-  (some (fn [prop]
-          (when (= (tree/property-predicate prop)
-                   "http://schema.org/description")
-            (let [obj (tree/property-object prop)]
-              (when (tree/literal-string? obj)
-                (tree/literal-string-value obj)))))
-        (tree/node-properties node)))
+(defn- index-of [s v]
+  (loop [idx 0 items s]
+    (cond
+      (empty? items) nil
+      (= v (first items)) idx
+      :else (recur (inc idx) (rest items)))))
+
+(defn- compare-predicate [p1 p2]
+  (let [i1 (index-of predicate-priority p1)
+        i2 (index-of predicate-priority p2)]
+    (if i1
+      (if i2
+        (compare i1 i2)
+        -1)
+      (if i2
+        1
+        (compare p1 p2)))))
 
 (defn- node-component []
-  (println "node-component")
   (c/with-state-as node
     (let [uri (tree/node-uri node)]
       (ds/card
@@ -172,29 +186,19 @@
                                                               (focus-query uri))))}
                              "Focus")))
 
-       (when-let [name (node-name node)]
-         (ds/with-card-padding
-           (dom/div {:style {:font-size "2em"}}
-                    name)))
-
-       (when-let [description (node-description node)]
-         (ds/with-card-padding description))
-
        (let [props (tree/node-properties node)]
          (when-not (empty? props)
-           (c/focus tree/node-properties
-                    (ds/with-card-padding
-                      (apply
-                       dom/ul
-                       {:style {:display "flex"
-                                :flex-direction "column"
-                                :gap "2ex"}}
-                       (map-indexed (fn [idx prop]
-                                      (when-not (special-property? prop)
-                                        (dom/li
-                                         (c/focus (lens/at-index idx)
-                                                  (property-component)))))
-                                    props))))))))))
+           (ds/with-card-padding
+             (apply
+              dom/div
+              {:style {:display "flex"
+                       :flex-direction "column"
+                       :gap "2ex"}}
+              (map (fn [prop]
+                     (let [pred (tree/property-predicate prop)]
+                       (c/focus (tree/node-object-for-predicate pred)
+                                (property-component pred))))
+                   (sort-by tree/property-predicate compare-predicate props))))))))))
 
 (defn tree-component []
   (c/with-state-as tree
