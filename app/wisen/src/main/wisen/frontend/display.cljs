@@ -8,6 +8,8 @@
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.tree :as tree]
+            [wisen.frontend.change :as change]
+            [wisen.common.change-api :as change-api]
             [active.data.record :as record :refer-macros [def-record]]))
 
 ;; [ ] Fix links for confluences
@@ -207,14 +209,45 @@
       (tree/ref? tree)
       (dom/div "REF: " (tree/ref-uri tree)))))
 
+(defn commit-changes-request [changes]
+  (ajax/PUT "/api/triples"
+            {:body (pr-str {:changes
+                            (map change-api/change->edn changes)})
+             :headers {:content-type "application/edn"}}))
+
+(c/defn-item commit-changes [changes]
+  (c/isolate-state
+   nil
+   (c/fragment
+    (c/dynamic pr-str)
+    (ajax/fetch (commit-changes-request
+                 (map change/change->api changes))))))
+
 (c/defn-item main* []
   (c/with-state-as trees
-    (apply
-     dom/div
-     (map-indexed (fn [idx _]
-                    (c/focus (lens/at-index idx)
-                             (tree-component)))
-                  trees))))
+    (c/isolate-state
+     ;; working trees
+     trees
+     (c/with-state-as working-trees
+       (dom/div
+        #_(pr-str (change/delta-trees trees working-trees))
+        (pr-str (change/delta-trees trees working-trees))
+
+        (c/isolate-state false
+                         (c/with-state-as commit?
+                           (c/fragment
+                            (pr-str commit?)
+                            (when commit?
+                              (commit-changes (change/delta-trees trees working-trees)))
+                            (dom/button {:onclick (constantly true)} "Commit changes"))))
+
+        (dom/hr)
+        (apply
+         dom/div
+         (map-indexed (fn [idx _]
+                        (c/focus (lens/at-index idx)
+                                 (tree-component)))
+                      trees)))))))
 
 (defn main [make-focus-query-action make-expand-by-query-action]
   (c/handle-action
