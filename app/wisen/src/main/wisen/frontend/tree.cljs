@@ -21,11 +21,17 @@
 
 (def-record ref [ref-uri :- URI])
 
+(defn make-ref [uri]
+  (ref ref-uri uri))
+
 (defn ref? [x]
   (record/is-a? ref x))
 
 (def-record literal-string
   [literal-string-value :- realm/string])
+
+(defn make-literal-string [s]
+  (literal-string literal-string-value s))
 
 (defn literal-string? [x]
   (record/is-a? literal-string x))
@@ -35,8 +41,20 @@
    property-object :- (realm/delay tree)
    ])
 
+(defn make-property [pred obj]
+  (property property-predicate pred
+            property-object obj))
+
 (def-record node [node-uri :- URI
                   node-properties :- (realm/sequence-of property)])
+
+(defn make-node
+  ([uri]
+   (node node-uri uri
+         node-properties []))
+  ([uri properties]
+   (node node-uri uri
+         node-properties properties)))
 
 (defn node-object-for-predicate [predicate]
   (fn
@@ -54,12 +72,11 @@
                                prop))
                            props))))))
 
-(defn node-dissoc-predicate [node predicate]
-  (lens/overhaul node node-properties
-                 (fn [props]
-                   (remove (fn [prop]
-                             (= (property-predicate prop) predicate))
-                           props))))
+(defn node-assoc [node predicate obj]
+  (lens/overhaul node
+                 node-properties
+                 conj
+                 (make-property predicate obj)))
 
 (defn node? [x]
   (record/is-a? node x))

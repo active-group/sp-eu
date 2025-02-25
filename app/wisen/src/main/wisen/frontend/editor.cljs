@@ -10,6 +10,7 @@
             [wisen.frontend.tree :as tree]
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
+            [wisen.frontend.default :as default]
             [active.data.record :as record :refer-macros [def-record]]))
 
 ;; [ ] Fix links for confluences
@@ -23,12 +24,6 @@
 
 (def-record expand-by-query-action
   [expand-by-query-action-query])
-
-(defn- special-property? [property]
-  (let [predicate (tree/property-predicate property)]
-    (some #{predicate} ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                        "http://schema.org/name"
-                        "http://schema.org/description"])))
 
 (defn pr-type [t]
   (case t
@@ -88,45 +83,44 @@
                                                  (load-more-query uri))))}
    (if ::TODO "v" ">")))
 
-(defn predicate-component [pred]
-  (dom/strong
-   (pr-predicate pred)))
-
 (declare tree-component)
 
-(def-record delete-property [delete-property-predicate])
+(def-record delete-property [delete-property-property :- tree/property])
 
-(c/defn-item property-component [predicate]
-  (c/with-state-as obj
-    (when-let [value-item (case predicate
-                            "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-                            nil
+(defn component-for-predicate [predicate]
+  (case predicate
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    nil
 
-                            "http://schema.org/name"
-                            (c/focus tree/literal-string-value
-                                     (forms/input {:style {:font-size "2em"
-                                                           :width "100%"}}))
+    "http://schema.org/name"
+    (c/focus tree/literal-string-value
+             (forms/input {:style {:font-size "2em"
+                                   :width "100%"}}))
 
-                            "http://schema.org/description"
-                            (c/focus tree/literal-string-value
-                                     (forms/textarea {:style {:width "100%"
-                                                              :min-height "6em"}}))
+    "http://schema.org/description"
+    (c/focus tree/literal-string-value
+             (forms/textarea {:style {:width "100%"
+                                      :min-height "6em"}}))
 
-                            (dom/div {:style {:margin-left "0em"
-                                              :margin-top "1ex"
-                                              :display "flex"}}
-                                     (tree-component)))]
-      (dom/div
-       {:style {:display "flex"}}
-       (dom/div
-        {:style {:flex 1}}
-        (dom/div (predicate-component predicate))
-        value-item)
-       (dom/button {:onClick (constantly
-                              (c/return :action
-                                        (delete-property delete-property-predicate
-                                                         predicate)))}
-                   "Delete")))))
+    (dom/div {:style {:margin-left "0em"
+                      :margin-top "1ex"
+                      :display "flex"}}
+             (tree-component))))
+
+(c/defn-item property-component []
+  (c/with-state-as property
+    (let [predicate (tree/property-predicate property)]
+      (when-let [value-item (component-for-predicate predicate)]
+        (dom/div
+         {:style {:display "flex"}}
+         (dom/div
+          {:style {:flex 1}}
+          (dom/div (dom/strong
+                    (pr-predicate predicate)))
+          (c/focus tree/property-object value-item))
+         (dom/button {:onClick (constantly
+                                (c/return :action ::delete))}
+                     "Delete"))))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
@@ -159,6 +153,43 @@
       (if i2
         1
         (compare p1 p2)))))
+
+(def predicates
+  ["http://schema.org/name"
+   "http://schema.org/url"
+   "http://schema.org/areaServed"
+   "http://schema.org/geo"
+   "http://schema.org/description"])
+
+(def predicate-options
+  (map (fn [pred]
+         (forms/option
+          {:value pred}
+          (pr-predicate pred)))
+       predicates
+       ))
+
+(c/defn-item add-property-button []
+  (c/with-state-as [resource predicate :local "http://schema.org/name"]
+    (dom/div
+     (c/focus lens/second
+              (apply
+               forms/select
+               predicate-options))
+
+     (dom/button {:onClick
+                  (fn [[node predicate] _]
+                    (c/return :state [(tree/node-assoc node
+                                                       predicate
+                                                       (default/default-object-for-predicate predicate))
+                                      predicate]))}
+                 "Add property"))))
+
+(defn- remove-index
+  "remove elem in coll"
+  [pos coll]
+  (let [v (vec coll)]
+    (into (subvec v 0 pos) (subvec v (inc pos)))))
 
 (defn- node-component []
   (c/with-state-as node
@@ -199,25 +230,32 @@
        (let [props (tree/node-properties node)]
          (when-not (empty? props)
 
-           (-> (ds/with-card-padding
-                 (apply
-                  dom/div
-                  {:style {:display "flex"
-                           :flex-direction "column"
-                           :gap "2ex"}}
-                  (map (fn [prop]
-                         (let [pred (tree/property-predicate prop)]
-                           (c/focus (tree/node-object-for-predicate pred)
-                                    (property-component pred))))
-                       (sort-by tree/property-predicate compare-predicate props))))
+           (c/focus tree/node-properties
+                    (ds/with-card-padding
+                      (apply
+                       dom/div
+                       {:style {:display "flex"
+                                :flex-direction "column"
+                                :gap "2ex"}}
 
-               (c/handle-action (fn [node action]
-                                  (if (record/is-a? delete-property action)
-                                    (let [predicate-to-delete (delete-property-predicate action)]
-                                      (c/return :state (tree/node-dissoc-predicate node predicate-to-delete)))
-                                    ;; else
-                                    (c/return :action action)
-                                    ))))))))))
+                       (map second
+                            (sort-by
+                             first
+                             compare-predicate
+                             (map-indexed (fn [idx prop]
+                                            [(tree/property-predicate prop)
+                                             (c/handle-action
+                                              (c/focus (lens/at-index idx)
+                                                       (property-component))
+                                              (fn [props ac]
+                                                (if (= ::delete ac)
+                                                  (c/return :state (remove-index idx props))
+                                                  (c/return :action ac)))
+                                              )])
+                                          props))))))))
+
+       (add-property-button)
+       ))))
 
 (defn tree-component []
   (c/with-state-as tree
