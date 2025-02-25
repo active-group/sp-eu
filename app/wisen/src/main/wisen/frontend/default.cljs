@@ -3,6 +3,14 @@
 
 (def type-uri "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 
+(defn- make-type-property [s]
+  (tree/make-property type-uri (tree/make-node s)))
+
+(defn- schema [s]
+  (str "http://schema.org/" s))
+
+(def ^:private lit-s tree/make-literal-string)
+
 ;; TODO: how should we deal with the side-effecting (random-uuid)?
 
 (defn- fresh-uri! []
@@ -11,14 +19,14 @@
 (def default-geo-coordinates
   (tree/make-node
    (fresh-uri!)
-   [(tree/make-property type-uri (tree/make-node "http://schema.org/GeoCoordinates"))
-    (tree/make-property "http://schema.org/latitude" (tree/make-literal-string "48.52105844145676"))
-    (tree/make-property "http://schema.org/longitude" (tree/make-literal-string "9.054090697517525"))]))
+   [(make-type-property "http://schema.org/GeoCoordinates")
+    (tree/make-property (schema "latitude") (lit-s "48.52105844145676"))
+    (tree/make-property (schema "longitude") (lit-s "9.054090697517525"))]))
 
 (defn default-object-for-predicate [pred]
   (cond
     (= pred "http://schema.org/name")
-    (tree/literal-string tree/literal-string-value "Der gute Name")
+    (lit-s "Der gute Name")
 
     (= pred "http://schema.org/geo")
     default-geo-coordinates
@@ -26,9 +34,18 @@
     (= pred "http://schema.org/areaServed")
     (tree/make-node
      (fresh-uri!)
-     [(tree/make-property type-uri (tree/make-node "http://schema.org/GeoCircle"))
-      (tree/make-property "http://schema.org/geoMidpoint" default-geo-coordinates)
-      (tree/make-property "http://schema.org/geoRadius" (tree/make-literal-string "100"))])
+     [(make-type-property (schema "GeoCircle"))
+      (tree/make-property (schema "geoMidpoint") default-geo-coordinates)
+      (tree/make-property (schema "geoRadius") (lit-s "100"))])
+
+    (= pred "http://schema.org/location")
+    (tree/make-node
+     (fresh-uri!)
+     [(make-type-property "http://schema.org/PostalAddress")
+      (tree/make-property (schema "addressCountry") (lit-s "DE"))
+      (tree/make-property (schema "postalCode") (lit-s "72072"))
+      (tree/make-property (schema "addressLocality") (lit-s "Tübingen"))
+      (tree/make-property (schema "streetAddress") (lit-s "Hechinger Str. 12/1"))])
 
     :else
     (tree/make-literal-string "")
