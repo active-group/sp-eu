@@ -11,7 +11,8 @@
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
             [wisen.frontend.default :as default]
-            [active.data.record :as record :refer-macros [def-record]]))
+            [active.data.record :as record :refer-macros [def-record]]
+            [clojure.string :as str]))
 
 ;; [ ] Fix links for confluences
 ;; [x] Load all properties
@@ -86,6 +87,9 @@
     "http://schema.org/streetAddress"
     "Street Address"
 
+    "http://schema.org/sameAs"
+    "Same resource on other site (Google Maps, OpenStreetMap, ...)"
+
     p))
 
 (defn- load-more-query [uri]
@@ -149,16 +153,27 @@
     (when (tree/node? obj)
       (tree/node-uri obj))))
 
+(defn- node-osm-uri [node]
+  (let [objs (tree/node-objects-for-predicate node "http://schema.org/sameAs")]
+    (some
+     (fn [obj]
+       (when (tree/literal-string? obj)
+         (let [s (tree/literal-string-value obj)]
+           (when (str/starts-with? s "https://www.openstreetmap.org/node/")
+             s))))
+     objs)))
+
 (def predicate-priority
   ["http://schema.org/name"
    "http://schema.org/description"
    "http://schema.org/keywords"
-    "http://schema.org/location"
+   "http://schema.org/location"
+   "http://schema.org/sameAs"
 
-    "http://schema.org/streetAddress"
-    "http://schema.org/postalCode"
-    "http://schema.org/addressLocality"
-    "http://schema.org/addressCountry"
+   "http://schema.org/streetAddress"
+   "http://schema.org/postalCode"
+   "http://schema.org/addressLocality"
+   "http://schema.org/addressCountry"
 
    ])
 
@@ -186,6 +201,7 @@
    "http://schema.org/url"
    #_"http://schema.org/areaServed"
    "http://schema.org/location"
+   "http://schema.org/sameAs"
    #_"http://schema.org/geo"
    ])
 
@@ -218,6 +234,10 @@
   [pos coll]
   (let [v (vec coll)]
     (into (subvec v 0 pos) (subvec v (inc pos)))))
+
+(defn- pr-osm-uri [uri]
+  (dom/a {:href uri}
+         "View on OpenStreetMap"))
 
 (defn- node-component []
   (c/with-state-as node
@@ -254,6 +274,15 @@
                                           (focus-query-action focus-query-action-query
                                                               (focus-query uri))))}
                              "Focus")))
+
+       (ds/with-card-padding
+         (when-let [osm-uri (node-osm-uri node)]
+           (dom/div
+            {:style {:display "flex"
+                     :gap "1em"}}
+            (pr-osm-uri osm-uri)
+            (dom/button {:onClick ::TODO}
+                        "Update with Openstreetmap"))))
 
        (let [props (tree/node-properties node)]
          (when-not (empty? props)

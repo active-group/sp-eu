@@ -56,6 +56,14 @@
    (node node-uri uri
          node-properties properties)))
 
+(defn node-objects-for-predicate [node predicate]
+  (reduce (fn [acc prop]
+            (if (= (property-predicate prop) predicate)
+              (conj acc (property-object prop))
+              acc))
+          []
+          (node-properties node)))
+
 (defn node-object-for-predicate [predicate]
   (fn
     ([node]
