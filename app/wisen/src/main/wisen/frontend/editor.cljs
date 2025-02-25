@@ -36,6 +36,9 @@
     "http://schema.org/Organization"
     "Organization"
 
+    "http://schema.org/PostalAddress"
+    "Address"
+
     t
     ))
 
@@ -67,6 +70,21 @@
 
     "http://schema.org/longitude"
     "Longitude"
+
+    "http://schema.org/location"
+    "Location"
+
+    "http://schema.org/addressCountry"
+    "Country (e.g. 'de' for Germany)"
+
+    "http://schema.org/addressLocality"
+    "Locality or town (e.g. 'Berlin')"
+
+    "http://schema.org/postalCode"
+    "Postal code"
+
+    "http://schema.org/streetAddress"
+    "Street Address"
 
     p))
 
@@ -134,7 +152,15 @@
 (def predicate-priority
   ["http://schema.org/name"
    "http://schema.org/description"
-   "http://schema.org/keywords"])
+   "http://schema.org/keywords"
+    "http://schema.org/location"
+
+    "http://schema.org/streetAddress"
+    "http://schema.org/postalCode"
+    "http://schema.org/addressLocality"
+    "http://schema.org/addressCountry"
+
+   ])
 
 (defn- index-of [s v]
   (loop [idx 0 items s]
@@ -156,10 +182,12 @@
 
 (def predicates
   ["http://schema.org/name"
+   "http://schema.org/description"
    "http://schema.org/url"
-   "http://schema.org/areaServed"
-   "http://schema.org/geo"
-   "http://schema.org/description"])
+   #_"http://schema.org/areaServed"
+   "http://schema.org/location"
+   #_"http://schema.org/geo"
+   ])
 
 (def predicate-options
   (map (fn [pred]
