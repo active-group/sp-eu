@@ -54,6 +54,13 @@
                                prop))
                            props))))))
 
+(defn node-dissoc-predicate [node predicate]
+  (lens/overhaul node node-properties
+                 (fn [props]
+                   (remove (fn [prop]
+                             (= (property-predicate prop) predicate))
+                           props))))
+
 (defn node? [x]
   (record/is-a? node x))
 

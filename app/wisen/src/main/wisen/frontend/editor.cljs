@@ -94,6 +94,8 @@
 
 (declare tree-component)
 
+(def-record delete-property [delete-property-predicate])
+
 (c/defn-item property-component [predicate]
   (c/with-state-as obj
     (when-let [value-item (case predicate
@@ -115,8 +117,16 @@
                                               :display "flex"}}
                                      (tree-component)))]
       (dom/div
-       (dom/div (predicate-component predicate))
-       value-item))))
+       {:style {:display "flex"}}
+       (dom/div
+        {:style {:flex 1}}
+        (dom/div (predicate-component predicate))
+        value-item)
+       (dom/button {:onClick (constantly
+                              (c/return :action
+                                        (delete-property delete-property-predicate
+                                                         predicate)))}
+                   "Delete")))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
@@ -188,17 +198,26 @@
 
        (let [props (tree/node-properties node)]
          (when-not (empty? props)
-           (ds/with-card-padding
-             (apply
-              dom/div
-              {:style {:display "flex"
-                       :flex-direction "column"
-                       :gap "2ex"}}
-              (map (fn [prop]
-                     (let [pred (tree/property-predicate prop)]
-                       (c/focus (tree/node-object-for-predicate pred)
-                                (property-component pred))))
-                   (sort-by tree/property-predicate compare-predicate props))))))))))
+
+           (-> (ds/with-card-padding
+                 (apply
+                  dom/div
+                  {:style {:display "flex"
+                           :flex-direction "column"
+                           :gap "2ex"}}
+                  (map (fn [prop]
+                         (let [pred (tree/property-predicate prop)]
+                           (c/focus (tree/node-object-for-predicate pred)
+                                    (property-component pred))))
+                       (sort-by tree/property-predicate compare-predicate props))))
+
+               (c/handle-action (fn [node action]
+                                  (if (record/is-a? delete-property action)
+                                    (let [predicate-to-delete (delete-property-predicate action)]
+                                      (c/return :state (tree/node-dissoc-predicate node predicate-to-delete)))
+                                    ;; else
+                                    (c/return :action action)
+                                    ))))))))))
 
 (defn tree-component []
   (c/with-state-as tree
