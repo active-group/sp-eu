@@ -6,6 +6,7 @@
             [wisen.frontend.home :as home]
             [wisen.frontend.search :as search]
             [wisen.frontend.create :as create]
+            [wisen.frontend.nlp :as nlp]
             [wisen.frontend.edit :as edit]
             [reacl-c-basics.pages.core :as routing]
             [wisen.frontend.design-system :as ds]
@@ -32,7 +33,10 @@
 
              (dom/li
               (dom/a {:href (routes/create)}
-                     "New resource")))))
+                     "New resource"))
+             (dom/li
+              (dom/a {:href (routes/nlp)}
+                     "New description")))))
 
 (defn toplevel []
   (dom/div
@@ -49,14 +53,15 @@
     {routes/home home/main
      routes/search search/main
      routes/create create/main
+     routes/nlp nlp/main
      routes/edit edit/main})))
 
 
 (defn ^:dev/after-load start []
   (println "start")
   (cmain/run
-    (.getElementById js/document "main")
-    (toplevel)))
+   (.getElementById js/document "main")
+   (toplevel)))
 
 (defn init []
   (println "init")
