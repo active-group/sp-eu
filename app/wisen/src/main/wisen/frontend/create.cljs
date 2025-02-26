@@ -1,7 +1,9 @@
 (ns wisen.frontend.create
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom]
-            [wisen.frontend.design-system :as ds]))
+            [active.clojure.lens :as lens]
+            [wisen.frontend.design-system :as ds]
+            [wisen.frontend.osm :as osm]))
 
 ;; Confluence
 ;; x -> y -> z
@@ -15,4 +17,4 @@
   (ds/padded-2
    {:style {:overflow "auto"}}
    (dom/h2 "Create a new resource")
-   "TODO"))
+   (osm/main nil)))
