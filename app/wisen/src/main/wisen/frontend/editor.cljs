@@ -109,14 +109,14 @@
 
 (def-record delete-property [delete-property-property :- tree/property])
 
-(defn component-for-predicate [predicate editable? can-focus? can-expand?]
+(defn component-for-predicate [predicate editable? editing? can-focus? can-expand?]
   (case predicate
     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     nil
 
     "http://schema.org/name"
     (c/focus tree/literal-string-value
-             (if editable?
+             (if editing?
                (forms/input {:style {:font-size "2em"
                                      :width "100%"}})
                (c/dynamic str)
@@ -124,7 +124,7 @@
 
     "http://schema.org/description"
     (c/focus tree/literal-string-value
-             (if editable?
+             (if editing?
                (forms/textarea {:style {:width "100%"
                                         :min-height "6em"}})
                (c/dynamic dom/div)))
@@ -132,12 +132,12 @@
     (dom/div {:style {:margin-left "0em"
                       :margin-top "1ex"
                       :display "flex"}}
-             (tree-component editable? can-focus? can-expand?))))
+             (tree-component editable? editing? can-focus? can-expand?))))
 
-(c/defn-item property-component [editable? can-focus? can-expand?]
+(c/defn-item property-component [editable? editing? can-focus? can-expand?]
   (c/with-state-as property
     (let [predicate (tree/property-predicate property)]
-      (when-let [value-item (component-for-predicate predicate editable? can-focus? can-expand?)]
+      (when-let [value-item (component-for-predicate predicate editable? editing? can-focus? can-expand?)]
         (dom/div
          {:style {:display "flex"}}
          (dom/div
@@ -145,7 +145,7 @@
           (dom/div (dom/strong
                     (pr-predicate predicate)))
           (c/focus tree/property-object value-item))
-         (when editable?
+         (when editing?
            (dom/button {:onClick (constantly
                                   (c/return :action ::delete))}
                        "Delete")))))))
@@ -245,8 +245,8 @@
   (dom/a {:href uri}
          "View on OpenStreetMap"))
 
-(defn- node-component [editable? can-focus? can-expand?]
-  (c/with-state-as node
+(defn- node-component [editable? force-editing? can-focus? can-expand?]
+  (c/with-state-as [node editing? :local force-editing?]
     (let [uri (tree/node-uri node)]
       (ds/card
        {:id uri}
@@ -274,6 +274,10 @@
                            :font-size "12px"}}
                   uri))
 
+                (when editable?
+                  (c/focus lens/second
+                           (dom/button {:onClick not} "Edit mode")))
+
                 (when can-focus?
                   (ds/padded-1
                    (dom/button {:onClick
@@ -283,56 +287,60 @@
                                                                 (focus-query uri))))}
                                "Focus"))))
 
-       (when editable?
-         (ds/with-card-padding
-           (when-let [osm-uri (node-osm-uri node)]
-             (dom/div
-              {:style {:display "flex"
-                       :gap "1em"}}
-              (pr-osm-uri osm-uri)
-              (dom/button {:onClick ::TODO}
-                          "Update with Openstreetmap")))))
+       (c/focus
+        lens/first
 
-       (let [props (tree/node-properties node)]
-         (when-not (empty? props)
+        (c/fragment
+         (when editing?
+           (ds/with-card-padding
+             (when-let [osm-uri (node-osm-uri node)]
+               (dom/div
+                {:style {:display "flex"
+                         :gap "1em"}}
+                (pr-osm-uri osm-uri)
+                (dom/button {:onClick ::TODO}
+                            "Update with Openstreetmap")))))
 
-           (c/focus tree/node-properties
-                    (ds/with-card-padding
-                      (apply
-                       dom/div
-                       {:style {:display "flex"
-                                :flex-direction "column"
-                                :gap "2ex"}}
+         (let [props (tree/node-properties node)]
+           (when-not (empty? props)
 
-                       (map second
-                            (sort-by
-                             first
-                             compare-predicate
-                             (map-indexed (fn [idx prop]
-                                            [(tree/property-predicate prop)
-                                             (c/handle-action
-                                              (c/focus (lens/at-index idx)
-                                                       (property-component editable? can-focus? can-expand?))
-                                              (fn [props ac]
-                                                (if (= ::delete ac)
-                                                  (c/return :state (remove-index idx props))
-                                                  (c/return :action ac)))
-                                              )])
-                                          props))))))))
+             (c/focus tree/node-properties
+                      (ds/with-card-padding
+                        (apply
+                         dom/div
+                         {:style {:display "flex"
+                                  :flex-direction "column"
+                                  :gap "2ex"}}
 
-       (when editable?
-         (add-property-button))
+                         (map second
+                              (sort-by
+                               first
+                               compare-predicate
+                               (map-indexed (fn [idx prop]
+                                              [(tree/property-predicate prop)
+                                               (c/handle-action
+                                                (c/focus (lens/at-index idx)
+                                                         (property-component editable? editing? can-focus? can-expand?))
+                                                (fn [props ac]
+                                                  (if (= ::delete ac)
+                                                    (c/return :state (remove-index idx props))
+                                                    (c/return :action ac)))
+                                                )])
+                                            props))))))))
+
+         (when editing?
+           (add-property-button))))
        ))))
 
-(defn tree-component [editable? can-focus? can-expand?]
+(defn tree-component [editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree
     (cond
       (tree/node? tree)
-      (node-component editable? can-focus? can-expand?)
+      (node-component editable? force-editing? can-focus? can-expand?)
 
       (tree/literal-string? tree)
       (c/focus tree/literal-string-value
-               (if editable?
+               (if force-editing?
                  (forms/input)
                  (c/dynamic str)))
 
@@ -353,7 +361,7 @@
     (ajax/fetch (commit-changes-request
                  (map change/change->api changes))))))
 
-(c/defn-item main* [editable? can-focus? can-expand?]
+(c/defn-item main* [editable? force-editing? can-focus? can-expand?]
   (c/with-state-as trees
     (c/isolate-state
      ;; working trees
@@ -377,14 +385,14 @@
          dom/div
          (map-indexed (fn [idx _]
                         (c/focus (lens/at-index idx)
-                                 (tree-component editable? can-focus? can-expand?)))
+                                 (tree-component editable? force-editing? can-focus? can-expand?)))
                       trees)))))))
 
-(defn main [editable? make-focus-query-action make-expand-by-query-action]
+(defn main [editable? force-editing? make-focus-query-action make-expand-by-query-action]
   (let [can-focus? (some? make-focus-query-action)
         can-expand? (some? make-expand-by-query-action)]
     (c/handle-action
-     (c/focus tree/graph<->trees (main* editable? can-focus? can-expand?))
+     (c/focus tree/graph<->trees (main* editable? force-editing? can-focus? can-expand?))
      (fn [_ ac]
        (c/return :action
                  (cond
@@ -398,4 +406,7 @@
                    ac))))))
 
 (defn readonly [graph & [make-focus-query-action make-expand-by-query-action]]
-  (c/isolate-state graph (main false make-focus-query-action make-expand-by-query-action)))
+  (c/isolate-state graph (main false false make-focus-query-action make-expand-by-query-action)))
+
+(defn readwrite [graph & [make-focus-query-action make-expand-by-query-action]]
+  (c/isolate-state graph (main true false make-focus-query-action make-expand-by-query-action)))

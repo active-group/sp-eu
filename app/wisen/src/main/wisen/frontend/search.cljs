@@ -141,7 +141,7 @@
 
            ;; display when we have a graph
            (when-let [graph (:graph state)]
-             (editor/readonly graph make-focus-query-action make-expand-by-query-action))
+             (editor/readwrite graph make-focus-query-action make-expand-by-query-action))
            ))
 
          (c/handle-action
