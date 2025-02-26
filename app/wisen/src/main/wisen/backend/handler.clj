@@ -11,6 +11,7 @@
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld]
+            [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
             [clojure.edn :as edn]
             [wisen.common.change-api :as change-api])
@@ -49,8 +50,7 @@
     (let [id (java.util.UUID/fromString
               (get-in request [:path-params :id]))]
       {:status 303
-       :headers {"Location" (r/description-url-for-resource-id id)}}
-      )
+       :headers {"Location" (r/description-url-for-resource-id id)}})
     (catch Exception _e
       {:status 400})))
 
@@ -78,6 +78,13 @@
   (let [osmid (get-in request [:path-params :osmid])]
     (osm/lookup! osmid)))
 
+(defn ollama-handler [request]
+  (let [body (slurp (get request :body))
+        response (llm/ollama-request! body)]
+      ;; TODO: error-handling
+    {:status 200
+     :body (get-in response [:body :response])}))
+
 (def handler*
   (ring/ring-handler
    (ring/router
@@ -94,7 +101,8 @@
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303
      ;; redirection to move clients over to /api/resource/abcdefg
-     ["/resource/:id" {:get {:handler get-resource}}]]
+     ["/resource/:id" {:get {:handler get-resource}}]
+     ["/describe" {:post {:handler ollama-handler}}]]
 
     ;; router data affecting all routes
     {:data {:muuntaja muuntaja.core/instance
