@@ -1,0 +1,9 @@
+version: "0.5"
+
+processes:
+  shadow-cljs:
+    command: clj -M:shadow-cljs:frontend watch :frontend
+  backend:
+    command: clj -M:backend -m wisen.backend.main
+  # ollama-server:
+  #   command: ollama serve

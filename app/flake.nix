@@ -22,6 +22,10 @@
 
               # Frontend
               pkgs.nodejs
+
+              pkgs.jdk
+              pkgs.process-compose
+              pkgs.ollama
             ];
           };
         };
