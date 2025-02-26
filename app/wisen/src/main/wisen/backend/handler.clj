@@ -11,6 +11,7 @@
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld]
+            [wisen.backend.osm :as osm]
             [clojure.edn :as edn]
             [wisen.common.change-api :as change-api])
   (:import
@@ -73,6 +74,10 @@
     (triple-store/edit-model! changes)
     {:status 200}))
 
+(defn osm-lookup [request]
+  (let [osmid (get-in request [:path-params :osmid])]
+    (osm/lookup! osmid)))
+
 (def handler*
   (ring/ring-handler
    (ring/router
@@ -82,6 +87,9 @@
       ["/resource/:id" {:get {:handler get-resource-description}}]
       ["/triples" {:post {:handler add-triples}
                    :put {:handler edit-triples}}]]
+
+     ["/osm"
+      ["/lookup/:osmid" {:get {:handler osm-lookup}}]]
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303
