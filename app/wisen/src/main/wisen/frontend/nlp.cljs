@@ -38,7 +38,6 @@
        (query-form))
       (fn [st query]
         (c/return :state {:query query :response nil, :graph nil})))
-     ;; (c/handle-action
       (when-let [query (:query state)]
         (c/focus :response
                  (c/fragment
@@ -47,15 +46,15 @@
                     (when (and (ajax/response? response)
                                (ajax/response-ok? response))
                       (ajax/response-value response)
-                      #_(promise/call-with-promise-result
-                       (rdf/json-ld-string->graph-promise (ajax/response-value response))
-                       (fn [response-graph]
-                         (c/once (fn [_] (c/return :action (ajax/ok-response response-graph)))))))))))
-      #_(fn [_ graph] (c/return :state (assoc state :graph (ajax/response-value graph)))))
+                      (dom/div
+                       (pr-str response)
+                       (promise/call-with-promise-result
+                          (rdf/json-ld-string->graph-promise (ajax/response-value response))
+                          (fn [response-graph]
+                            (pr-str response-graph)))))))))
      #_(when-let [graph (:graph state)]
-       (:response state)
-       #_(editor/readonly graph :foo :bar))))
-                                        ;)
+       (pr-str graph)
+       #_(editor/readonly graph :foo :bar)))))
 
 (c/defn-item main []
   (c/isolate-state
