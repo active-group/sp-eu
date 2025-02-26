@@ -17,4 +17,4 @@
   (ds/padded-2
    {:style {:overflow "auto"}}
    (dom/h2 "Create a new resource")
-   (osm/main nil)))
+   #_(osm/main nil)))
