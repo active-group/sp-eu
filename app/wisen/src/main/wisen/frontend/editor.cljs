@@ -109,30 +109,35 @@
 
 (def-record delete-property [delete-property-property :- tree/property])
 
-(defn component-for-predicate [predicate]
+(defn component-for-predicate [predicate editable? can-focus? can-expand?]
   (case predicate
     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     nil
 
     "http://schema.org/name"
     (c/focus tree/literal-string-value
-             (forms/input {:style {:font-size "2em"
-                                   :width "100%"}}))
+             (if editable?
+               (forms/input {:style {:font-size "2em"
+                                     :width "100%"}})
+               (c/dynamic str)
+               ))
 
     "http://schema.org/description"
     (c/focus tree/literal-string-value
-             (forms/textarea {:style {:width "100%"
-                                      :min-height "6em"}}))
+             (if editable?
+               (forms/textarea {:style {:width "100%"
+                                        :min-height "6em"}})
+               (c/dynamic dom/div)))
 
     (dom/div {:style {:margin-left "0em"
                       :margin-top "1ex"
                       :display "flex"}}
-             (tree-component))))
+             (tree-component editable? can-focus? can-expand?))))
 
-(c/defn-item property-component []
+(c/defn-item property-component [editable? can-focus? can-expand?]
   (c/with-state-as property
     (let [predicate (tree/property-predicate property)]
-      (when-let [value-item (component-for-predicate predicate)]
+      (when-let [value-item (component-for-predicate predicate editable? can-focus? can-expand?)]
         (dom/div
          {:style {:display "flex"}}
          (dom/div
@@ -140,9 +145,10 @@
           (dom/div (dom/strong
                     (pr-predicate predicate)))
           (c/focus tree/property-object value-item))
-         (dom/button {:onClick (constantly
-                                (c/return :action ::delete))}
-                     "Delete"))))))
+         (when editable?
+           (dom/button {:onClick (constantly
+                                  (c/return :action ::delete))}
+                       "Delete")))))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
@@ -239,7 +245,7 @@
   (dom/a {:href uri}
          "View on OpenStreetMap"))
 
-(defn- node-component []
+(defn- node-component [editable? can-focus? can-expand?]
   (c/with-state-as node
     (let [uri (tree/node-uri node)]
       (ds/card
@@ -251,8 +257,9 @@
                          :align-items "center"
                          :background "rgba(0,0,0,0.1)"}}
 
-                (ds/padded-1
-                 (load-more-button uri))
+                (when can-expand?
+                  (ds/padded-1
+                   (load-more-button uri)))
 
                 (dom/div
                  (ds/padded-1
@@ -267,22 +274,24 @@
                            :font-size "12px"}}
                   uri))
 
-                (ds/padded-1
-                 (dom/button {:onClick
-                              (fn [_]
-                                (c/return :action
-                                          (focus-query-action focus-query-action-query
-                                                              (focus-query uri))))}
-                             "Focus")))
+                (when can-focus?
+                  (ds/padded-1
+                   (dom/button {:onClick
+                                (fn [_]
+                                  (c/return :action
+                                            (focus-query-action focus-query-action-query
+                                                                (focus-query uri))))}
+                               "Focus"))))
 
-       (ds/with-card-padding
-         (when-let [osm-uri (node-osm-uri node)]
-           (dom/div
-            {:style {:display "flex"
-                     :gap "1em"}}
-            (pr-osm-uri osm-uri)
-            (dom/button {:onClick ::TODO}
-                        "Update with Openstreetmap"))))
+       (when editable?
+         (ds/with-card-padding
+           (when-let [osm-uri (node-osm-uri node)]
+             (dom/div
+              {:style {:display "flex"
+                       :gap "1em"}}
+              (pr-osm-uri osm-uri)
+              (dom/button {:onClick ::TODO}
+                          "Update with Openstreetmap")))))
 
        (let [props (tree/node-properties node)]
          (when-not (empty? props)
@@ -303,7 +312,7 @@
                                             [(tree/property-predicate prop)
                                              (c/handle-action
                                               (c/focus (lens/at-index idx)
-                                                       (property-component))
+                                                       (property-component editable? can-focus? can-expand?))
                                               (fn [props ac]
                                                 (if (= ::delete ac)
                                                   (c/return :state (remove-index idx props))
@@ -311,18 +320,21 @@
                                               )])
                                           props))))))))
 
-       (add-property-button)
+       (when editable?
+         (add-property-button))
        ))))
 
-(defn tree-component []
+(defn tree-component [editable? can-focus? can-expand?]
   (c/with-state-as tree
     (cond
       (tree/node? tree)
-      (node-component)
+      (node-component editable? can-focus? can-expand?)
 
       (tree/literal-string? tree)
       (c/focus tree/literal-string-value
-               (forms/input))
+               (if editable?
+                 (forms/input)
+                 (c/dynamic str)))
 
       (tree/ref? tree)
       (dom/div "REF: " (tree/ref-uri tree)))))
@@ -341,46 +353,49 @@
     (ajax/fetch (commit-changes-request
                  (map change/change->api changes))))))
 
-(c/defn-item main* []
+(c/defn-item main* [editable? can-focus? can-expand?]
   (c/with-state-as trees
     (c/isolate-state
      ;; working trees
      trees
      (c/with-state-as working-trees
        (dom/div
-        #_(pr-str (change/delta-trees trees working-trees))
-        (pr-str (change/delta-trees trees working-trees))
+        (when editable?
+          (pr-str (change/delta-trees trees working-trees)))
 
-        (c/isolate-state false
-                         (c/with-state-as commit?
-                           (c/fragment
-                            (pr-str commit?)
-                            (when commit?
-                              (commit-changes (change/delta-trees trees working-trees)))
-                            (dom/button {:onclick (constantly true)} "Commit changes"))))
+        (when editable?
+          (c/isolate-state false
+                           (c/with-state-as commit?
+                             (c/fragment
+                              (pr-str commit?)
+                              (when commit?
+                                (commit-changes (change/delta-trees trees working-trees)))
+                              (dom/button {:onclick (constantly true)} "Commit changes")))))
 
         (dom/hr)
         (apply
          dom/div
          (map-indexed (fn [idx _]
                         (c/focus (lens/at-index idx)
-                                 (tree-component)))
+                                 (tree-component editable? can-focus? can-expand?)))
                       trees)))))))
 
-(defn main [make-focus-query-action make-expand-by-query-action]
-  (c/handle-action
-   (c/focus tree/graph<->trees (main*))
-   (fn [_ ac]
-     (c/return :action
-               (cond
-                 (record/is-a? focus-query-action ac)
-                 (make-focus-query-action (focus-query-action-query ac))
+(defn main [editable? make-focus-query-action make-expand-by-query-action]
+  (let [can-focus? (some? make-focus-query-action)
+        can-expand? (some? make-expand-by-query-action)]
+    (c/handle-action
+     (c/focus tree/graph<->trees (main* editable? can-focus? can-expand?))
+     (fn [_ ac]
+       (c/return :action
+                 (cond
+                   (record/is-a? focus-query-action ac)
+                   (make-focus-query-action (focus-query-action-query ac))
 
-                 (record/is-a? expand-by-query-action ac)
-                 (make-expand-by-query-action (expand-by-query-action-query ac))
+                   (record/is-a? expand-by-query-action ac)
+                   (make-expand-by-query-action (expand-by-query-action-query ac))
 
-                 :else
-                 ac)))))
+                   :else
+                   ac))))))
 
-(defn readonly [graph make-focus-query-action make-expand-by-query-action]
-  (c/isolate-state graph (main make-focus-query-action make-expand-by-query-action)))
+(defn readonly [graph & [make-focus-query-action make-expand-by-query-action]]
+  (c/isolate-state graph (main false make-focus-query-action make-expand-by-query-action)))
