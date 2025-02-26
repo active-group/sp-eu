@@ -8,7 +8,8 @@
 (defn json-ld-string->graph-promise [s]
   (let [g (rdflib/graph)]
     (js/Promise. (fn [resolve! reject!]
-                   (rdflib/parse
+                   (resolve! g)
+                   #_(rdflib/parse
                     s g
                     "http://example.org/g1"
                     "application/ld+json"

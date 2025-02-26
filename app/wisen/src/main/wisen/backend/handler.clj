@@ -80,10 +80,10 @@
 
 (defn ollama-handler [request]
   (let [body (slurp (get request :body))
-        response (llm/ollama-request! body)]
-      ;; TODO: error-handling
-    {:status 200
-     :body (get-in response [:body :response])}))
+        x (llm/ollama-request! body)]
+    (println "==================")
+    (println (pr-str x))
+    x))
 
 (def handler*
   (ring/ring-handler
