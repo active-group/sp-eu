@@ -11,7 +11,9 @@
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
             [wisen.frontend.default :as default]
+            [wisen.frontend.osm :as osm]
             [active.data.record :as record :refer-macros [def-record]]
+            [wisen.frontend.modal :as modal]
             [clojure.string :as str]))
 
 ;; [ ] Fix links for confluences
@@ -159,6 +161,10 @@
     (when (tree/node? obj)
       (tree/node-uri obj))))
 
+(defn- node-organization? [node]
+  (= "http://schema.org/Organization"
+     (node-type node)))
+
 (defn- node-osm-uri [node]
   (let [objs (tree/node-objects-for-predicate node "http://schema.org/sameAs")]
     (some
@@ -245,6 +251,76 @@
   (dom/a {:href uri}
          "View on OpenStreetMap"))
 
+(defn- enter-osm-id []
+  (c/with-state-as [osm-id osm-id-local :local ""]
+    (dom/div
+     (c/focus lens/second (forms/input))
+     (dom/button {:onClick (fn [[_ osm-id-local]]
+                             [osm-id-local osm-id-local])}
+                 "Go"))))
+
+(declare readonly)
+
+(c/defn-item osm-importer []
+  (c/with-state-as [state local-state :local {:response nil}]
+    (dom/div
+     (ds/padded-2
+      {:style {:overflow "auto"}}
+      (dom/h2 "OSM importer")
+
+      (c/focus (lens/>> lens/first :osm-id)
+               (enter-osm-id))
+
+      (when-let [osm-id (:osm-id state)]
+        (c/focus (lens/>> lens/second :response)
+                 (ajax/fetch (osm/osm-lookup-request osm-id))))
+
+      (when-let [response (:response local-state)]
+        (when (and (ajax/response? response)
+                   (ajax/response-ok? response))
+          (promise/call-with-promise-result
+           (rdf/json-ld-string->graph-promise (ajax/response-value response))
+           (fn [response-graph]
+             (c/once
+              (fn [[state local-state]]
+                (c/return :state [(assoc state :graph response-graph)
+                                  {:response nil}])))))))
+
+      (when-let [graph (:graph state)]
+        (readonly graph))))))
+
+(defn- organization-do-link-osm [organization-node osm-id osm-place-node]
+  (lens/overhaul organization-node
+                 tree/node-properties
+                 (fn [old-properties]
+                   (-> old-properties
+                       (conj (tree/make-property "http://schema.org/location" osm-place-node))
+                       (conj (tree/make-property "http://schema.org/sameAs" (tree/make-literal-string osm-id)))))))
+
+(c/defn-item link-organization-with-osm-button []
+  (c/with-state-as [node local-state :local {:show? false
+                                             :graph nil
+                                             :osm-id nil}]
+    (c/fragment
+     (c/focus (lens/>> lens/second :show?)
+              (dom/button {:onClick (constantly true)}
+                          "Link with OpenStreetMap"))
+     (when (:show? local-state)
+       (modal/main
+        {:style {:border "1px solid blue"}}
+        (dom/div
+         (c/focus (lens/>> lens/second)
+                  (osm-importer))
+         (dom/button {:onClick (fn [[node local-state]]
+                                 (let [place-node (first (tree/graph->trees (:graph local-state)))]
+                                   (assert (tree/node? place-node))
+                                   [(organization-do-link-osm node (:osm-id local-state) place-node)
+                                    (-> local-state
+                                        (assoc :show? false)
+                                        (dissoc :graph)
+                                        (dissoc :osm-id))]))}
+                     "Add properties as 'location'")))))))
+
 (defn- node-component [editable? force-editing? can-focus? can-expand?]
   (c/with-state-as [node editing? :local force-editing?]
     (let [uri (tree/node-uri node)]
@@ -291,15 +367,19 @@
         lens/first
 
         (c/fragment
-         (when editing?
+
+         ;; OSM
+         (when (and editing?
+                    (node-organization? node))
            (ds/with-card-padding
-             (when-let [osm-uri (node-osm-uri node)]
+             (if-let [osm-uri (node-osm-uri node)]
                (dom/div
                 {:style {:display "flex"
                          :gap "1em"}}
                 (pr-osm-uri osm-uri)
                 (dom/button {:onClick ::TODO}
-                            "Update with Openstreetmap")))))
+                            "Update with Openstreetmap"))
+               (link-organization-with-osm-button))))
 
          (let [props (tree/node-properties node)]
            (when-not (empty? props)
