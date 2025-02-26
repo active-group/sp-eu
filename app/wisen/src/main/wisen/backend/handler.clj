@@ -83,7 +83,7 @@
         response (llm/ollama-request! body)]
       ;; TODO: error-handling
     {:status 200
-     :body (llm/extract-json-ld (get-in response [:body :response]))}))
+     :body (get-in response [:body :response])}))
 
 (def handler*
   (ring/ring-handler
