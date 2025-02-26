@@ -57,6 +57,5 @@
        (when-let [graph (:graph state)]
          (dom/div
           #_(pr-str graph)
-          (editor/readonly graph nil nil))
-
+          (editor/readonly graph))
          ))))))
