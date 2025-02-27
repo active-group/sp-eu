@@ -427,6 +427,12 @@
                  (forms/input)
                  (c/dynamic str)))
 
+      (tree/literal-decimal? tree)
+      (c/focus tree/literal-decimal-value
+               (if force-editing?
+                 (forms/input {:type "decimal"})
+                 (c/dynamic str)))
+
       (tree/ref? tree)
       (dom/div "REF: " (tree/ref-uri tree)))))
 

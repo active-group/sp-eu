@@ -3,7 +3,8 @@
   (:require [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as r]
             [active.clojure.lens :as lens]
-            ["rdflib" :as rdflib]))
+            ["rdflib" :as rdflib])
+  (:import goog.object))
 
 (defn json-ld-string->graph-promise [s]
   (let [g (rdflib/graph)]
@@ -97,14 +98,41 @@
     (blank-node? x)
     (blank-node-uri x)))
 
+;;
+
+(def xsd-string (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#string"))
+
 (defn make-literal-string [string]
-  (rdflib/literal string))
+  (rdflib/literal string xsd-string))
 
 (defn literal-string? [x]
-  (instance? rdflib/Literal x))
+  (and
+   (instance? rdflib/Literal x)
+   (.equals goog.object
+            (.-datatype x)
+            xsd-string)))
 
 (defn literal-string-value [x]
   (.-value x))
+
+;;
+
+(def xsd-decimal (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#decimal"))
+
+(defn make-literal-decimal [string]
+  (rdflib/literal string xsd-decimal))
+
+(defn literal-decimal? [x]
+  (and
+   (instance? rdflib/Literal x)
+   (.equals goog.object
+            (.-datatype x)
+            xsd-decimal)))
+
+(defn literal-decimal-value [x]
+  (.-value x))
+
+;;
 
 (defn make-collection [nodes]
   (rdflib/Collection. (clj->js nodes)))
@@ -125,6 +153,9 @@
 
     (literal-string? x)
     (literal-string-value x)
+
+    (literal-decimal? x)
+    (literal-decimal-value x)
 
     (collection? x)
     (pr-str x)))
