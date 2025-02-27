@@ -258,32 +258,32 @@
 (declare readonly)
 
 (c/defn-item osm-importer []
-  (c/with-state-as [state local-state :local {:response nil}]
-    (dom/div
-     (ds/padded-2
-      {:style {:overflow "auto"}}
-      (dom/h2 "OSM importer")
+  (c/with-state-as [state ;; {:graph :osm-uri}
+                    response :local nil]
+    (let [graph (:graph state)
+          osm-uri (:osm-uri state)]
+      (dom/div
+       (ds/padded-2
+        {:style {:overflow "auto"}}
+        (dom/h2 "OSM importer")
 
-      (c/focus (lens/>> lens/first :osm-uri)
-               (enter-osm-uri))
+        (c/focus (lens/>> lens/first :osm-uri)
+                 (enter-osm-uri))
 
-      (when-let [osm-uri (:osm-uri state)]
-        (c/focus (lens/>> lens/second :response)
-                 (ajax/fetch (osm/osm-lookup-request osm-uri))))
+        (when (and (some? osm-uri)
+                   (nil? graph))
+          (c/focus (lens/>> lens/second)
+                   (ajax/fetch (osm/osm-lookup-request osm-uri))))
 
-      (when-let [response (:response local-state)]
         (when (and (ajax/response? response)
-                   (ajax/response-ok? response))
-          (promise/call-with-promise-result
-           (rdf/json-ld-string->graph-promise (ajax/response-value response))
-           (fn [response-graph]
-             (c/once
-              (fn [[state local-state]]
-                (c/return :state [(assoc state :graph response-graph)
-                                  {:response nil}])))))))
+                   (ajax/response-ok? response)
+                   (nil? graph))
+          (c/focus (lens/>> lens/first :graph)
+                   (promise/call-with-promise-result
+                    (rdf/json-ld-string->graph-promise (ajax/response-value response))
+                    (comp c/once constantly))))
 
-      (when-let [graph (:graph state)]
-        (readonly graph))))))
+        (when graph (readonly graph)))))))
 
 (c/defn-item link-organization-with-osm-button []
   (c/with-state-as [node local-state :local {:show? false
