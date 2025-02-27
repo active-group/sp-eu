@@ -243,8 +243,8 @@
   (dom/a {:href uri}
          "View on OpenStreetMap"))
 
-(defn- enter-osm-uri []
-  (c/with-state-as [osm-uri osm-uri-local :local ""]
+(defn- enter-osm-uri [initial-osm-uri]
+  (c/with-state-as [osm-uri osm-uri-local :local (or initial-osm-uri "")]
     (dom/div
      (c/focus lens/second
               (forms/input
@@ -258,41 +258,44 @@
 (declare readonly)
 
 (c/defn-item osm-importer []
-  (c/with-state-as [state ;; {:graph :osm-uri}
-                    response :local nil]
-    (let [graph (:graph state)
-          osm-uri (:osm-uri state)]
+  (c/with-state-as [state ;; {:graphs :osm-uri}
+                    responses :local {} ;; osm-uri -> response
+                    ]
+    (let [osm-uri (:osm-uri state)
+          response (get responses osm-uri)
+          graph (get (:graphs state) osm-uri)]
       (dom/div
        (ds/padded-2
         {:style {:overflow "auto"}}
         (dom/h2 "OSM importer")
 
         (c/focus (lens/>> lens/first :osm-uri)
-                 (enter-osm-uri))
+                 (enter-osm-uri (:osm-uri state)))
 
         (when (and (some? osm-uri)
                    (nil? graph))
-          (c/focus (lens/>> lens/second)
+          (c/focus (lens/>> lens/second (lens/member osm-uri))
                    (ajax/fetch (osm/osm-lookup-request osm-uri))))
 
-        (when (and (ajax/response? response)
-                   (ajax/response-ok? response)
-                   (nil? graph))
-          (c/focus (lens/>> lens/first :graph)
-                   (promise/call-with-promise-result
-                    (rdf/json-ld-string->graph-promise (ajax/response-value response))
-                    (comp c/once constantly))))
+        (let [response (get responses osm-uri)]
+          (when (and (ajax/response? response)
+                     (ajax/response-ok? response)
+                     (nil? graph))
+            (c/focus (lens/>> lens/first :graphs (lens/member osm-uri))
+                     (promise/call-with-promise-result
+                      (rdf/json-ld-string->graph-promise (ajax/response-value response))
+                      (comp c/once constantly)))))
 
         (when graph (readonly graph)))))))
 
-(c/defn-item link-organization-with-osm-button []
+(c/defn-item link-organization-with-osm-button [button-title & [osm-uri]]
   (c/with-state-as [node local-state :local {:show? false
-                                             :graph nil
-                                             :osm-uri nil}]
+                                             :graphs nil ;; osm-uri -> graph
+                                             :osm-uri osm-uri}]
     (c/fragment
      (c/focus (lens/>> lens/second :show?)
               (dom/button {:onClick (constantly true)}
-                          "Link with OpenStreetMap"))
+                          button-title))
      (when (:show? local-state)
        (-> (modal/main
             {:style {:border "1px solid blue"}}
@@ -307,12 +310,13 @@
 
              (ds/button-primary
               {:onClick (fn [[node local-state]]
-                          (let [place-node (first (tree/graph->trees (:graph local-state)))]
+                          (let [place-node (first (tree/graph->trees (get (:graphs local-state)
+                                                                          (:osm-uri local-state))))]
                             (assert (tree/node? place-node))
                             [(osm/organization-do-link-osm node (:osm-uri local-state) place-node)
                              (-> local-state
                                  (assoc :show? false)
-                                 (dissoc :graph)
+                                 (dissoc :graphs)
                                  (dissoc :osm-uri))]))}
               "Add properties as 'location'")))
            (c/handle-action (fn [[node local-state] ac]
@@ -377,9 +381,8 @@
                 {:style {:display "flex"
                          :gap "1em"}}
                 (pr-osm-uri osm-uri)
-                (dom/button {:onClick ::TODO}
-                            "Update with Openstreetmap"))
-               (link-organization-with-osm-button))))
+                (link-organization-with-osm-button "Update" osm-uri))
+               (link-organization-with-osm-button "Link with OpenStreetMap"))))
 
          (let [props (tree/node-properties node)]
            (when-not (empty? props)
