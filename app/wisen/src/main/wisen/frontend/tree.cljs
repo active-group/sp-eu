@@ -86,6 +86,30 @@
                  conj
                  (make-property predicate obj)))
 
+(defn node-assoc-replace [node predicate obj]
+  (let [new-property (make-property predicate obj)]
+    (lens/overhaul node
+                   node-properties
+                   (fn [properties]
+                     (let [[did-replace? new-properties]
+                           (reduce (fn [[did-replace? properties] property]
+                                     (if did-replace?
+                                       ;; move on
+                                       [true (conj properties property)]
+                                       (if (= (property-predicate property)
+                                              predicate)
+                                         ;; replace
+                                         [true (conj properties new-property)]
+                                         ;; move on
+                                         [false (conj properties property)])))
+                                   [false []]
+                                   properties)]
+                       (if did-replace?
+                         ;; done
+                         new-properties
+                         ;; no replaced, just conj
+                         (conj new-properties new-property)))))))
+
 (defn node? [x]
   (record/is-a? node x))
 
