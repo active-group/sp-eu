@@ -243,13 +243,17 @@
   (dom/a {:href uri}
          "View on OpenStreetMap"))
 
-(defn- enter-osm-id []
-  (c/with-state-as [osm-id osm-id-local :local ""]
+(defn- enter-osm-uri []
+  (c/with-state-as [osm-uri osm-uri-local :local ""]
     (dom/div
-     (c/focus lens/second (forms/input))
-     (dom/button {:onClick (fn [[_ osm-id-local]]
-                             [osm-id-local osm-id-local])}
-                 "Go"))))
+     (c/focus lens/second
+              (forms/input
+               {:type "url"
+                :placeholder "https://www.openstreetmap.org/..."}))
+     (dom/button
+      {:onClick (fn [[_ osm-uri-local]]
+                  [osm-uri-local osm-uri-local])}
+      "Go"))))
 
 (declare readonly)
 
@@ -260,12 +264,12 @@
       {:style {:overflow "auto"}}
       (dom/h2 "OSM importer")
 
-      (c/focus (lens/>> lens/first :osm-id)
-               (enter-osm-id))
+      (c/focus (lens/>> lens/first :osm-uri)
+               (enter-osm-uri))
 
-      (when-let [osm-id (:osm-id state)]
+      (when-let [osm-uri (:osm-uri state)]
         (c/focus (lens/>> lens/second :response)
-                 (ajax/fetch (osm/osm-lookup-request osm-id))))
+                 (ajax/fetch (osm/osm-lookup-request osm-uri))))
 
       (when-let [response (:response local-state)]
         (when (and (ajax/response? response)
@@ -284,7 +288,7 @@
 (c/defn-item link-organization-with-osm-button []
   (c/with-state-as [node local-state :local {:show? false
                                              :graph nil
-                                             :osm-id nil}]
+                                             :osm-uri nil}]
     (c/fragment
      (c/focus (lens/>> lens/second :show?)
               (dom/button {:onClick (constantly true)}
@@ -305,11 +309,11 @@
               {:onClick (fn [[node local-state]]
                           (let [place-node (first (tree/graph->trees (:graph local-state)))]
                             (assert (tree/node? place-node))
-                            [(osm/organization-do-link-osm node (:osm-id local-state) place-node)
+                            [(osm/organization-do-link-osm node (:osm-uri local-state) place-node)
                              (-> local-state
                                  (assoc :show? false)
                                  (dissoc :graph)
-                                 (dissoc :osm-id))]))}
+                                 (dissoc :osm-uri))]))}
               "Add properties as 'location'")))
            (c/handle-action (fn [[node local-state] ac]
                               (if (= ::close-action ac)
@@ -368,6 +372,7 @@
                     (node-organization? node))
            (ds/with-card-padding
              (if-let [osm-uri (osm/node-osm-uri node)]
+
                (dom/div
                 {:style {:display "flex"
                          :gap "1em"}}
