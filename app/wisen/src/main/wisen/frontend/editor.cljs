@@ -13,8 +13,7 @@
             [wisen.frontend.default :as default]
             [wisen.frontend.osm :as osm]
             [active.data.record :as record :refer-macros [def-record]]
-            [wisen.frontend.modal :as modal]
-            [clojure.string :as str]))
+            [wisen.frontend.modal :as modal]))
 
 ;; [ ] Fix links for confluences
 ;; [x] Load all properties
@@ -47,6 +46,9 @@
 
 (defn pr-predicate [p]
   (case p
+    "https://wisen.active-group.de/osm-uri"
+    "OpenStreetMap URI"
+
     "http://schema.org/name"
     "Name"
 
@@ -165,16 +167,6 @@
   (= "http://schema.org/Organization"
      (node-type node)))
 
-(defn- node-osm-uri [node]
-  (let [objs (tree/node-objects-for-predicate node "http://schema.org/sameAs")]
-    (some
-     (fn [obj]
-       (when (tree/literal-string? obj)
-         (let [s (tree/literal-string-value obj)]
-           (when (str/starts-with? s "https://www.openstreetmap.org/node/")
-             s))))
-     objs)))
-
 (def predicate-priority
   ["http://schema.org/name"
    "http://schema.org/description"
@@ -289,14 +281,6 @@
       (when-let [graph (:graph state)]
         (readonly graph))))))
 
-(defn- organization-do-link-osm [organization-node osm-id osm-place-node]
-  (lens/overhaul organization-node
-                 tree/node-properties
-                 (fn [old-properties]
-                   (-> old-properties
-                       (conj (tree/make-property "http://schema.org/location" osm-place-node))
-                       (conj (tree/make-property "http://schema.org/sameAs" (tree/make-literal-string osm-id)))))))
-
 (c/defn-item link-organization-with-osm-button []
   (c/with-state-as [node local-state :local {:show? false
                                              :graph nil
@@ -321,7 +305,7 @@
               {:onClick (fn [[node local-state]]
                           (let [place-node (first (tree/graph->trees (:graph local-state)))]
                             (assert (tree/node? place-node))
-                            [(organization-do-link-osm node (:osm-id local-state) place-node)
+                            [(osm/organization-do-link-osm node (:osm-id local-state) place-node)
                              (-> local-state
                                  (assoc :show? false)
                                  (dissoc :graph)
@@ -383,7 +367,7 @@
          (when (and editing?
                     (node-organization? node))
            (ds/with-card-padding
-             (if-let [osm-uri (node-osm-uri node)]
+             (if-let [osm-uri (osm/node-osm-uri node)]
                (dom/div
                 {:style {:display "flex"
                          :gap "1em"}}
