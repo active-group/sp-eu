@@ -12,6 +12,74 @@
             [wisen.frontend.rdf :as rdf]
             ["jsonld" :as jsonld]))
 
+(def-record place [place-label place-bounding-box])
+
+(defn make-place [lbl bb]
+  (place place-label lbl
+         place-bounding-box bb))
+
+(defn place? [x]
+  (record/is-a? place x))
+
+(def-record group [group-label group-places])
+
+(defn make-group [lbl plcs]
+  (group group-label lbl
+         group-places plcs))
+
+(defn group? [x]
+  (record/is-a? group x))
+
+(def search-places
+  ;; latitude range, longitude range
+  {:berlin (make-group "Berlin"
+                       {:berlin
+                        (make-place "Berlin" [[53.3 52.7]
+                                              [13.0 13.8]])
+                        :berlin-friedrichshain-kreuzberg
+                        (make-place "Friedrichshain-Kreuzberg" [[52.488 52.531]
+                                                                [13.398 13.465]])
+
+                        :berlin-mitte
+                        (make-place "Mitte" [[52.494 52.537]
+                                             [13.354 13.457]])
+                        })
+   :ljubljana (make-place "Ljubljana" [[46.011 46.125]
+                                       [14.411 14.647]])
+   :tuebingen (make-place "Tübingen" [[48.484 48.550]
+                                      [9.0051 9.106]])})
+
+(defn flatten-place-map [m]
+  (apply merge
+         (map (fn [[k v]]
+                (cond
+                  (place? v)
+                  {k v}
+
+                  (group? v)
+                  (flatten-place-map (group-places v))))
+              m)))
+
+(vals (flatten-place-map search-places))
+
+(defn- geo-range-for-key [k]
+  (place-bounding-box
+   (get (flatten-place-map search-places)
+        k)))
+
+(defn- ->options [m]
+  (map (fn [[k v]]
+         (cond
+           (place? v)
+           (forms/option {:value k}
+                         (place-label v))
+
+           (group? v)
+           (apply forms/optgroup
+                  {:label (group-label v)}
+                  (->options (group-places v)))))
+       m))
+
 (def-record focus-query-action
   [focus-query-action-query])
 
@@ -56,19 +124,33 @@
              :organization "<http://schema.org/Organization>"
              :place "<http://schema.org/Place>"
              :offer "<http://schema.org/Offer>"
-             :event "<http://schema.org/Event>")]
+             :event "<http://schema.org/Event>")
+        [[min-lat max-lat] [min-long max-long]] (geo-range-for-key (:location m))]
     (str "CONSTRUCT { ?s ?p ?o .
-                      ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " ty ".
-                      ?s <http://schema.org/keywords> ?keywords . }
+                      ?s a " ty ".
+                      ?s <http://schema.org/keywords> ?keywords .
+                      ?s <http://schema.org/location> ?location .
+                      ?location a <http://schema.org/Place> .
+                      ?location <http://schema.org/geo> ?coords .
+                      ?coords <http://schema.org/latitude> ?lat .
+                      ?coords <http://schema.org/longitude> ?long .
+ }
           WHERE { ?s ?p ?o .
-                  ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " ty ".
+                  ?s a " ty ".
                   ?s <http://schema.org/keywords> ?keywords .
+                  ?s <http://schema.org/location> ?location .
+                  ?location a <http://schema.org/Place> .
+                  ?location <http://schema.org/geo> ?coords .
+                  ?coords <http://schema.org/latitude> ?lat .
+                  ?coords <http://schema.org/longitude> ?long .
+                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
                   FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\")) }")))
 
 (c/defn-item quick-search []
   (c/isolate-state {:type :organization
                     :target :elderly
-                    :tags ["education"]}
+                    :tags ["education"]
+                    :location (first (keys search-places))}
                    (forms/form
                     {:onSubmit (fn [state event]
                                  (.preventDefault event)
@@ -101,6 +183,10 @@
                     (dom/div "with tag")
                     (c/focus (lens/>> :tags lens/first)
                              (forms/input))
+
+                    (dom/div "in")
+                    (c/focus (lens/>> :location)
+                             (apply forms/select (->options search-places)))
 
                     (dom/button {:type "submit"} "Search"))))
 
