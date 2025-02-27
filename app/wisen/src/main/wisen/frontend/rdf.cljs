@@ -141,30 +141,3 @@
   (let [g (rdflib/graph)]
     (.addAll g (clj->js stmts))
     g))
-
-;; shorthands
-
-(defn resource-type [graph res]
-  (first
-   (subject-predicate-objects
-    graph
-    res
-    (make-symbol "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"))))
-
-(defn resource-name [graph res]
-  (when-let [name-node (first
-                        (subject-predicate-objects
-                         graph
-                         res
-                         (make-symbol "http://schema.org/name")))]
-    (when (literal-string? name-node)
-      (literal-string-value name-node))))
-
-(defn resource-description [graph res]
-  (when-let [node (first
-                        (subject-predicate-objects
-                         graph
-                         res
-                         (make-symbol "http://schema.org/description")))]
-    (when (literal-string? node)
-      (literal-string-value node))))
