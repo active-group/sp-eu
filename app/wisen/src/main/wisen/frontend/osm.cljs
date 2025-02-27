@@ -39,9 +39,6 @@
       (tree/literal-string-value obj))))
 
 (defn organization-do-link-osm [organization-node osm-id osm-place-node]
-  (lens/overhaul organization-node
-                 tree/node-properties
-                 (fn [old-properties]
-                   (-> old-properties
-                       (conj (tree/make-property "http://schema.org/location" osm-place-node))
-                       (conj (tree/make-property vocabulary/wisen-osm-uri-predicate (tree/make-literal-string osm-id)))))))
+  (-> organization-node
+      (tree/node-assoc-replace "http://schema.org/location" osm-place-node)
+      (tree/node-assoc-replace vocabulary/wisen-osm-uri-predicate (tree/make-literal-string osm-id))))
