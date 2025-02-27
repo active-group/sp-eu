@@ -7,7 +7,8 @@
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
    (org.apache.jena.vocabulary SchemaDO)
-   (org.apache.jena.query ReadWrite QueryExecutionFactory)))
+   (org.apache.jena.query ReadWrite QueryExecutionFactory)
+   (org.apache.jena.datatypes.xsd XSDDatatype)))
 
 (defonce dataset (atom nil))
 
@@ -100,6 +101,10 @@
         o (cond
             (change-api/literal-string? obj)
             (.createLiteral model (change-api/literal-string-value obj))
+
+            (change-api/literal-decimal? obj)
+            (.createTypedLiteral model (change-api/literal-decimal-value obj) XSDDatatype/XSDdecimal)
+
             (change-api/uri? obj)
             (.createResource model (change-api/uri-value obj)))]
     (.add ^Model model s p o)))
@@ -112,6 +117,10 @@
         o (cond
             (change-api/literal-string? obj)
             (.createLiteral model (change-api/literal-string-value obj))
+
+            (change-api/literal-decimal? obj)
+            (.createTypedLiteral model (change-api/literal-decimal-value obj) XSDDatatype/XSDdecimal)
+
             (change-api/uri? obj)
             (.createResource model (change-api/uri-value obj)))]
     (.remove ^Model model s p o)))
