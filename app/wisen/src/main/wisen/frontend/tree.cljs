@@ -36,6 +36,15 @@
 (defn literal-string? [x]
   (record/is-a? literal-string x))
 
+(def-record literal-decimal
+  [literal-decimal-value #_#_:- realm/number])
+
+(defn make-literal-decimal [s]
+  (literal-decimal literal-decimal-value s))
+
+(defn literal-decimal? [x]
+  (record/is-a? literal-decimal x))
+
 (def-record property
   [property-predicate :- URI
    property-object :- (realm/delay tree)
@@ -116,6 +125,7 @@
 (def tree (realm/union
            ref
            literal-string
+           literal-decimal
            node))
 
 ;; The following just does a simple walk through the graph with a `visited` set as context.
@@ -139,8 +149,10 @@
                          node-properties props)])))
 
     (rdf/literal-string? x)
-    [links (literal-string literal-string-value
-                           (rdf/literal-string-value x))]
+    [links (make-literal-string (rdf/literal-string-value x))]
+
+    (rdf/literal-decimal? x)
+    [links (make-literal-decimal (rdf/literal-decimal-value x))]
 
     (rdf/collection? x)
     (assert false "Not supported yet")))
@@ -162,6 +174,9 @@
     (record/is-a? literal-string tree)
     statements
 
+    (record/is-a? literal-decimal tree)
+    statements
+
     (record/is-a? node tree)
     (reduce (fn [statements prop]
               (let [pred (property-predicate prop)
@@ -176,6 +191,11 @@
                   (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
                                                        (rdf/make-symbol pred)
                                                        (rdf/make-literal-string (literal-string-value obj))))
+
+                  (record/is-a? literal-decimal obj)
+                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
+                                                       (rdf/make-symbol pred)
+                                                       (rdf/make-literal-decimal (literal-decimal-value obj))))
 
                   (record/is-a? node obj)
                   (let [statements* (tree->statements statements obj)]
