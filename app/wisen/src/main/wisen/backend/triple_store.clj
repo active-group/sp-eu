@@ -84,16 +84,6 @@
   ([base-model model-to-add]
    (.add base-model (skolem/skolemize-model model-to-add "foobar"))))
 
-(defn edit-model!
-  ([base-query replacing-model]
-   (with-write-model!
-     (fn [base-model]
-       (edit-model! base-model base-query replacing-model))))
-  ([base-model base-query replacing-model]
-   (let [replaced-model (run-construct-query! base-model base-query)]
-     (.deleteAll replaced-model)
-     (.add replaced-model replacing-model))))
-
 (defn add-statement! [^Model model stmt]
   (let [obj (change-api/statement-object stmt)
         s (.createResource model (change-api/statement-subject stmt))
