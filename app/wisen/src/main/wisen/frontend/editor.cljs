@@ -306,20 +306,31 @@
               (dom/button {:onClick (constantly true)}
                           "Link with OpenStreetMap"))
      (when (:show? local-state)
-       (modal/main
-        {:style {:border "1px solid blue"}}
-        (dom/div
-         (c/focus (lens/>> lens/second)
-                  (osm-importer))
-         (dom/button {:onClick (fn [[node local-state]]
-                                 (let [place-node (first (tree/graph->trees (:graph local-state)))]
-                                   (assert (tree/node? place-node))
-                                   [(organization-do-link-osm node (:osm-id local-state) place-node)
-                                    (-> local-state
-                                        (assoc :show? false)
-                                        (dissoc :graph)
-                                        (dissoc :osm-id))]))}
-                     "Add properties as 'location'")))))))
+       (-> (modal/main
+            {:style {:border "1px solid blue"}}
+            ::close-action
+            (dom/div
+             (c/focus (lens/>> lens/second)
+                      (osm-importer))
+
+             (c/focus (lens/>> lens/second :show?)
+                      (dom/button {:onClick (constantly false)}
+                                  "Cancel"))
+
+             (ds/button-primary
+              {:onClick (fn [[node local-state]]
+                          (let [place-node (first (tree/graph->trees (:graph local-state)))]
+                            (assert (tree/node? place-node))
+                            [(organization-do-link-osm node (:osm-id local-state) place-node)
+                             (-> local-state
+                                 (assoc :show? false)
+                                 (dissoc :graph)
+                                 (dissoc :osm-id))]))}
+              "Add properties as 'location'")))
+           (c/handle-action (fn [[node local-state] ac]
+                              (if (= ::close-action ac)
+                                (c/return :state [node (assoc local-state :show? false)])
+                                (c/return :action ac)))))))))
 
 (defn- node-component [editable? force-editing? can-focus? can-expand?]
   (c/with-state-as [node editing? :local force-editing?]

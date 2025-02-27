@@ -33,3 +33,10 @@
          (dom/merge-attributes attrs
                                {:style {:padding "6px 16px"}})
          children))
+
+(dom/defn-dom button-primary [attrs & children]
+  (apply dom/button
+         (dom/merge-attributes attrs
+                               {:style {:color "#3228dd"
+                                        :font-weight "bold"}})
+         children))
