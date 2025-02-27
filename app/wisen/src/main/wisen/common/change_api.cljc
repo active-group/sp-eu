@@ -31,14 +31,25 @@
 
 ;;
 
-(def string-or-uri (realm/union literal-string uri))
+(def-record literal-decimal
+  [literal-decimal-value :- realm/string #_realm/decimal])
+
+(defn make-literal-decimal [s]
+  (literal-decimal literal-decimal-value s))
+
+(defn literal-decimal? [x]
+  (record/is-a? literal-decimal x))
+
+;;
+
+(def literal-or-uri (realm/union literal-string literal-decimal uri))
 
 ;;
 
 (def-record statement
   [statement-subject :- uri
    statement-predicate :- uri
-   statement-object :- string-or-uri])
+   statement-object :- literal-or-uri])
 
 (defn make-statement [s p o]
   (statement statement-subject s
@@ -77,9 +88,12 @@
 (def edn-format
   (format/format ::edn-format
                  {realm/string formatter/id
+                  realm/number formatter/id
                   literal-string (formatter/record-map literal-string {literal-string-value :value})
-                  string-or-uri (formatter/tagged-union-tuple {"literal-string" literal-string
-                                                               "uri" realm/string})
+                  literal-decimal (formatter/record-map literal-decimal {literal-decimal-value :value})
+                  literal-or-uri (formatter/tagged-union-tuple {"literal-string" literal-string
+                                                                "literal-decimal" literal-decimal
+                                                                "uri" realm/string})
                   statement (formatter/record-map statement {statement-subject :subject
                                                              statement-predicate :predicate
                                                              statement-object :object})

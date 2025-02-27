@@ -24,6 +24,7 @@
   [statement-subject :- tree/URI
    statement-predicate :- tree/URI
    statement-object :- (realm/union tree/literal-string
+                                    tree/literal-decimal
                                     tree/URI)])
 
 (defn- compare-object [o1 o2]
@@ -37,6 +38,10 @@
          (tree/uri? o2))
     -1
 
+    (and (tree/literal-string? o1)
+         (tree/literal-decimal? o2))
+    -1
+
     (and (tree/uri? o1)
          (tree/literal-string? o2))
     1
@@ -44,7 +49,24 @@
     (and (tree/uri? o1)
          (tree/uri? o2))
     (compare (tree/uri-string o1)
-             (tree/uri-string o2))))
+             (tree/uri-string o2))
+
+    (and (tree/uri? o1)
+         (tree/literal-decimal? o2))
+    1
+
+    (and (tree/literal-decimal? o1)
+         (tree/literal-string? o2))
+    1
+
+    (and (tree/literal-decimal? o1)
+         (tree/uri? o2))
+    -1
+
+    (and (tree/literal-decimal? o1)
+         (tree/literal-decimal? o2))
+    (compare (tree/literal-decimal-value o1)
+             (tree/literal-decimal-value o2))))
 
 (defn compare-statement [s1 s2]
   (case (compare (statement-subject s1)
@@ -109,6 +131,9 @@
       (tree/literal-string? obj)
       [(mk-stmt obj)]
 
+      (tree/literal-decimal? obj)
+      [(mk-stmt obj)]
+
       (tree/ref? obj)
       [(mk-stmt (tree/ref-uri obj))]
 
@@ -123,6 +148,9 @@
   (cond
     (tree/literal-string? t)
     (assert false "Not possible to turn literal string into statements")
+
+    (tree/literal-decimal? t)
+    (assert false "Not possible to turn literal decimal into statements")
 
     (tree/ref? t)
     (assert false "Not possible to turn ref into statements")
@@ -164,6 +192,10 @@
        (tree/literal-string? obj)
        (change-api/make-literal-string
         (tree/literal-string-value obj))
+
+       (tree/literal-decimal? obj)
+       (change-api/make-literal-decimal
+        (tree/literal-decimal-value obj))
 
        (tree/uri? obj)
        (change-api/make-uri
