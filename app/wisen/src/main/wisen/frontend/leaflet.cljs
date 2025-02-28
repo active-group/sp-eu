@@ -36,7 +36,7 @@
       (.remove mp)
       )))
 
-(c/defn-subscription setup-leaflet-2 deliver! [ref view-box]
+(c/defn-subscription setup-leaflet-2 deliver! [ref view-box pins]
   (let [mp (.map leaflet (c/deref ref))
         tile-layer (.tileLayer
                     leaflet
@@ -46,10 +46,17 @@
                          "&copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a>"})]
     (.fitBounds mp (bounding-box->LatLngBounds view-box))
     (.addTo tile-layer mp)
+
+    (doall
+     (map (fn [[lat long]]
+            (let [marker (.marker leaflet (clj->js [lat long]))]
+              (.addTo marker mp)))
+          pins))
+
     (.addEventListener mp "moveend" (fn [e]
-                                   (deliver! (LatLngBounds->bounding-box
-                                              (.getBounds mp)))
-                                   ))
+                                      (deliver! (LatLngBounds->bounding-box
+                                                 (.getBounds mp)))
+                                      ))
 
     (fn [_]
       (.remove mp))))
@@ -72,7 +79,7 @@
                    :style {:min-height 240}})
          (setup-leaflet ref view-coords zoom-level pin-coords nil))))))
 
-(c/defn-item main [& [attrs]]
+(c/defn-item main [& [attrs pins]]
   (c/with-state-as view-box
     (c/with-ref
       (fn [ref]
@@ -81,7 +88,7 @@
                    attrs
                    {:ref ref
                     :style {:min-height 240}}))
-         (c/handle-action (setup-leaflet-2 ref view-box)
+         (c/handle-action (setup-leaflet-2 ref view-box pins)
                           (fn [_ new-view-box]
                             new-view-box
                             )))))))

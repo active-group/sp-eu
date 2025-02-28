@@ -172,3 +172,19 @@
   (let [g (rdflib/graph)]
     (.addAll g (clj->js stmts))
     g))
+
+;; ---
+
+(defn geo-positions [graph]
+  (let [sparql (str "SELECT ?lat, ?long WHERE { ?s <http://schema.org/latitude> ?lat . ?s <http://schema.org/longitude> ?long . }")
+        q (rdflib/SPARQLToQuery sparql false graph)
+        results (.querySync ^rdflib/IndexedFormula graph q)
+        values (atom [])]
+
+    (.forEach results
+              (fn [result]
+                (let [lat (aget result "?lat")
+                      long (aget result "?long")]
+                  (swap! values conj [lat long])
+                  )))
+    @values))
