@@ -5,6 +5,17 @@
 
 (def leaflet js/L)
 
+(defn bounding-box->LatLngBounds [[[min-lat max-lat] [min-long max-long]]]
+  (let [top-left (.latLng leaflet min-lat max-long)
+        bottom-right (.latLng leaflet max-lat min-long)]
+    (.latLngBounds leaflet top-left bottom-right)))
+
+(defn LatLngBounds->bounding-box [^leaflet/LatLngBounds latLngBounds]
+  (let [^leaflet/LatLng top-left (.getNorthWest latLngBounds)
+        ^leaflet/LatLng bottom-right (.getSouthEast latLngBounds)]
+    [[(.-lat bottom-right) (.-lat top-left)]
+     [(.-lng top-left) (.-lng bottom-right)]]))
+
 (c/defn-subscription setup-leaflet deliver! [ref coords zoom-level marker-position circle]
   (let [mp (.map leaflet (c/deref ref))
         tile-layer (.tileLayer leaflet "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -25,6 +36,24 @@
       (.remove mp)
       )))
 
+(c/defn-subscription setup-leaflet-2 deliver! [ref view-box]
+  (let [mp (.map leaflet (c/deref ref))
+        tile-layer (.tileLayer
+                    leaflet
+                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    #js {:maxZoom 19,
+                         :attribution
+                         "&copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a>"})]
+    (.fitBounds mp (bounding-box->LatLngBounds view-box))
+    (.addTo tile-layer mp)
+    (.addEventListener mp "moveend" (fn [e]
+                                   (deliver! (LatLngBounds->bounding-box
+                                              (.getBounds mp)))
+                                   ))
+
+    (fn [_]
+      (.remove mp))))
+
 (c/defn-item circle [view-coords zoom-level]
   (c/with-state-as [circle-center circle-radius]
     (c/with-ref
@@ -42,3 +71,17 @@
          (dom/div {:ref ref
                    :style {:min-height 240}})
          (setup-leaflet ref view-coords zoom-level pin-coords nil))))))
+
+(c/defn-item main [& [attrs]]
+  (c/with-state-as view-box
+    (c/with-ref
+      (fn [ref]
+        (c/fragment
+         (dom/div (dom/merge-attributes
+                   attrs
+                   {:ref ref
+                    :style {:min-height 240}}))
+         (c/handle-action (setup-leaflet-2 ref view-box)
+                          (fn [_ new-view-box]
+                            new-view-box
+                            )))))))

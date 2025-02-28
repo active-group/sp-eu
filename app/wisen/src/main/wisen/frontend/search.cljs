@@ -10,6 +10,7 @@
             [wisen.frontend.routes :as routes]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
+            [wisen.frontend.leaflet :as leaflet]
             ["jsonld" :as jsonld]))
 
 (def-record place [place-label place-bounding-box])
@@ -125,7 +126,7 @@
              :place "<http://schema.org/Place>"
              :offer "<http://schema.org/Offer>"
              :event "<http://schema.org/Event>")
-        [[min-lat max-lat] [min-long max-long]] (geo-range-for-key (:location m))]
+        [[min-lat max-lat] [min-long max-long]] (:location m)]
     (str "CONSTRUCT { ?s ?p ?o .
                       ?s a " ty ".
                       ?s <http://schema.org/keywords> ?keywords .
@@ -150,45 +151,46 @@
   (c/isolate-state {:type :organization
                     :target :elderly
                     :tags ["education"]
-                    :location (first (keys search-places))}
-                   (forms/form
-                    {:onSubmit (fn [state event]
-                                 (.preventDefault event)
-                                 (c/return :action (make-focus-query-action
-                                                    (quick-search->sparql state))))
-                     :style {:display "flex"
-                             :gap "16px"}}
-                    (dom/div "I'm looking for ")
-                    (c/focus :type
-                             (forms/select
-                              (forms/option {:value :organization}
-                                            "organizations")
-                              (forms/option {:value :place}
-                                            "places")
-                              (forms/option {:value :offer}
-                                            "offers")
-                              (forms/option {:value :event}
-                                            "events")))
-                    (dom/div "targeted towards")
-                    (c/focus :target
-                             (forms/select
-                              (forms/option {:value :elderly}
-                                            "elderly")
-                              (forms/option {:value :queer}
-                                            "queer")
-                              (forms/option {:value :immigrants}
-                                            "immigrants")
-                              ))
+                    :location [[53.3 52.7]
+                               [13.0 13.8]] #_(first (keys search-places))}
+                   (dom/div
+                    (forms/form
+                     {:onSubmit (fn [state event]
+                                  (.preventDefault event)
+                                  (c/return :action (make-focus-query-action
+                                                     (quick-search->sparql state))))
+                      :style {:display "flex"
+                              :gap "16px"}}
+                     (dom/div "I'm looking for ")
+                     (c/focus :type
+                              (forms/select
+                               (forms/option {:value :organization}
+                                             "organizations")
+                               (forms/option {:value :place}
+                                             "places")
+                               (forms/option {:value :offer}
+                                             "offers")
+                               (forms/option {:value :event}
+                                             "events")))
+                     (dom/div "targeted towards")
+                     (c/focus :target
+                              (forms/select
+                               (forms/option {:value :elderly}
+                                             "elderly")
+                               (forms/option {:value :queer}
+                                             "queer")
+                               (forms/option {:value :immigrants}
+                                             "immigrants")
+                               ))
 
-                    (dom/div "with tag")
-                    (c/focus (lens/>> :tags lens/first)
-                             (forms/input))
+                     (dom/div "with tag")
+                     (c/focus (lens/>> :tags lens/first)
+                              (forms/input))
 
-                    (dom/div "in")
-                    (c/focus (lens/>> :location)
-                             (apply forms/select (->options search-places)))
+                     (dom/button {:type "submit"} "Search in map area"))
 
-                    (dom/button {:type "submit"} "Search"))))
+                    (c/focus :location
+                             (leaflet/main {:style {:height 460}})))))
 
 (defn run-query [q]
   (c/isolate-state
