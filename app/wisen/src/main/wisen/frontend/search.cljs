@@ -148,49 +148,43 @@
                   FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\")) }")))
 
 (c/defn-item quick-search []
-  (c/isolate-state {:type :organization
-                    :target :elderly
-                    :tags ["education"]
-                    :location [[53.3 52.7]
-                               [13.0 13.8]] #_(first (keys search-places))}
-                   (dom/div
-                    (forms/form
-                     {:onSubmit (fn [state event]
-                                  (.preventDefault event)
-                                  (c/return :action (make-focus-query-action
-                                                     (quick-search->sparql state))))
-                      :style {:display "flex"
-                              :gap "16px"}}
-                     (dom/div "I'm looking for ")
-                     (c/focus :type
-                              (forms/select
-                               (forms/option {:value :organization}
-                                             "organizations")
-                               (forms/option {:value :place}
-                                             "places")
-                               (forms/option {:value :offer}
-                                             "offers")
-                               (forms/option {:value :event}
-                                             "events")))
-                     (dom/div "targeted towards")
-                     (c/focus :target
-                              (forms/select
-                               (forms/option {:value :elderly}
-                                             "elderly")
-                               (forms/option {:value :queer}
-                                             "queer")
-                               (forms/option {:value :immigrants}
-                                             "immigrants")
-                               ))
+  (dom/div
+   (forms/form
+    {:onSubmit (fn [state event]
+                 (.preventDefault event)
+                 (c/return :action (make-focus-query-action
+                                    (quick-search->sparql state))))
+     :style {:display "flex"
+             :gap "16px"}}
+    (dom/div "I'm looking for ")
+    (c/focus :type
+             (forms/select
+              (forms/option {:value :organization}
+                            "organizations")
+              (forms/option {:value :place}
+                            "places")
+              (forms/option {:value :offer}
+                            "offers")
+              (forms/option {:value :event}
+                            "events")))
+    (dom/div "targeted towards")
+    (c/focus :target
+             (forms/select
+              (forms/option {:value :elderly}
+                            "elderly")
+              (forms/option {:value :queer}
+                            "queer")
+              (forms/option {:value :immigrants}
+                            "immigrants")
+              ))
 
-                     (dom/div "with tag")
-                     (c/focus (lens/>> :tags lens/first)
-                              (forms/input))
+    (dom/div "with tag")
+    (c/focus (lens/>> :tags lens/first)
+             (forms/input))
 
-                     (dom/button {:type "submit"} "Search in map area"))
+    (dom/button {:type "submit"} "Search in map area"))
 
-                    (c/focus :location
-                             (leaflet/main {:style {:height 460}})))))
+   ))
 
 (defn run-query [q]
   (c/isolate-state
@@ -211,6 +205,14 @@
            (fn [_]
              (c/return :action response)))))))))
 
+(defn- unwrap-rdf-literal-decimal [x]
+  (assert (rdf/literal-decimal? x))
+  (js/Number (rdf/literal-decimal-value x)))
+
+(defn- unwrap-rdf-literal-decimal-tuple [[lat long]]
+  [(unwrap-rdf-literal-decimal lat)
+   (unwrap-rdf-literal-decimal long)])
+
 (c/defn-item main* []
   (c/with-state-as state
     (c/fragment
@@ -224,8 +226,21 @@
           (ds/padded-2
            {:style {:border-bottom ds/border}}
            (dom/div
-            (query-form)
-            (quick-search))
+            #_(query-form)
+
+            (c/isolate-state
+             {:type :organization
+              :target :elderly
+              :tags ["education"]
+              :location [[53.3 52.7]
+                         [13.0 13.8]]}
+             (dom/div
+              (quick-search)
+              (c/focus :location
+                       (leaflet/main {:style {:height 460}}
+                                     (when-let [graph (:graph state)]
+                                       (map unwrap-rdf-literal-decimal-tuple
+                                            (rdf/geo-positions graph))))))))
 
            ;; display when we have a graph
            (when-let [graph (:graph state)]
