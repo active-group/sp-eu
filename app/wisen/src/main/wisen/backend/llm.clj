@@ -28,13 +28,10 @@
       ;; TODO: error handling?
       200 (let [llm-response (get-in response [:body :response])
                 json-ld-string (extract-json-ld llm-response)
-                _ (println (pr-str json-ld-string))
                 model (jsonld/json-ld-string->model json-ld-string)
-                _ (println (pr-str model))
                 skolemized-model (skolem/skolemize-model model "phi4")
-                _ (println (pr-str skolemized-model))
                 skolemized-json-ld-string (jsonld/model->json-ld-string skolemized-model)
-                _ (println skolemized-json-ld-string)]
+                ]
             {:status 200
              :body skolemized-json-ld-string
              :headers {"content-type" "application/ld+json"}})
