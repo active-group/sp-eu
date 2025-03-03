@@ -159,6 +159,8 @@
 (def dbname "devdb")
 
 (defn setup! []
+  ;; Use POST for federated (SERVICE) queries
+  (.set (ARQ/getContext) ARQ/httpServiceSendMode "POST")
   (swap! dataset
          (fn [ds]
            (if ds
