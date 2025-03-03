@@ -32,7 +32,6 @@
                 model (jsonld/json-ld-string->model json-ld-string)
                 skolemized-model (skolem/skolemize-model model "phi4")
                 skolemized-json-ld-string (jsonld/model->json-ld-string skolemized-model)
-                ]
                 validation (validator/validate-model skolemized-model)]
             {:status 200
              :body {:json-ld-string skolemized-json-ld-string :invalid-nodes (:invalid-nodes validation)}
