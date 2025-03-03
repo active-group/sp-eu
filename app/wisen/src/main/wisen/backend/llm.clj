@@ -15,7 +15,7 @@
 (defn extract-json-ld
   [s]
   (-> s
-      (str/replace #"^```json\n|json-ld\n" "")
+      (str/replace #"^```json\n|```json-ld\n" "")
       (str/replace #"\n```$" "")))
 
 (defn ollama-request! [prompt]
