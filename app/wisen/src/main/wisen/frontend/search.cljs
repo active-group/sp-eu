@@ -206,8 +206,14 @@
              (c/return :action response)))))))))
 
 (defn- unwrap-rdf-literal-decimal [x]
-  (assert (rdf/literal-decimal? x))
-  (js/Number (rdf/literal-decimal-value x)))
+  (assert (or (rdf/literal-decimal? x)
+              (rdf/literal-string? x)))
+
+  (cond (rdf/literal-decimal? x)
+        (js/Number (rdf/literal-decimal-value x))
+
+        (rdf/literal-string? x)
+        (.parseFloat js/Number (rdf/literal-string-value x))))
 
 (defn- unwrap-rdf-literal-decimal-tuple [[lat long]]
   [(unwrap-rdf-literal-decimal lat)
