@@ -45,16 +45,15 @@
                   (c/with-state-as response
                     (when (and (ajax/response? response)
                                (ajax/response-ok? response))
-                      (ajax/response-value response)
-                      (dom/div
-                       (pr-str response)
-                       (promise/call-with-promise-result
-                          (rdf/json-ld-string->graph-promise (ajax/response-value response))
-                          (fn [response-graph]
-                            (pr-str response-graph)))))))))
-     #_(when-let [graph (:graph state)]
-       (pr-str graph)
-       #_(editor/readonly graph :foo :bar)))))
+                       (let [resp (ajax/response-value response)
+                             invalid-nodes (:invalid-nodes resp)
+                             _ (println resp)]
+                         (dom/div
+                           (when invalid-nodes invalid-nodes)
+                           (promise/call-with-promise-result
+                            (rdf/json-ld-string->graph-promise (:json-ld-string resp))
+                            (fn [response-graph]
+                             (editor/readonly response-graph :foo :bar)))))))))))))
 
 (c/defn-item main []
   (c/isolate-state

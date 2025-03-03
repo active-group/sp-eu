@@ -2,6 +2,7 @@
   (:require [clj-http.client :as client]
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.skolem :as skolem]
+            [wisen.backend.rdf-validator :as validator]
             [clojure.string :as str]))
 
 (defn format-ollama-prompt [prompt]
@@ -32,8 +33,9 @@
                 skolemized-model (skolem/skolemize-model model "phi4")
                 skolemized-json-ld-string (jsonld/model->json-ld-string skolemized-model)
                 ]
+                validation (validator/validate-model skolemized-model)]
             {:status 200
-             :body skolemized-json-ld-string
+             :body {:json-ld-string skolemized-json-ld-string :invalid-nodes (:invalid-nodes validation)}
              :headers {"content-type" "application/ld+json"}})
       ;; TODO: error handling
       {:status 500 :body (pr-str response)})
