@@ -21,11 +21,10 @@
      (try
        (f model)
        (.commit dataset)
+       (.end dataset)
        (catch Exception e
-         (println (pr-str e))
-         (.abort dataset))
-       (finally
-         (.end dataset))))))
+         (.abort dataset)
+         (throw e))))))
 
 (defn- with-read-model!
   ([f]
@@ -34,11 +33,12 @@
    (.begin dataset ReadWrite/READ)
    (let [model (.getDefaultModel dataset)]
      (try
-       (f model)
+       (let [result (f model)]
+         (.end dataset)
+         result)
        (catch Exception e
-         (.abort dataset))
-       (finally
-         (.end dataset))))))
+         (.abort dataset)
+         (throw e))))))
 
 
 (defn- gather-vars [acc solution var-names]
