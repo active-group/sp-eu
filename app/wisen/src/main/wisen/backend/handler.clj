@@ -79,11 +79,8 @@
     (osm/lookup! osmid)))
 
 (defn ollama-handler [request]
-  (let [body (slurp (get request :body))
-        x (llm/ollama-request! body)]
-    (println "==================")
-    (println (pr-str x))
-    x))
+  (let [body (slurp (get request :body))]
+    (llm/ollama-request! body)))
 
 (def handler*
   (ring/ring-handler
