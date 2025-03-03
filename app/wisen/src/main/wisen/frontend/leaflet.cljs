@@ -1,7 +1,9 @@
 (ns wisen.frontend.leaflet
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
-            [active.clojure.lens :as lens]))
+            [active.clojure.lens :as lens]
+            [active.data.realm :as realm]
+            [active.data.record :refer [is-a?] :refer-macros [def-record]]))
 
 (def leaflet js/L)
 
@@ -16,25 +18,34 @@
     [[(.-lat bottom-right) (.-lat top-left)]
      [(.-lng top-left) (.-lng bottom-right)]]))
 
-(c/defn-subscription setup-leaflet deliver! [ref coords zoom-level marker-position circle]
-  (let [mp (.map leaflet (c/deref ref))
-        tile-layer (.tileLayer leaflet "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                               #js {:maxZoom 19,
-                                    :attribution "&copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a>"})]
-    (.setView mp (clj->js coords) zoom-level)
-    (.addTo tile-layer mp)
-    (when marker-position
-      (let [marker (.marker leaflet (clj->js marker-position))]
-        (.addTo marker mp)))
+(defn- pin-element [label color]
+  (let [elem (js/document.createElement "div")]
+    (set! (.-textContent elem) label)
+    (set! (.-style elem)
+          (str
+           "border-radius: 100%;
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            color: white;
+            font-weight: bold;
+            padding: 5px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            border-top-left-radius: 0;"
+           "background: " color ";"))
+    elem))
 
-    (when-let [[circle-center circle-radius] circle]
-      (let [crcl (.circle leaflet (clj->js circle-center) #js {:color "blue"
-                                                     :radius circle-radius})]
-        (.addTo crcl mp)))
+(def-record pin [pin-label :- realm/string
+                 pin-color :- realm/string
+                 pin-coordinates :- [realm/number realm/number]])
 
-    (fn [_]
-      (.remove mp)
-      )))
+(defn make-pin [label color coordinates]
+  (pin pin-label label
+       pin-color color
+       pin-coordinates coordinates))
+
+(defn pin? [this]
+  (is-a? pin this))
 
 (c/defn-subscription setup-leaflet-2 deliver! [ref view-box pins]
   (let [mp (.map leaflet (c/deref ref))
@@ -48,8 +59,13 @@
     (.addTo tile-layer mp)
 
     (doall
-     (map (fn [[lat long]]
-            (let [marker (.marker leaflet (clj->js [lat long]))]
+     (map (fn [pin]
+            (let [html (pin-element (pin-label pin)
+                                    (pin-color pin))
+                  marker (.marker leaflet
+                                  (clj->js (pin-coordinates pin))
+                                  #js {:riseOnHover true :title "Schmeitel"
+                                       :icon (.divIcon leaflet #js {:html html})})]
               (.addTo marker mp)))
           pins))
 
@@ -60,24 +76,6 @@
 
     (fn [_]
       (.remove mp))))
-
-(c/defn-item circle [view-coords zoom-level]
-  (c/with-state-as [circle-center circle-radius]
-    (c/with-ref
-      (fn [ref]
-        (c/fragment
-         (dom/div {:ref ref
-                   :style {:min-height 240}})
-         (setup-leaflet ref view-coords zoom-level nil [circle-center circle-radius]))))))
-
-(c/defn-item position [view-coords zoom-level]
-  (c/with-state-as pin-coords
-    (c/with-ref
-      (fn [ref]
-        (c/fragment
-         (dom/div {:ref ref
-                   :style {:min-height 240}})
-         (setup-leaflet ref view-coords zoom-level pin-coords nil))))))
 
 (c/defn-item main [& [attrs pins]]
   (c/with-state-as view-box

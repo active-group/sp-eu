@@ -213,6 +213,15 @@
   [(unwrap-rdf-literal-decimal lat)
    (unwrap-rdf-literal-decimal long)])
 
+(defn- color-for-coordinates [coords]
+  ;; TODO: properly turn hashes into colors
+  (case (mod (hash coords) 4)
+    0 "blue"
+    1 "red"
+    2 "green"
+    3 "purple"
+    ))
+
 (c/defn-item main* []
   (c/with-state-as state
     (c/fragment
@@ -232,14 +241,19 @@
              {:type :organization
               :target :elderly
               :tags ["education"]
-              :location [[53.3 52.7]
-                         [13.0 13.8]]}
+              :location [[48.484 48.550]
+                         [9.0051 9.106]]}
              (dom/div
               (quick-search)
               (c/focus :location
                        (leaflet/main {:style {:height 460}}
                                      (when-let [graph (:graph state)]
-                                       (map unwrap-rdf-literal-decimal-tuple
+                                       (map (fn [position]
+                                              (let [coords (unwrap-rdf-literal-decimal-tuple position)]
+                                                (leaflet/make-pin
+                                                 "A"
+                                                 (color-for-coordinates coords)
+                                                 coords)))
                                             (rdf/geo-positions graph))))))))
 
            ;; display when we have a graph
