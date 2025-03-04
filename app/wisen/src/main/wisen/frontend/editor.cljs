@@ -41,6 +41,9 @@
     "http://schema.org/PostalAddress"
     "Address"
 
+    "http://schema.org/OpeningHoursSpecification"
+    "Opening hours"
+
     t
     ))
 
@@ -94,6 +97,18 @@
     "http://schema.org/sameAs"
     "Same resource on other site (Google Maps, OpenStreetMap, ...)"
 
+    "http://schema.org/openingHoursSpecification"
+    "Opening hours"
+
+    "http://schema.org/dayOfWeek"
+    "Day of week"
+
+    "http://schema.org/opens"
+    "Opens"
+
+    "http://schema.org/closes"
+    "Closes"
+
     p))
 
 (defn- load-more-query [uri]
@@ -132,6 +147,17 @@
                (forms/textarea {:style {:width "100%"
                                         :min-height "6em"}})
                (c/dynamic dom/div)))
+
+    "http://schema.org/dayOfWeek"
+    (c/focus tree/node-uri (forms/select
+                            (forms/option {:value "http://schema.org/Monday"} "Monday")
+                            (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
+                            (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
+                            (forms/option {:value "http://schema.org/Thursday"} "Thursday")
+                            (forms/option {:value "http://schema.org/Friday"} "Friday")
+                            (forms/option {:value "http://schema.org/Saturday"} "Saturday")
+                            (forms/option {:value "http://schema.org/Sunday"} "Sunday")
+                            ))
 
     (dom/div {:style {:margin-left "0em"
                       :margin-top "1ex"
@@ -179,6 +205,14 @@
    "http://schema.org/addressLocality"
    "http://schema.org/addressCountry"
 
+   "http://schema.org/openingHoursSpecification"
+
+   "http://schema.org/email"
+
+   "http://schema.org/dayOfWeek"
+   "http://schema.org/opens"
+   "http://schema.org/closes"
+
    ])
 
 (defn- index-of [s v]
@@ -207,6 +241,8 @@
    "http://schema.org/location"
    "http://schema.org/sameAs"
    #_"http://schema.org/geo"
+   "http://schema.org/email"
+   "http://schema.org/openingHoursSpecification"
    ])
 
 (def predicate-options
