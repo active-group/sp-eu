@@ -73,6 +73,8 @@
                      (get-in request
                              [:body-params :changes]))]
     (triple-store/edit-model! changes)
+    ;; TODO: a bit wasteful to derive geo location on _every_ update
+    ;; strictly neccessary only when address is added
     (triple-store/decorate-geo!)
     {:status 200}))
 
