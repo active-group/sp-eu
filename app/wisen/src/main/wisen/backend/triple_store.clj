@@ -2,7 +2,8 @@
   (:require [wisen.backend.core :as core]
             [wisen.backend.jsonld]
             [wisen.backend.skolem :as skolem]
-            [wisen.common.change-api :as change-api])
+            [wisen.common.change-api :as change-api]
+            [wisen.backend.osm :as osm])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -76,6 +77,50 @@
          graph (.execConstruct qexec)]
      graph)))
 
+#_(run-construct-query!
+ "CONSTRUCT { ?org a <http://schema.org/Organization> .
+              ?org <http://schema.org/location> ?place .
+              ?place a <http://schema.org/Place> .
+
+              ?place <http://schema.org/address> ?address .
+              ?address <http://schema.org/postalCode> ?postalCode .
+              ?address <http://schema.org/streetAddress> ?streetAddress .
+              ?address <http://schema.org/addressLocality> ?addressLocality .
+              ?address <http://schema.org/addressCountry> ?addressCountry .
+
+              ?place <http://schema.org/geo> ?geo .
+              ?geo a <http://schema.org/GeoCoordinates> .
+              ?geo <http://schema.org/latitude> ?lat .
+              ?geo <http://schema.org/longitude> ?long .
+ }
+  WHERE {
+     ?org a <http://schema.org/Organization> .
+     ?org <http://schema.org/location> ?place .
+     ?place <http://schema.org/address> ?address .
+     ?address <http://schema.org/postalCode> ?postalCode .
+     ?address <http://schema.org/streetAddress> ?streetAddress .
+     ?address <http://schema.org/addressLocality> ?addressLocality .
+     ?address <http://schema.org/addressCountry> ?addressCountry .
+ SERVICE
+    <http://localhost:4321/osm/search>
+    {
+     ?place a <http://schema.org/Place> .
+     ?place <http://schema.org/geo> ?geo .
+     ?geo a <http://schema.org/GeoCoordinates> .
+     ?geo <http://schema.org/latitude> ?lat .
+     ?geo <http://schema.org/longitude> ?long .
+     ?place <http://schema.org/address> ?address .
+     ?address <http://schema.org/postalCode> ?postalCode .
+     ?address <http://schema.org/streetAddress> ?streetAddress .
+     ?address <http://schema.org/addressLocality> ?addressLocality .
+     ?address <http://schema.org/addressCountry> ?addressCountry .
+
+  }
+
+FILTER(CONTAINS(LCASE(STR(?addressLocality)), \"bingen\"))
+
+}")
+
 (defn add-model!
   ([model-to-add]
    (with-write-model!
@@ -131,6 +176,86 @@
      (doall
       (for [deletion deletions]
         (remove-statement! base-model (change-api/delete-statement deletion)))))))
+
+#_(run-select-query!
+ "SELECT ?place ?country ?locality ?postcode ?street
+  WHERE {
+    ?place a <http://schema.org/Place> .
+    ?place <http://schema.org/address> ?address .
+    ?address <http://schema.org/postalCode> ?postcode .
+    ?address <http://schema.org/streetAddress> ?street .
+    ?address <http://schema.org/addressLocality> ?locality .
+    ?address <http://schema.org/addressCountry> ?country .
+
+    FILTER NOT EXISTS { ?place <http://schema.org/geo> ?geo . }
+}")
+
+(defn decorate-geo!
+  ([]
+   (with-write-model!
+     (fn [base-model]
+       (decorate-geo! base-model))))
+  ([^Model base-model]
+   ;; 1. search for all schema.org/Place resources with
+   ;; schema.org/address but without schema.org/geo
+   (let [results (run-select-query!
+                  base-model
+                  "SELECT ?place ?country ?locality ?postcode ?street
+                   WHERE {
+                     ?place a <http://schema.org/Place> .
+                     ?place <http://schema.org/address> ?address .
+                     ?address <http://schema.org/postalCode> ?postcode .
+                     ?address <http://schema.org/streetAddress> ?street .
+                     ?address <http://schema.org/addressLocality> ?locality .
+                     ?address <http://schema.org/addressCountry> ?country .
+
+                     FILTER NOT EXISTS { ?place <http://schema.org/geo> ?geo . }
+}")]
+
+     ;; 2. for all results:
+     ;;    fetch geo coordinates from OSM/Nominatim
+     (doseq [result results]
+       (let [place (get result "place")
+             postcode (get result "postcode")
+             street (get result "street")
+             locality (get result "locality")
+             country (get result "country")
+
+             osm-result (osm/search! (osm/address
+                                      osm/address-country country
+                                      osm/address-locality locality
+                                      osm/address-postcode postcode
+                                      osm/address-street street))]
+
+         (if (osm/search-success? osm-result)
+           ;; 3. write back geo triples
+           (let [lat (osm/search-success-latitude osm-result)
+                 long (osm/search-success-longitude osm-result)
+                 geo-uri (str "http://TODO.org/" (random-uuid))
+                 geo (.createResource base-model geo-uri)]
+
+             ;; place has geo
+             (.add base-model
+                   #_(.createResource base-model place-uri)
+                   place
+                   (.createProperty base-model "http://schema.org/geo")
+                   geo)
+
+             ;; geo has longitude
+             (.add base-model
+                   geo
+                   (.createProperty base-model "http://schema.org/longitude")
+                   (.createTypedLiteral base-model long XSDDatatype/XSDdecimal))
+
+             ;; geo has latitude
+             (.add base-model
+                   geo
+                   (.createProperty base-model "http://schema.org/latitude")
+                   (.createTypedLiteral base-model lat XSDDatatype/XSDdecimal)))
+
+           ;; TODO: what to do on error decorating? should the entire transaction fail?
+           ::TODO
+           ))))))
 
 #_(edit-model! [(change-api/delete change-api/delete-statement
                                  (change-api/statement change-api/statement-subject "http://subject.com"

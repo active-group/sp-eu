@@ -73,6 +73,7 @@
                      (get-in request
                              [:body-params :changes]))]
     (triple-store/edit-model! changes)
+    (triple-store/decorate-geo!)
     {:status 200}))
 
 (defn osm-lookup [request]
