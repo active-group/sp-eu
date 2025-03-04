@@ -13,6 +13,7 @@
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
+            [wisen.backend.sparql :as sparql]
             [clojure.edn :as edn]
             [wisen.common.change-api :as change-api])
   (:import
@@ -78,6 +79,49 @@
   (let [osmid (get-in request [:path-params :osmid])]
     (osm/lookup! osmid)))
 
+(defn osm-search [request]
+  (let [query (slurp (:body request))
+        _ (println "got query: " (pr-str query))
+
+        address-sparql (sparql/address-from-query-string query)
+        _ (println "parsed address: " (pr-str address-sparql))
+
+        address-osm (osm/address
+                     osm/address-country
+                     (sparql/address-country-literal-value address-sparql)
+
+                     osm/address-locality
+                     (sparql/address-locality-literal-value address-sparql)
+
+                     osm/address-postcode
+                     (sparql/postal-code-literal-value address-sparql)
+
+                     osm/address-street
+                     (sparql/street-address-literal-value address-sparql))
+
+        address-search-result (osm/search! address-osm)
+        _ (println "OSM result: " (pr-str address-search-result))]
+
+    (cond
+      (osm/search-success? address-search-result)
+      {:status 200
+       :headers {"Content-type" "application/json"}
+       :body
+       (do
+         (println (pr-str (sparql/pack-search-result
+                           address-sparql
+                           (osm/search-success-longitude address-search-result)
+                           (osm/search-success-latitude address-search-result))))
+         (sparql/pack-search-result
+          address-sparql
+          (osm/search-success-longitude address-search-result)
+          (osm/search-success-latitude address-search-result)))}
+
+      (osm/search-failure? address-search-result)
+      {:status 500 :body (pr-str
+                          (osm/search-failure-error
+                           address-search-result))})))
+
 (defn ollama-handler [request]
   (let [body (slurp (get request :body))
         x (llm/ollama-request! body)]
@@ -96,7 +140,8 @@
                    :put {:handler edit-triples}}]]
 
      ["/osm"
-      ["/lookup/:osmid" {:get {:handler osm-lookup}}]]
+      ["/lookup/:osmid" {:get {:handler osm-lookup}}]
+      ["/search" {:post {:handler osm-search}}]]
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303
