@@ -145,7 +145,6 @@ FILTER(CONTAINS(LCASE(STR(?addressLocality)), \"bingen\"))
     (.add ^Model model s p o)))
 
 (defn remove-statement! [^Model model stmt]
-  (println "remove-statement! " (pr-str stmt))
   (let [obj (change-api/statement-object stmt)
         s (.createResource model (change-api/statement-subject stmt))
         p (.createProperty model (change-api/statement-predicate stmt))
