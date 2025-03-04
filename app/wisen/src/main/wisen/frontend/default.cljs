@@ -41,11 +41,14 @@
     (= pred "http://schema.org/location")
     (tree/make-node
      (fresh-uri!)
-     [(make-type-property "http://schema.org/PostalAddress")
-      (tree/make-property (schema "addressCountry") (lit-s "DE"))
-      (tree/make-property (schema "postalCode") (lit-s "72072"))
-      (tree/make-property (schema "addressLocality") (lit-s "Tübingen"))
-      (tree/make-property (schema "streetAddress") (lit-s "Hechinger Str. 12/1"))])
+     [(make-type-property (schema "Place"))
+      (tree/make-property (schema "address") (tree/make-node
+                                              (fresh-uri!)
+                                              [(make-type-property "http://schema.org/PostalAddress")
+                                               (tree/make-property (schema "addressCountry") (lit-s "DE"))
+                                               (tree/make-property (schema "postalCode") (lit-s "72072"))
+                                               (tree/make-property (schema "addressLocality") (lit-s "Tübingen"))
+                                               (tree/make-property (schema "streetAddress") (lit-s "Hechinger Str. 12/1"))]))])
 
     :else
     (tree/make-literal-string "")
