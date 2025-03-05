@@ -82,7 +82,7 @@
                       :display "flex"}}
              (tree-component
               schema
-              (schemaorg/tree-sorts-for-predicate predicate)
+              (schema/sorts-for-predicate schema predicate)
               editable?
               editing?
               can-focus?
