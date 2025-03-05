@@ -8,7 +8,7 @@
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
    (org.apache.jena.vocabulary SchemaDO)
-   (org.apache.jena.query ReadWrite QueryExecutionFactory)
+   (org.apache.jena.query ARQ ReadWrite QueryExecutionFactory)
    (org.apache.jena.datatypes.xsd XSDDatatype)))
 
 (defonce dataset (atom nil))

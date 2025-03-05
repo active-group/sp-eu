@@ -86,7 +86,7 @@
   (let [query (slurp (:body request))
         _ (println "got query: " (pr-str query))
 
-        address-sparql (sparql/address-from-query-string query)
+        address-sparql (sparql/parse-query-string query)
         _ (println "parsed address: " (pr-str address-sparql))
 
         address-osm (osm/address
