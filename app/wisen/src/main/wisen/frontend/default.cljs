@@ -3,6 +3,7 @@
 
 (def ^:private lit-s tree/make-literal-string)
 (def ^:private lit-d tree/make-literal-decimal)
+(def ^:private lit-b tree/make-literal-boolean)
 
 ;; TODO: how should we deal with the side-effecting (random-uuid)?
 
@@ -64,6 +65,9 @@
 
     (= type tree/literal-decimal)
     (lit-d "1.0")
+
+    (= type tree/literal-boolean)
+    (lit-b "true")
 
     :else
     (case (tree/node-uri type)
@@ -127,7 +131,11 @@
       tree/literal-string
 
       (tree/literal-decimal? tree)
-      tree/literal-decimal))
+      tree/literal-decimal
+
+      (tree/literal-boolean? tree)
+      tree/literal-boolean
+      ))
 
   ([tree new-sort]
    (if (= new-sort (tree-sort tree))

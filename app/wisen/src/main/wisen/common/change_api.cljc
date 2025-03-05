@@ -42,7 +42,18 @@
 
 ;;
 
-(def literal-or-uri (realm/union literal-string literal-decimal uri))
+(def-record literal-boolean
+  [literal-boolean-value :- realm/string #_realm/boolean])
+
+(defn make-literal-boolean [s]
+  (literal-boolean literal-boolean-value s))
+
+(defn literal-boolean? [x]
+  (record/is-a? literal-boolean x))
+
+;;
+
+(def literal-or-uri (realm/union literal-string literal-decimal literal-boolean uri))
 
 ;;
 
@@ -91,6 +102,7 @@
                   realm/number formatter/id
                   literal-string (formatter/record-map literal-string {literal-string-value :value})
                   literal-decimal (formatter/record-map literal-decimal {literal-decimal-value :value})
+                  literal-boolean (formatter/record-map literal-boolean {literal-boolean-value :value})
                   literal-or-uri (formatter/tagged-union-tuple {"literal-string" literal-string
                                                                 "literal-decimal" literal-decimal
                                                                 "uri" realm/string})

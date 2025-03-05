@@ -27,6 +27,9 @@
     (= tree/literal-decimal sort)
     "Decimal"
 
+    (= tree/literal-boolean sort)
+    "Boolean"
+
     :else
     (label-for-type schema sort)))
 
@@ -104,6 +107,9 @@
 
                "http://www.w3.org/2001/XMLSchema#float"
                tree/literal-decimal
+
+               "http://www.w3.org/2001/XMLSchema#boolean"
+               tree/literal-boolean
 
                ;; fallback
                tree/literal-string
