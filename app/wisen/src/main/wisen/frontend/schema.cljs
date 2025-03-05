@@ -29,3 +29,24 @@
 
     :else
     (label-for-type schema sort)))
+
+;;
+
+(defn label-for-predicate [schema predicate]
+  (let [subject
+        (first
+         (rdf/predicate-object-subjects
+          schema
+          (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
+          (rdf/make-symbol predicate)))
+
+        object
+        (first
+         (rdf/subject-predicate-objects
+          schema
+          subject
+          (rdf/make-symbol "http://www.w3.org/ns/shacl#name")))]
+
+    (if (rdf/literal-string? object)
+      (rdf/literal-string-value object)
+      "Unknown predicate")))

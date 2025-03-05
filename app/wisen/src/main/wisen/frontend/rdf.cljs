@@ -53,6 +53,9 @@
             objects)))
    (subject-predicates graph subject)))
 
+(defn predicate-object-subjects [graph predicate object]
+  (set (.each ^rdflib/Graph graph js/undefined predicate object)))
+
 (defn- ingoing [graph node]
   (set (js->clj (.each ^rdflib/Graph graph js/undefined js/undefined node))))
 
