@@ -74,10 +74,10 @@
           m))
 
 (def tree-sorts
-  (merge
-   {tree/literal-string "String"
-    tree/literal-decimal "Decimal"}
-   (map-keys tree/make-node types)))
+  (conj (map tree/make-node
+             (keys types))
+        tree/literal-string
+        tree/literal-decimal))
 
 (defn tree-sorts-for-predicate [p]
   (case p
@@ -98,7 +98,7 @@
      (tree/make-node "http://schema.org/GeoCoordinates")]
 
     ;; default
-    (keys tree-sorts)))
+    tree-sorts))
 
 (def predicates
   ["http://schema.org/name"

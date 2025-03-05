@@ -14,7 +14,8 @@
             [wisen.frontend.osm :as osm]
             [active.data.record :as record :refer-macros [def-record]]
             [wisen.frontend.modal :as modal]
-            [wisen.frontend.schemaorg :as schemaorg]))
+            [wisen.frontend.schemaorg :as schemaorg]
+            [wisen.frontend.schema :as schema]))
 
 ;; [ ] Fix links for confluences
 ;; [x] Load all properties
@@ -45,7 +46,7 @@
 
 (def-record delete-property [delete-property-property :- tree/property])
 
-(defn component-for-predicate [predicate editable? editing? can-focus? can-expand?]
+(defn component-for-predicate [predicate schema editable? editing? can-focus? can-expand?]
   (case predicate
     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     nil
@@ -79,16 +80,18 @@
     (dom/div {:style {:margin-left "0em"
                       :margin-top "1ex"
                       :display "flex"}}
-             (tree-component (schemaorg/tree-sorts-for-predicate predicate)
-                             editable?
-                             editing?
-                             can-focus?
-                             can-expand?))))
+             (tree-component
+              schema
+              (schemaorg/tree-sorts-for-predicate predicate)
+              editable?
+              editing?
+              can-focus?
+              can-expand?))))
 
-(c/defn-item property-component [editable? editing? can-focus? can-expand?]
+(c/defn-item property-component [schema editable? editing? can-focus? can-expand?]
   (c/with-state-as property
     (let [predicate (tree/property-predicate property)]
-      (when-let [value-item (component-for-predicate predicate editable? editing? can-focus? can-expand?)]
+      (when-let [value-item (component-for-predicate predicate schema editable? editing? can-focus? can-expand?)]
         (dom/div
          {:style {:display "flex"}}
          (dom/div
@@ -218,7 +221,7 @@
                                 (c/return :state [node (assoc local-state :show? false)])
                                 (c/return :action ac)))))))))
 
-(defn- node-component [editable? force-editing? can-focus? can-expand?]
+(defn- node-component [schema editable? force-editing? can-focus? can-expand?]
   (c/with-state-as [node editing? :local force-editing?]
     (let [uri (tree/node-uri node)]
       (ds/card
@@ -289,7 +292,7 @@
                                               [(tree/property-predicate prop)
                                                (c/handle-action
                                                 (c/focus (lens/at-index idx)
-                                                         (property-component editable? editing? can-focus? can-expand?))
+                                                         (property-component schema editable? editing? can-focus? can-expand?))
                                                 (fn [props ac]
                                                   (if (= ::delete ac)
                                                     (c/return :state (remove-index idx props))
@@ -301,18 +304,18 @@
            (add-property-button (schemaorg/predicates-for-type (tree/node-type node))))))
        ))))
 
-(defn tree-component [sorts editable? force-editing? can-focus? can-expand?]
+(defn tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree
     (dom/div
      (c/focus default/tree-sort
               (if force-editing?
                 (apply forms/select (map (fn [sort]
-                                           (forms/option {:value sort} (schemaorg/tree-sorts sort)))
+                                           (forms/option {:value sort} (schema/label-for-sort schema sort)))
                                          sorts))
-                (c/dynamic schemaorg/tree-sorts)))
+                (c/dynamic (partial schema/label-for-sort schema))))
      (cond
        (tree/node? tree)
-       (node-component editable? force-editing? can-focus? can-expand?)
+       (node-component schema editable? force-editing? can-focus? can-expand?)
 
        (tree/literal-string? tree)
        (c/focus tree/literal-string-value
@@ -343,7 +346,7 @@
     (ajax/fetch (commit-changes-request
                  (map change/change->api changes))))))
 
-(c/defn-item main* [editable? force-editing? can-focus? can-expand?]
+(c/defn-item main* [schema editable? force-editing? can-focus? can-expand?]
   (c/with-state-as trees
     (c/isolate-state
      ;; working trees
@@ -367,14 +370,14 @@
          dom/div
          (map-indexed (fn [idx _]
                         (c/focus (lens/at-index idx)
-                                 (tree-component schemaorg/tree-sorts editable? force-editing? can-focus? can-expand?)))
+                                 (tree-component schema schemaorg/tree-sorts editable? force-editing? can-focus? can-expand?)))
                       trees)))))))
 
-(defn main [editable? force-editing? make-focus-query-action make-expand-by-query-action]
+(defn main [schema editable? force-editing? make-focus-query-action make-expand-by-query-action]
   (let [can-focus? (some? make-focus-query-action)
         can-expand? (some? make-expand-by-query-action)]
     (c/handle-action
-     (c/focus tree/graph<->trees (main* editable? force-editing? can-focus? can-expand?))
+     (c/focus tree/graph<->trees (main* schema editable? force-editing? can-focus? can-expand?))
      (fn [_ ac]
        (c/return :action
                  (cond
@@ -387,8 +390,8 @@
                    :else
                    ac))))))
 
-(defn readonly [graph & [make-focus-query-action make-expand-by-query-action]]
-  (c/isolate-state graph (main false false make-focus-query-action make-expand-by-query-action)))
+(defn readonly [schema graph & [make-focus-query-action make-expand-by-query-action]]
+  (c/isolate-state graph (main schema false false make-focus-query-action make-expand-by-query-action)))
 
-(defn readwrite [graph & [make-focus-query-action make-expand-by-query-action]]
-  (c/isolate-state graph (main true false make-focus-query-action make-expand-by-query-action)))
+(defn readwrite [schema graph & [make-focus-query-action make-expand-by-query-action]]
+  (c/isolate-state graph (main schema true false make-focus-query-action make-expand-by-query-action)))
