@@ -63,3 +63,52 @@
     ;; TODO default
     []
     ))
+
+(defn sorts-for-predicate [schema predicate]
+  (let [subject
+        (first
+         (rdf/predicate-object-subjects
+          schema
+          (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
+          (rdf/make-symbol predicate)))
+
+        objects
+        (rdf/subject-predicate-objects
+         schema
+         subject
+         (rdf/make-symbol "http://www.w3.org/ns/shacl#or"))
+
+        nodes (mapcat rdf/collection-elements objects)]
+
+    (map
+     (fn [node]
+       (if-let [cls (first (rdf/subject-predicate-objects
+                            schema
+                            node
+                            (rdf/make-symbol "http://www.w3.org/ns/shacl#class")))]
+         (do
+           (assert (rdf/symbol? cls))
+           (tree/make-node
+            (rdf/symbol-uri cls)))
+
+         ;; else
+         (if-let [datatype (first (rdf/subject-predicate-objects
+                                   schema
+                                   node
+                                   (rdf/make-symbol "http://www.w3.org/ns/shacl#datatype")))]
+           (do
+             (assert (rdf/symbol? datatype) (str (pr-str predicate )" | datatype not a symbol: " (pr-str datatype)))
+             (case (rdf/symbol-uri datatype)
+               "http://www.w3.org/2001/XMLSchema#string"
+               tree/literal-string
+
+               "http://www.w3.org/2001/XMLSchema#float"
+               tree/literal-decimal
+
+               ;; fallback
+               tree/literal-string
+               ))
+           ;; fallback
+           tree/literal-string
+           )))
+     nodes)))
