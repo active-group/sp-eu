@@ -25,6 +25,7 @@
    statement-predicate :- tree/URI
    statement-object :- (realm/union tree/literal-string
                                     tree/literal-decimal
+                                    tree/literal-boolean
                                     tree/URI)])
 
 (defn- compare-object [o1 o2]
@@ -105,6 +106,9 @@
       (tree/literal-decimal? obj)
       [(mk-stmt obj)]
 
+      (tree/literal-boolean? obj)
+      [(mk-stmt obj)]
+
       (tree/ref? obj)
       [(mk-stmt (tree/ref-uri obj))]
 
@@ -122,6 +126,9 @@
 
     (tree/literal-decimal? t)
     (assert false "Not possible to turn literal decimal into statements")
+
+    (tree/literal-boolean? t)
+    (assert false "Not possible to turn literal boolean into statements")
 
     (tree/ref? t)
     (assert false "Not possible to turn ref into statements")
@@ -167,6 +174,10 @@
        (tree/literal-decimal? obj)
        (change-api/make-literal-decimal
         (tree/literal-decimal-value obj))
+
+       (tree/literal-boolean? obj)
+       (change-api/make-literal-boolean
+        (tree/literal-boolean-value obj))
 
        (tree/uri? obj)
        (change-api/make-uri

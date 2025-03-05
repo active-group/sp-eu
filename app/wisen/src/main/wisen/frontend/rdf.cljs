@@ -137,6 +137,23 @@
 
 ;;
 
+(def xsd-boolean (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#boolean"))
+
+(defn make-literal-boolean [string]
+  (rdflib/literal string xsd-boolean))
+
+(defn literal-boolean? [x]
+  (and
+   (instance? rdflib/Literal x)
+   (.equals goog.object
+            (.-datatype x)
+            xsd-boolean)))
+
+(defn literal-boolean-value [x]
+  (.-value x))
+
+;;
+
 (defn make-collection [nodes]
   (rdflib/Collection. (clj->js nodes)))
 
@@ -159,6 +176,9 @@
 
     (literal-decimal? x)
     (literal-decimal-value x)
+
+    (literal-boolean? x)
+    (literal-boolean-value x)
 
     (collection? x)
     (pr-str x)))

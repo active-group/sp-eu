@@ -329,6 +329,12 @@
                   (forms/input {:type "decimal"})
                   (c/dynamic str)))
 
+       (tree/literal-boolean? tree)
+       (c/focus tree/literal-boolean-value
+                (if force-editing?
+                  (forms/input {:type "checkbox"})
+                  (c/dynamic str)))
+
        (tree/ref? tree)
        (dom/div "REF: " (tree/ref-uri tree))))))
 
