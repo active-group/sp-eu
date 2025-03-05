@@ -370,7 +370,7 @@
          dom/div
          (map-indexed (fn [idx _]
                         (c/focus (lens/at-index idx)
-                                 (tree-component schema schemaorg/tree-sorts editable? force-editing? can-focus? can-expand?)))
+                                 (tree-component schema [] editable? force-editing? can-focus? can-expand?)))
                       trees)))))))
 
 (defn main [schema editable? force-editing? make-focus-query-action make-expand-by-query-action]
