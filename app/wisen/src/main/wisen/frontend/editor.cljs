@@ -97,7 +97,7 @@
          (dom/div
           {:style {:flex 1}}
           (dom/div (dom/strong
-                    (schemaorg/pr-predicate predicate)))
+                    (schema/label-for-predicate schema predicate)))
           (c/focus tree/property-object value-item))
          (when editing?
            (dom/button {:onClick (constantly
@@ -112,14 +112,14 @@
   (= "http://schema.org/Organization"
      (tree/node-uri (tree/node-type node))))
 
-(c/defn-item add-property-button [predicates]
+(c/defn-item add-property-button [schema predicates]
   (c/with-state-as [resource predicate :local schemaorg/default-predicate]
     (dom/div
      (c/focus lens/second
               (apply
                forms/select
                (map (fn [pred]
-                      (forms/option {:value pred} (schemaorg/pr-predicate pred)))
+                      (forms/option {:value pred} (schema/label-for-predicate schema pred)))
                     predicates)))
 
      (dom/button {:onClick
@@ -301,7 +301,7 @@
                                             props))))))))
 
          (when editing?
-           (add-property-button (schemaorg/predicates-for-type (tree/node-type node))))))
+           (add-property-button schema (schemaorg/predicates-for-type (tree/node-type node))))))
        ))))
 
 (defn tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
