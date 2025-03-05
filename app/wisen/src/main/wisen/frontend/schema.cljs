@@ -50,3 +50,16 @@
     (if (rdf/literal-string? object)
       (rdf/literal-string-value object)
       "Unknown predicate")))
+
+(defn predicates-for-type [schema type]
+  (if-let [properties (rdf/subject-predicate-objects
+                       schema
+                       (rdf/make-symbol (tree/node-uri type))
+                       (rdf/make-symbol "http://www.w3.org/ns/shacl#property"))]
+    (map (fn [property]
+           (rdf/symbol-uri
+            (first (rdf/subject-predicate-objects schema property (rdf/make-symbol "http://www.w3.org/ns/shacl#path")))))
+         properties)
+    ;; TODO default
+    []
+    ))
