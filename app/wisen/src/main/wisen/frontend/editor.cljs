@@ -64,6 +64,27 @@
          (forms/option {:value k} v))
        tree-sorts))
 
+(defn- tree-sorts-for-predicate [p]
+  (case p
+    "https://wisen.active-group.de/osm-uri"
+    [tree/literal-string]
+
+    "http://schema.org/name"
+    [tree/literal-string]
+
+    "http://schema.org/email"
+    [tree/literal-string]
+
+    "http://schema.org/url"
+    [tree/literal-string]
+
+    "http://schema.org/geo"
+    [tree/literal-string
+     (tree/make-node "http://schema.org/GeoCoordinates")]
+
+    ;; default
+    (keys tree-sorts)))
+
 (defn pr-predicate [p]
   (case p
     "https://wisen.active-group.de/osm-uri"
@@ -179,7 +200,11 @@
     (dom/div {:style {:margin-left "0em"
                       :margin-top "1ex"
                       :display "flex"}}
-             (tree-component editable? editing? can-focus? can-expand?))))
+             (tree-component (tree-sorts-for-predicate predicate)
+                             editable?
+                             editing?
+                             can-focus?
+                             can-expand?))))
 
 (c/defn-item property-component [editable? editing? can-focus? can-expand?]
   (c/with-state-as property
@@ -257,6 +282,35 @@
    "http://schema.org/openingHoursSpecification"
    ])
 
+(defn predicates-for-type [type]
+  (case (tree/node-uri type)
+    "http://schema.org/Thing"
+    predicates
+
+    "http://schema.org/Organization"
+    ["http://schema.org/name"
+     "http://schema.org/description"
+     "http://schema.org/url"
+     "http://schema.org/location"]
+
+    "http://schema.org/GeoCoordinates"
+    ["http://schema.org/latitude"
+     "http://schema.org/longitude"]
+
+    "http://schema.org/GeoCircle"
+    ["http://schema.org/geoMidPoint"
+     "http://schema.org/geoRadius"]
+
+    "http://schema.org/PostalAddress"
+    ["http://schema.org/addressCountry"
+     "http://schema.org/addressLocality"
+     "http://schema.org/addressRegion"
+     "http://schema.org/postalCode"
+     "http://schema.org/streetAddress"]
+
+    ;; default
+    predicates))
+
 (def predicate-options
   (map (fn [pred]
          (forms/option
@@ -265,13 +319,15 @@
        predicates
        ))
 
-(c/defn-item add-property-button []
+(c/defn-item add-property-button [predicates]
   (c/with-state-as [resource predicate :local "http://schema.org/name"]
     (dom/div
      (c/focus lens/second
               (apply
                forms/select
-               predicate-options))
+               (map (fn [pred]
+                      (forms/option {:value pred} (pr-predicate pred)))
+                    predicates)))
 
      (dom/button {:onClick
                   (fn [[node predicate] _]
@@ -452,15 +508,17 @@
                                             props))))))))
 
          (when editing?
-           (add-property-button))))
+           (add-property-button (predicates-for-type (tree/node-type node))))))
        ))))
 
-(defn tree-component [editable? force-editing? can-focus? can-expand?]
+(defn tree-component [sorts editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree
     (dom/div
      (c/focus default/tree-sort
               (if force-editing?
-                (apply forms/select tree-sort-options)
+                (apply forms/select (map (fn [sort]
+                                           (forms/option {:value sort} (tree-sorts sort)))
+                                         sorts))
                 (c/dynamic tree-sorts)))
      (cond
        (tree/node? tree)
@@ -519,7 +577,7 @@
          dom/div
          (map-indexed (fn [idx _]
                         (c/focus (lens/at-index idx)
-                                 (tree-component editable? force-editing? can-focus? can-expand?)))
+                                 (tree-component tree-sorts editable? force-editing? can-focus? can-expand?)))
                       trees)))))))
 
 (defn main [editable? force-editing? make-focus-query-action make-expand-by-query-action]
