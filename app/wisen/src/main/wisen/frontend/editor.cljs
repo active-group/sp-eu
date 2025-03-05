@@ -246,7 +246,7 @@
                   (c/focus lens/second
                            (dom/button {:onClick not} "Edit mode")))
 
-                (when can-focus?
+                #_(when can-focus?
                   (ds/padded-1
                    (dom/button {:onClick
                                 (fn [_]
