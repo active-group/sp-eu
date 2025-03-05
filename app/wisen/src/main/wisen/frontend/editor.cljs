@@ -311,14 +311,6 @@
     ;; default
     predicates))
 
-(def predicate-options
-  (map (fn [pred]
-         (forms/option
-          {:value pred}
-          (pr-predicate pred)))
-       predicates
-       ))
-
 (c/defn-item add-property-button [predicates]
   (c/with-state-as [resource predicate :local "http://schema.org/name"]
     (dom/div
