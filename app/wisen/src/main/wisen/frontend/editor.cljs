@@ -301,7 +301,7 @@
                                             props))))))))
 
          (when editing?
-           (add-property-button schema (schemaorg/predicates-for-type (tree/node-type node))))))
+           (add-property-button schema (schema/predicates-for-type schema (tree/node-type node))))))
        ))))
 
 (defn tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
