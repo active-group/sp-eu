@@ -57,29 +57,34 @@
    (property "opens" (lit-s "10:00:00"))
    (property "closes" (lit-s "17:00:00"))))
 
-(defn default-object-for-type [type]
-  (case type
-    tree/literal-string
+(defn default-tree-for-sort [type]
+  (cond
+    (= type tree/literal-string)
     (lit-s "...")
 
-    "http://schema.org/GeoCoordinates"
-    default-geo-coordinates
+    (= type tree/literal-decimal)
+    (lit-d "1.0")
 
-    "http://schema.org/Organization"
-    default-organization
+    :else
+    (case (tree/node-uri type)
+      "http://schema.org/GeoCoordinates"
+      default-geo-coordinates
 
-    "http://schema.org/Place"
-    default-place
+      "http://schema.org/Organization"
+      default-organization
 
-    "http://schema.org/PostalAddress"
-    default-postal-address
+      "http://schema.org/Place"
+      default-place
 
-    "http://schema.org/OpeningHoursSpecification"
-    default-opening-hours-specification
+      "http://schema.org/PostalAddress"
+      default-postal-address
 
-    (lit-s "")))
+      "http://schema.org/OpeningHoursSpecification"
+      default-opening-hours-specification
 
-(defn default-type-for-predicate [pred]
+      (lit-s ""))))
+
+(defn default-sort-for-predicate [pred]
   (case pred
     "http://schema.org/name"
     tree/literal-string
@@ -91,19 +96,40 @@
     tree/literal-string
 
     "http://schema.org/location"
-    (schema "Place")
+    (tree/make-node (schema "Place"))
 
     "http://schema.org/openingHoursSpecification"
-    (schema "OpeningHoursSpecification")
+    (tree/make-node (schema "OpeningHoursSpecification"))
 
     "http://schema.org/address"
-    (schema "PostalAddress")
+    (tree/make-node (schema "PostalAddress"))
 
     "http://schema.org/geo"
-    (schema "GeoCoordinates")
+    (tree/make-node (schema "GeoCoordinates"))
 
     tree/literal-string))
 
-(defn default-object-for-predicate [pred]
-  (default-object-for-type
-   (default-type-for-predicate pred)))
+(defn default-tree-for-predicate [pred]
+  (default-tree-for-sort
+   (default-sort-for-predicate pred)))
+
+(defn tree-sort
+
+  ([tree]
+    (cond
+      (tree/node? tree)
+      (tree/node-type tree)
+
+      (tree/ref? tree)
+      tree/ref
+
+      (tree/literal-string? tree)
+      tree/literal-string
+
+      (tree/literal-decimal? tree)
+      tree/literal-decimal))
+
+  ([tree new-sort]
+   (if (= new-sort (tree-sort tree))
+     tree
+     (default-tree-for-sort new-sort))))

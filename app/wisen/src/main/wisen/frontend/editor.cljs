@@ -27,25 +27,42 @@
 (def-record expand-by-query-action
   [expand-by-query-action-query])
 
-(defn pr-type [t]
-  (case t
+(def ^:private types
+  {"http://schema.org/Thing"
+   "Thing"
+
+   "http://schema.org/Organization"
+   "Organization"
+
     "http://schema.org/GeoCoordinates"
     "Geo coordinates"
 
     "http://schema.org/GeoCircle"
     "Geo circle"
 
-    "http://schema.org/Organization"
-    "Organization"
-
     "http://schema.org/PostalAddress"
     "Address"
 
     "http://schema.org/OpeningHoursSpecification"
     "Opening hours"
+   })
 
-    t
-    ))
+(defn- map-keys [f m]
+  (reduce (fn [acc [k v]]
+            (assoc acc (f k) v))
+          {}
+          m))
+
+(def ^:private tree-sorts
+  (merge
+   {tree/literal-string "String"
+    tree/literal-decimal "Decimal"}
+   (map-keys tree/make-node types)))
+
+(def ^:private tree-sort-options
+  (map (fn [[k v]]
+         (forms/option {:value k} v))
+       tree-sorts))
 
 (defn pr-predicate [p]
   (case p
@@ -184,14 +201,9 @@
   (str "CONSTRUCT { <" uri "> ?p ?o . }
           WHERE { <" uri "> ?p ?o . }"))
 
-(defn- node-type [node]
-  (when-let [obj ((tree/node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") node)]
-    (when (tree/node? obj)
-      (tree/node-uri obj))))
-
 (defn- node-organization? [node]
   (= "http://schema.org/Organization"
-     (node-type node)))
+     (tree/node-uri (tree/node-type node))))
 
 (def predicate-priority
   ["http://schema.org/name"
@@ -265,7 +277,7 @@
                   (fn [[node predicate] _]
                     (c/return :state [(tree/node-assoc node
                                                        predicate
-                                                       (default/default-object-for-predicate predicate))
+                                                       (default/default-tree-for-predicate predicate))
                                       predicate]))}
                  "Add property"))))
 
@@ -376,18 +388,10 @@
                   (ds/padded-1
                    (load-more-button uri)))
 
-                (dom/div
-                 (ds/padded-1
-                  {:style {:color "hsl(229.18deg 91.04% 56.86%)"}}
-                  (if-let [type (node-type node)]
-                    (pr-type type)
-                    "Resource"))
-
-
-                 (ds/padded-1
-                  {:style {:color "#555"
-                           :font-size "12px"}}
-                  uri))
+                (ds/padded-1
+                 {:style {:color "#555"
+                          :font-size "12px"}}
+                 uri)
 
                 (when editable?
                   (c/focus lens/second
@@ -453,24 +457,29 @@
 
 (defn tree-component [editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree
-    (cond
-      (tree/node? tree)
-      (node-component editable? force-editing? can-focus? can-expand?)
+    (dom/div
+     (c/focus default/tree-sort
+              (if force-editing?
+                (apply forms/select tree-sort-options)
+                (c/dynamic tree-sorts)))
+     (cond
+       (tree/node? tree)
+       (node-component editable? force-editing? can-focus? can-expand?)
 
-      (tree/literal-string? tree)
-      (c/focus tree/literal-string-value
-               (if force-editing?
-                 (forms/input)
-                 (c/dynamic str)))
+       (tree/literal-string? tree)
+       (c/focus tree/literal-string-value
+                (if force-editing?
+                  (forms/input)
+                  (c/dynamic str)))
 
-      (tree/literal-decimal? tree)
-      (c/focus tree/literal-decimal-value
-               (if force-editing?
-                 (forms/input {:type "decimal"})
-                 (c/dynamic str)))
+       (tree/literal-decimal? tree)
+       (c/focus tree/literal-decimal-value
+                (if force-editing?
+                  (forms/input {:type "decimal"})
+                  (c/dynamic str)))
 
-      (tree/ref? tree)
-      (dom/div "REF: " (tree/ref-uri tree)))))
+       (tree/ref? tree)
+       (dom/div "REF: " (tree/ref-uri tree))))))
 
 (defn commit-changes-request [changes]
   (ajax/PUT "/api/triples"

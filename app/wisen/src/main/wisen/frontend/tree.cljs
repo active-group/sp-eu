@@ -73,22 +73,6 @@
           []
           (node-properties node)))
 
-(defn node-object-for-predicate [predicate]
-  (fn
-    ([node]
-     (some (fn [prop]
-             (when (= (property-predicate prop) predicate)
-               (property-object prop)))
-           (node-properties node)))
-    ([node new-object]
-     (lens/overhaul node node-properties
-                    (fn [props]
-                      (map (fn [prop]
-                             (if (= (property-predicate prop) predicate)
-                               (property-object prop new-object)
-                               prop))
-                           props))))))
-
 (defn node-assoc [node predicate obj]
   (lens/overhaul node
                  node-properties
@@ -118,6 +102,16 @@
                          new-properties
                          ;; no replaced, just conj
                          (conj new-properties new-property)))))))
+
+(defn node-object-for-predicate [predicate]
+  (fn
+    ([node]
+     (some (fn [prop]
+             (when (= (property-predicate prop) predicate)
+               (property-object prop)))
+           (node-properties node)))
+    ([node new-object]
+     (node-assoc-replace node predicate new-object))))
 
 (defn node? [x]
   (record/is-a? node x))
@@ -214,3 +208,10 @@
 (def graph<->trees
   (lens/xmap graph->trees
              trees->graph))
+
+;; schema.org specific
+
+(def node-type
+  (lens/>>
+   (node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+   (lens/or-else (make-node "http://schema.org/Thing"))))
