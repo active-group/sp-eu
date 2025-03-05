@@ -29,44 +29,15 @@
 
 (defn- compare-object [o1 o2]
   (cond
-    (and (tree/literal-string? o1)
-         (tree/literal-string? o2))
-    (compare (tree/literal-string-value o1)
-             (tree/literal-string-value o2))
+    (= o1 o2)
+    0
 
-    (and (tree/literal-string? o1)
-         (tree/uri? o2))
+    (< o1 o2)
     -1
 
-    (and (tree/literal-string? o1)
-         (tree/literal-decimal? o2))
-    -1
-
-    (and (tree/uri? o1)
-         (tree/literal-string? o2))
+    (> o1 o2)
     1
-
-    (and (tree/uri? o1)
-         (tree/uri? o2))
-    (compare (tree/uri-string o1)
-             (tree/uri-string o2))
-
-    (and (tree/uri? o1)
-         (tree/literal-decimal? o2))
-    1
-
-    (and (tree/literal-decimal? o1)
-         (tree/literal-string? o2))
-    1
-
-    (and (tree/literal-decimal? o1)
-         (tree/uri? o2))
-    -1
-
-    (and (tree/literal-decimal? o1)
-         (tree/literal-decimal? o2))
-    (compare (tree/literal-decimal-value o1)
-             (tree/literal-decimal-value o2))))
+    ))
 
 (defn compare-statement [s1 s2]
   (case (compare (statement-subject s1)
