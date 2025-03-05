@@ -1,6 +1,7 @@
 (ns wisen.backend.handler
   (:require [hiccup.core :as h]
             [reitit.ring :as ring]
+            [clj-http.client :as http]
             [reitit.ring.coercion :as rrc]
             [reitit.coercion.spec :as rcs]
             [reitit.ring.middleware.muuntaja :as m]
@@ -129,6 +130,10 @@
   (let [body (slurp (get request :body))]
     (llm/ollama-request! body)))
 
+(defn get-schema [request]
+  ;; TODO: unpack and validate, handle accept content-type ...
+  (http/get "https://datashapes.org/schema.jsonld"))
+
 (def handler*
   (ring/ring-handler
    (ring/router
@@ -137,7 +142,8 @@
       ["/resource" {:post {:handler create-resource}}]
       ["/resource/:id" {:get {:handler get-resource-description}}]
       ["/triples" {:post {:handler add-triples}
-                   :put {:handler edit-triples}}]]
+                   :put {:handler edit-triples}}]
+      ["/schema" {:get {:handler get-schema}}]]
 
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
