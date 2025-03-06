@@ -250,3 +250,11 @@
   (lens/>>
    (node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
    (lens/or-else (make-node "http://schema.org/Thing"))))
+
+(defn type-uri [type]
+  (cond
+    (node? type)
+    (node-uri type)
+
+    (ref? type)
+    (ref-uri type)))

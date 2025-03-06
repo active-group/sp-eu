@@ -30,6 +30,12 @@
     (= tree/literal-boolean sort)
     "Boolean"
 
+    (= tree/ref sort)
+    "Reference"
+
+    (tree/ref? sort)
+    (label-for-type schema (tree/make-node (tree/ref-uri sort)))
+
     :else
     (label-for-type schema sort)))
 
