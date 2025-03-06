@@ -10,13 +10,11 @@
 
 (def type-uri "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 
-(defn- type-property [s]
-  (tree/make-property type-uri (tree/make-node (schema s))))
-
 (defn- make-node [type & props]
   (-> (tree/make-node)
-      (tree/node-type type)
-      (tree/node-properties props)))
+      (tree/node-properties props)
+      (tree/node-type (tree/make-node
+                       (schema type)))))
 
 (defn- property [pred obj]
   (tree/make-property (schema pred) obj))
