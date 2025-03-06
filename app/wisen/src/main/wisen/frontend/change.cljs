@@ -201,9 +201,9 @@
   (pr-str changes))
 
 (defn commit-changes-request [changes]
-  (ajax/PUT "/api/triples"
-            {:body (pr-str {:changes
-                            (map (comp change-api/change->edn
-                                       change->api)
-                                 changes)})
-             :headers {:content-type "application/edn"}}))
+  (ajax/POST "/api/changes"
+             {:body (pr-str {:changes
+                             (map (comp change-api/change->edn
+                                        change->api)
+                                  changes)})
+              :headers {:content-type "application/edn"}}))
