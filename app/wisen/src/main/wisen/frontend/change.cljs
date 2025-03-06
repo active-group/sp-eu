@@ -1,9 +1,12 @@
 (ns wisen.frontend.change
-  (:require [wisen.frontend.tree :as tree]
-            [active.data.record :as record :refer-macros [def-record]]
+  (:require [reacl-c.core :as c :include-macros true]
+            [reacl-c.dom :as dom :include-macros true]
+            [wisen.frontend.tree :as tree]
+            [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
             [wisen.common.change-api :as change-api]
             [reacl-c-basics.ajax :as ajax]
+            [wisen.frontend.schema :as schema]
             [clojure.set :as set]))
 
 
@@ -14,10 +17,24 @@
 (defn make-delete [stmt]
   (delete delete-statement stmt))
 
+(defn delete? [x]
+  (is-a? delete x))
+
 (def-record add [add-statement])
 
 (defn make-add [stmt]
   (add add-statement stmt))
+
+(defn add? [x]
+  (is-a? add x))
+
+(defn change-statement [x]
+  (cond
+    (delete? x)
+    (delete-statement x)
+
+    (add? x)
+    (add-statement x)))
 
 ;; Statements
 
@@ -197,8 +214,33 @@
 
 ;; GUI
 
-(defn changes-component [changes]
-  (pr-str changes))
+(defn- pr-change-kind [change]
+  (cond
+    (delete? change)
+    "-"
+
+    (add? change)
+    "+"))
+
+(defn- pr-change [schema change]
+  (let [statement (change-statement change)]
+    (dom/div (pr-change-kind change)
+             (pr-str (statement-subject statement))
+             " – "
+             (schema/label-for-predicate schema (statement-predicate statement))
+             " – "
+             (pr-str (statement-object statement))
+             )))
+
+(defn changes-component [schema changes]
+  (apply
+   dom/div
+   {:style {:display "flex"
+            :flex-direction "column"
+            :gap "1ex"}}
+   (map
+    (partial pr-change schema)
+    changes)))
 
 (defn commit-changes-request [changes]
   (ajax/POST "/api/changes"
