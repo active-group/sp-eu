@@ -62,14 +62,7 @@
     {:status 200
      :body (jsonld/model->json-ld-string result-model)}))
 
-(defn add-triples [request]
-  (let [body (slurp (get-in request [:body]))
-        model (jsonld/json-ld-string->model body)]
-    ;; merge model into triple store
-    (triple-store/add-model! model)
-    {:status 200}))
-
-(defn edit-triples [request]
+(defn add-changes [request]
   (let [changes (map change-api/edn->change
                      (get-in request
                              [:body-params :changes]))]
@@ -142,10 +135,8 @@
    (ring/router
     [["/api"
       ["/search" {:post {:handler search}}]
-      ["/resource" {:post {:handler create-resource}}]
       ["/resource/:id" {:get {:handler get-resource-description}}]
-      ["/triples" {:post {:handler add-triples}
-                   :put {:handler edit-triples}}]
+      ["/changes" {:post {:handler add-changes}}]
       ["/schema" {:get {:handler get-schema}}]]
 
      ["/osm"
