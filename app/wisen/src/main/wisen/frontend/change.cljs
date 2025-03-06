@@ -3,6 +3,7 @@
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
             [wisen.common.change-api :as change-api]
+            [reacl-c-basics.ajax :as ajax]
             [clojure.set :as set]))
 
 
@@ -192,3 +193,17 @@
     (record/is-a? add ch)
     (change-api/make-add (statement->api
                           (add-statement ch)))))
+
+
+;; GUI
+
+(defn changes-component [changes]
+  (pr-str changes))
+
+(defn commit-changes-request [changes]
+  (ajax/PUT "/api/triples"
+            {:body (pr-str {:changes
+                            (map (comp change-api/change->edn
+                                       change->api)
+                                 changes)})
+             :headers {:content-type "application/edn"}}))

@@ -55,17 +55,22 @@
       "Unknown predicate")))
 
 (defn predicates-for-type [schema type]
-  (if-let [properties (rdf/subject-predicate-objects
-                       schema
-                       (rdf/make-symbol (tree/node-uri type))
-                       (rdf/make-symbol "http://www.w3.org/ns/shacl#property"))]
-    (map (fn [property]
-           (rdf/symbol-uri
-            (first (rdf/subject-predicate-objects schema property (rdf/make-symbol "http://www.w3.org/ns/shacl#path")))))
-         properties)
-    ;; TODO default
-    []
-    ))
+  (set
+   (concat
+    ["http://schema.org/name"
+     "http://schema.org/description"
+     "http://schema.org/sameAs"
+     "http://schema.org/url"
+     "http://schema.org/image"
+     "http://schema.org/keywords"]
+    (when-let [properties (rdf/subject-predicate-objects
+                           schema
+                           (rdf/make-symbol (tree/node-uri type))
+                           (rdf/make-symbol "http://www.w3.org/ns/shacl#property"))]
+      (map (fn [property]
+             (rdf/symbol-uri
+              (first (rdf/subject-predicate-objects schema property (rdf/make-symbol "http://www.w3.org/ns/shacl#path")))))
+           properties)))))
 
 (defn- unpack [sym]
   (assert (rdf/symbol? sym)
