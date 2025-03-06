@@ -407,19 +407,12 @@
        (tree/ref? tree)
        (dom/div "REF: " (tree/ref-uri tree))))))
 
-(defn commit-changes-request [changes]
-  (ajax/PUT "/api/triples"
-            {:body (pr-str {:changes
-                            (map change-api/change->edn changes)})
-             :headers {:content-type "application/edn"}}))
-
 (c/defn-item commit-changes [changes]
   (c/isolate-state
    nil
    (c/fragment
     (c/dynamic pr-str)
-    (ajax/fetch (commit-changes-request
-                 (map change/change->api changes))))))
+    (ajax/fetch (change/commit-changes-request changes)))))
 
 (c/defn-item main* [schema editable? force-editing? can-focus? can-expand?]
   (c/with-state-as trees
@@ -429,7 +422,8 @@
      (c/with-state-as working-trees
        (dom/div
         (when editable?
-          (pr-str (change/delta-trees trees working-trees)))
+          (change/changes-component
+           (change/delta-trees trees working-trees)))
 
         (when editable?
           (c/isolate-state false
