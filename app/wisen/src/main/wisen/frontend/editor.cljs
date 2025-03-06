@@ -423,6 +423,7 @@
        (dom/div
         (when editable?
           (change/changes-component
+           schema
            (change/delta-trees trees working-trees)))
 
         (when editable?
