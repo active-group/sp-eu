@@ -106,6 +106,8 @@
           (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
           (rdf/make-symbol predicate)))
 
+        _ (assert (some? subject))
+
         or-objects
         (rdf/subject-predicate-objects
          schema
