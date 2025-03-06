@@ -86,7 +86,9 @@
       "http://schema.org/OpeningHoursSpecification"
       default-opening-hours-specification
 
-      (tree/make-node (tree/node-uri type)))))
+      (tree/make-node
+       (fresh-uri!)
+       [(tree/make-property type-uri type)]))))
 
 (defn default-sort-for-predicate [pred]
   (case pred
