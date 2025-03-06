@@ -136,89 +136,148 @@
   (let [v (vec coll)]
     (into (subvec v 0 pos) (subvec v (inc pos)))))
 
+;; OSM
+
 (defn- pr-osm-uri [uri]
   (dom/a {:href uri}
          "View on OpenStreetMap"))
 
-(defn- enter-osm-uri [initial-osm-uri]
-  (c/with-state-as [osm-uri osm-uri-local :local (or initial-osm-uri "")]
+(declare readonly)
+
+(c/defn-item graph-resolver
+  "Take an ajax request that yields json-ld as response. Turn that
+  response into an rdf graph and set that as state."
+  [request]
+  (c/with-state-as [graph responses :local {}]
+    (when (nil? graph)
+      (c/fragment
+       (c/focus (lens/>> lens/second (lens/member request))
+                (ajax/fetch request))
+
+       (when-let [current-response (get responses request)]
+         (when (ajax/response-ok? current-response)
+           (c/focus lens/first
+                    (promise/call-with-promise-result
+                     (rdf/json-ld-string->graph-promise (ajax/response-value current-response))
+                     (comp c/once constantly)))))))))
+
+(c/defn-item osm-importer [schema osm-uri]
+  (c/with-state-as graph
+    (c/fragment
+
+     (when (some? osm-uri)
+       (graph-resolver (osm/osm-lookup-request osm-uri)))
+
+     (when graph (readonly schema graph)))))
+
+(c/defn-item link-organization-with-osm-button [schema osm-uri close-action]
+  (c/with-state-as [node local-state :local {:graph nil
+                                             :osm-uri osm-uri
+                                             :commit-osm-uri nil}]
     (dom/div
-     (c/focus lens/second
+
+     (c/focus (lens/>> lens/second :osm-uri)
               (forms/input
                {:type "url"
                 :placeholder "https://www.openstreetmap.org/..."}))
-     (dom/button
-      {:onClick (fn [[_ osm-uri-local]]
-                  [osm-uri-local osm-uri-local])}
-      "Go"))))
 
-(declare readonly)
+     (c/focus (lens/>> lens/second :graph)
+              (osm-importer schema (:commit-osm-uri local-state)))
 
-(c/defn-item osm-importer []
-  (c/with-state-as [state ;; {:graphs :osm-uri}
-                    responses :local {} ;; osm-uri -> response
-                    ]
-    (let [osm-uri (:osm-uri state)
-          response (get responses osm-uri)
-          graph (get (:graphs state) osm-uri)]
+     (dom/button {:onClick #(c/return :action close-action)}
+                 "Cancel")
+
+     (c/focus lens/second
+              (dom/button {:onClick (fn [ls]
+                                      (assoc ls :commit-osm-uri (:osm-uri ls)))}
+                          "Ask OSM!"))
+
+     (ds/button-primary
+      {:onClick (fn [[node local-state]]
+                  (let [place-node (first (tree/graph->trees (:graph local-state)))]
+                    (assert (tree/node? place-node))
+                    (c/return :state [(osm/organization-do-link-osm
+                                       node
+                                       (:osm-uri local-state)
+                                       place-node)
+                                      (-> local-state
+                                          (dissoc :graph)
+                                          (dissoc :commit-osm-uri))]
+                              :action close-action)))}
+      "Add properties as 'location'"))))
+
+;; LLM
+
+(defn llm-query [prompt]
+  (ajax/map-ok-response
+   (ajax/POST "/describe" {:body prompt})
+   :json-ld-string))
+
+(c/defn-item ask-ai [schema close-action]
+  (c/with-state-as [node local-state :local {:graphs nil ;; prompt -> graph
+                                             :commit-prompt nil
+                                             :prompt "Just come up with something!"}]
+    (let [prompt (:prompt local-state)
+          commit-prompt (:commit-prompt local-state)
+          current-graph (get (:graphs local-state) prompt)]
+
       (dom/div
-       (ds/padded-2
-        {:style {:overflow "auto"}}
-        (dom/h2 "OSM importer")
+       {:style {:display "flex"
+                :flex-direction "column"
+                :gap "2ex"}}
 
-        (c/focus (lens/>> lens/first :osm-uri)
-                 (enter-osm-uri (:osm-uri state)))
+       (c/focus (lens/>> lens/second :prompt)
+                (forms/textarea))
 
-        (when (and (some? osm-uri)
-                   (nil? graph))
-          (c/focus (lens/>> lens/second (lens/member osm-uri))
-                   (ajax/fetch (osm/osm-lookup-request osm-uri))))
+       (when commit-prompt
+         (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
+                  (graph-resolver (llm-query commit-prompt))))
 
-        (let [response (get responses osm-uri)]
-          (when (and (ajax/response? response)
-                     (ajax/response-ok? response)
-                     (nil? graph))
-            (c/focus (lens/>> lens/first :graphs (lens/member osm-uri))
-                     (promise/call-with-promise-result
-                      (rdf/json-ld-string->graph-promise (ajax/response-value response))
-                      (comp c/once constantly)))))
+       (when current-graph
+         #_(pr-str current-graph)
+         (readonly schema current-graph))
 
-        (when graph (readonly graph)))))))
+       (dom/div
+        {:style {:display "flex"
+                 :gap "2em"
+                 :border "1px solid red"}}
 
-(c/defn-item link-organization-with-osm-button [button-title & [osm-uri]]
-  (c/with-state-as [node local-state :local {:show? false
-                                             :graphs nil ;; osm-uri -> graph
-                                             :osm-uri osm-uri}]
+        (dom/button {:onClick #(c/return :action close-action)}
+                    "Cancel")
+
+        (c/focus lens/second
+                 (dom/button {:onClick (fn [ls]
+                                         (assoc ls :commit-prompt (:prompt ls)))}
+                             "Ask AI!"))
+
+        (ds/button-primary
+         {:onClick (fn [[node local-state]]
+                     (let [ai-node (first (tree/graph->trees current-graph))]
+                       (assert (tree/node? ai-node))
+                       (c/return :state [#_(tree/merge node ai-node)
+                                         ai-node
+                                         {}]
+                                 :action close-action)))}
+         "Use these properties"))))))
+
+;; ---
+
+(c/defn-item modal-button [title item-f]
+  (c/with-state-as [state show? :local false]
     (c/fragment
-     (c/focus (lens/>> lens/second :show?)
-              (dom/button {:onClick (constantly true)}
-                          button-title))
-     (when (:show? local-state)
+
+     (c/focus lens/second
+              (dom/button {:onClick (constantly true)} title))
+
+     (when show?
        (-> (modal/main
             {:style {:border "1px solid blue"}}
             ::close-action
-            (dom/div
-             (c/focus (lens/>> lens/second)
-                      (osm-importer))
+            (c/focus lens/first (item-f ::close-action)))
 
-             (c/focus (lens/>> lens/second :show?)
-                      (dom/button {:onClick (constantly false)}
-                                  "Cancel"))
-
-             (ds/button-primary
-              {:onClick (fn [[node local-state]]
-                          (let [place-node (first (tree/graph->trees (get (:graphs local-state)
-                                                                          (:osm-uri local-state))))]
-                            (assert (tree/node? place-node))
-                            [(osm/organization-do-link-osm node (:osm-uri local-state) place-node)
-                             (-> local-state
-                                 (assoc :show? false)
-                                 (dissoc :graphs)
-                                 (dissoc :osm-uri))]))}
-              "Add properties as 'location'")))
-           (c/handle-action (fn [[node local-state] ac]
+           (c/handle-action (fn [[state local-state] ac]
                               (if (= ::close-action ac)
-                                (c/return :state [node (assoc local-state :show? false)])
+                                (c/return :state [state false])
                                 (c/return :action ac)))))))))
 
 (defn- node-component [schema editable? force-editing? can-focus? can-expand?]
@@ -246,14 +305,18 @@
                   (c/focus lens/second
                            (dom/button {:onClick not} "Edit mode")))
 
+                (when editable?
+                  (c/focus lens/first
+                           (modal-button "Ask AI" (partial ask-ai schema))))
+
                 #_(when can-focus?
-                  (ds/padded-1
-                   (dom/button {:onClick
-                                (fn [_]
-                                  (c/return :action
-                                            (focus-query-action focus-query-action-query
-                                                                (focus-query uri))))}
-                               "Focus"))))
+                    (ds/padded-1
+                     (dom/button {:onClick
+                                  (fn [_]
+                                    (c/return :action
+                                              (focus-query-action focus-query-action-query
+                                                                  (focus-query uri))))}
+                                 "Focus"))))
 
        (c/focus
         lens/first
@@ -270,8 +333,8 @@
                 {:style {:display "flex"
                          :gap "1em"}}
                 (pr-osm-uri osm-uri)
-                (link-organization-with-osm-button "Update" osm-uri))
-               (link-organization-with-osm-button "Link with OpenStreetMap"))))
+                (modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
+               (modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %)))))
 
          (let [props (tree/node-properties node)]
            (when-not (empty? props)
