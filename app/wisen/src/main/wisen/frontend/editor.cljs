@@ -213,6 +213,9 @@
    (ajax/POST "/describe" {:body prompt})
    :json-ld-string))
 
+(defn- prepare-prompt [schema-type prompt]
+  (str "I need a <" schema-type ">, " prompt))
+
 (c/defn-item ask-ai [schema close-action]
   (c/with-state-as [node local-state :local {:graphs nil ;; prompt -> graph
                                              :commit-prompt nil
@@ -231,7 +234,9 @@
 
        (when commit-prompt
          (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                  (graph-resolver (llm-query commit-prompt))))
+                  (graph-resolver (llm-query (prepare-prompt (tree/node-uri
+                                                              (tree/node-type node))
+                                                             commit-prompt)))))
 
        (when current-graph
          #_(pr-str current-graph)
