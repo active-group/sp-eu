@@ -67,10 +67,10 @@
     []
     ))
 
-(defn- unpack-datatype [datatype]
-  (assert (rdf/symbol? datatype)
-          (str "Datatype not a symbol: " (pr-str datatype)))
-  (case (rdf/symbol-uri datatype)
+(defn- unpack [sym]
+  (assert (rdf/symbol? sym)
+          (str "Datatype not a symbol: " (pr-str sym)))
+  (case (rdf/symbol-uri sym)
     "http://www.w3.org/2001/XMLSchema#string"
     tree/literal-string
 
@@ -78,7 +78,24 @@
     tree/literal-decimal
 
     "http://www.w3.org/2001/XMLSchema#boolean"
-    tree/literal-boolean))
+    tree/literal-boolean
+
+    "http://www.w3.org/ns/shacl#IRI"
+    tree/literal-string
+
+    (tree/make-node (rdf/symbol-uri sym))))
+
+(defn- subject-classes [schema subject]
+  (rdf/subject-predicate-objects schema subject
+                                 (rdf/make-symbol "http://www.w3.org/ns/shacl#class")))
+
+(defn- subject-datatypes [schema subject]
+  (rdf/subject-predicate-objects schema subject
+                                 (rdf/make-symbol "http://www.w3.org/ns/shacl#datatype")))
+
+(defn- subject-nodekinds [schema subject]
+  (rdf/subject-predicate-objects schema subject
+                                 (rdf/make-symbol "http://www.w3.org/ns/shacl#nodeKind")))
 
 (defn sorts-for-predicate [schema predicate]
   (assert (some? schema))
@@ -89,48 +106,32 @@
           (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
           (rdf/make-symbol predicate)))
 
-        objects
+        or-objects
         (rdf/subject-predicate-objects
          schema
          subject
-         (rdf/make-symbol "http://www.w3.org/ns/shacl#or"))]
+         (rdf/make-symbol "http://www.w3.org/ns/shacl#or"))
 
-    (if (not-empty objects)
-      (let [nodes (mapcat rdf/collection-elements objects)]
-        (map
-         (fn [node]
-           (if-let [cls (first (rdf/subject-predicate-objects
-                                schema
-                                node
-                                (rdf/make-symbol "http://www.w3.org/ns/shacl#class")))]
-             (do
-               (assert (rdf/symbol? cls))
-               (tree/make-node
-                (rdf/symbol-uri cls)))
+        classes-or-datatypes-or-nodekinds
+        (let [nodes (mapcat rdf/collection-elements or-objects)]
+          (mapcat (fn [node]
+                    (concat
+                     (subject-classes schema node)
+                     (subject-datatypes schema node)
+                     (subject-nodekinds schema node)))
+                  nodes))
 
-             ;; else
-             (if-let [datatype (first (rdf/subject-predicate-objects
-                                       schema
-                                       node
-                                       (rdf/make-symbol "http://www.w3.org/ns/shacl#datatype")))]
-               (unpack-datatype datatype)
-               ;; else
-               (if-let [nodekind (first (rdf/subject-predicate-objects
-                                         schema
-                                         node
-                                         (rdf/make-symbol "http://www.w3.org/ns/shacl#nodeKind")))]
-                 ;; assume IRI
-                 tree/literal-string
+        direct-classes
+        (subject-classes schema subject)
 
-                 ;; else
-                 (assert false (str "No datatype for node" (pr-str node) " – " (pr-str subject) " – " (pr-str predicate) " – " (pr-str objects))))
-               )))
-         nodes))
+        direct-datatypes
+        (subject-datatypes schema subject)
 
-      ;; else, no shacl#or (or at least no cases)
-      ;; try for datatype directly
-      (let [datatypes (rdf/subject-predicate-objects
-                       schema
-                       subject
-                       (rdf/make-symbol "http://www.w3.org/ns/shacl#datatype"))]
-        (map unpack-datatype datatypes)))))
+        direct-nodekinds
+        (subject-nodekinds schema subject)
+        ]
+
+    (map unpack (concat classes-or-datatypes-or-nodekinds
+                        direct-classes
+                        direct-datatypes
+                        direct-nodekinds))))
