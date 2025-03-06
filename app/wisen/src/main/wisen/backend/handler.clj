@@ -130,9 +130,12 @@
   (let [body (slurp (get request :body))]
     (llm/ollama-request! body)))
 
+(def schema (slurp "public/schema/schemaorg.jsonld"))
+
 (defn get-schema [request]
-  ;; TODO: unpack and validate, handle accept content-type ...
-  (http/get "https://datashapes.org/schema.jsonld"))
+  {:status 200
+   :body schema
+   :headers {"Content-type" "application/ld+json"}})
 
 (def handler*
   (ring/ring-handler
