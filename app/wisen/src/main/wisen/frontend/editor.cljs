@@ -126,7 +126,8 @@
                   (fn [[node predicate] _]
                     (c/return :state [(tree/node-assoc node
                                                        predicate
-                                                       (default/default-tree-for-predicate predicate))
+                                                       (default/default-tree-for-sort
+                                                        (first (schema/sorts-for-predicate schema predicate))))
                                       predicate]))}
                  "Add property"))))
 
