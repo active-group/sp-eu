@@ -30225,7 +30225,14 @@
     "comment" : "A zoo.",
     "label" : "Zoo",
     "subClassOf" : "schema:CivicStructure"
-  } ],
+  }, {
+    "@id" : "wisen:Organization-osm-uri",
+    "@type" : "sh:PropertyShape",
+    "description" : "The organization's identity on OpenStreetMap",
+    "name" : "OpenStreetMap URI",
+    "nodeKind" : "sh:IRI",
+    "path" : "wisen:osm-uri"
+  }],
   "@context" : {
     "name" : {
       "@id" : "http://www.w3.org/ns/shacl#name"
@@ -30310,6 +30317,7 @@
     "owl" : "http://www.w3.org/2002/07/owl#",
     "sh" : "http://www.w3.org/ns/shacl#",
     "xsd" : "http://www.w3.org/2001/XMLSchema#",
-    "rdfs" : "http://www.w3.org/2000/01/rdf-schema#"
+    "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
+    "wisen" : "https://wisen.active-group.de/"
   }
 }
