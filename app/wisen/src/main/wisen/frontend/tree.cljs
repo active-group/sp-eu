@@ -74,7 +74,13 @@
 (def-record node [node-uri :- URI
                   node-properties :- (realm/sequence-of property)])
 
+(defn- fresh-uri! []
+  (str "http://wisen.active-group.de/resource/" (random-uuid)))
+
 (defn make-node
+  ([]
+   (node node-uri (fresh-uri!)
+         node-properties []))
   ([uri]
    (node node-uri uri
          node-properties []))

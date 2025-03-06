@@ -5,11 +5,6 @@
 (def ^:private lit-d tree/make-literal-decimal)
 (def ^:private lit-b tree/make-literal-boolean)
 
-;; TODO: how should we deal with the side-effecting (random-uuid)?
-
-(defn- fresh-uri! []
-  (str "http://wisen.active-group.de/resource/" (random-uuid)))
-
 (defn- schema [s]
   (str "http://schema.org/" s))
 
@@ -19,9 +14,9 @@
   (tree/make-property type-uri (tree/make-node (schema s))))
 
 (defn- make-node [type & props]
-  (tree/make-node
-   (fresh-uri!)
-   (conj props (type-property type))))
+  (-> (tree/make-node)
+      (tree/node-type type)
+      (tree/node-properties props)))
 
 (defn- property [pred obj]
   (tree/make-property (schema pred) obj))
@@ -86,9 +81,8 @@
       "http://schema.org/OpeningHoursSpecification"
       default-opening-hours-specification
 
-      (tree/make-node
-       (fresh-uri!)
-       [(tree/make-property type-uri type)]))))
+      (-> (tree/make-node)
+          (tree/node-type type)))))
 
 (defn default-sort-for-predicate [pred]
   (case pred
