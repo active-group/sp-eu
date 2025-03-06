@@ -11,6 +11,7 @@
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.leaflet :as leaflet]
+            [wisen.frontend.util :refer [with-schemaorg]]
             ["jsonld" :as jsonld]))
 
 (def-record place [place-label place-bounding-box])
@@ -307,34 +308,11 @@
                                               (dissoc :last-expand-by-query)))
                                 (c/return :action ac)))))))))
 
-(c/defn-item load-schemaorg []
-  (c/with-state-as [graph response :local nil]
-    (c/fragment
-     (c/focus lens/second
-              (ajax/fetch (ajax/GET "/api/schema"
-                                    {:headers {:accept "application/ld+json"}})))
-
-     (when (ajax/response? response)
-       (if (ajax/response-ok? response)
-         (promise/call-with-promise-result
-          (rdf/json-ld-string->graph-promise (ajax/response-value response))
-          (fn [response-graph]
-            (c/once
-             (fn [_]
-               (c/return :state [response-graph response])))))
-         (c/once
-          (fn [_]
-            (c/return :action ::TODO-schemaorg-error))))))))
-
 (c/defn-item main []
   (c/isolate-state
    {:last-focus-query nil
     :last-expand-by-query nil
-    :graph nil
-    :schemaorg-graph nil}
+    :graph nil}
    (c/with-state-as state
      (c/fragment
-      (if (nil? (:schemaorg-graph state))
-        ;; load schema.org graph first
-        (c/focus :schemaorg-graph (load-schemaorg))
-        (main* (:schemaorg-graph state)))))))
+      (with-schemaorg main*)))))
