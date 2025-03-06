@@ -20,21 +20,23 @@
     "Unknown type"))
 
 (defn label-for-sort [schema sort]
-  (cond
-    (= tree/literal-string sort)
-    "String"
+  (if-not sort
+    "Unknown"
+    (cond
+      (= tree/literal-string sort)
+      "String"
 
-    (= tree/literal-decimal sort)
-    "Decimal"
+      (= tree/literal-decimal sort)
+      "Decimal"
 
-    (= tree/literal-boolean sort)
-    "Boolean"
+      (= tree/literal-boolean sort)
+      "Boolean"
 
-    (= tree/ref sort)
-    "Reference"
+      (= tree/ref sort)
+      "Reference"
 
-    :else
-    (label-for-type schema sort)))
+      :else
+      (label-for-type schema sort))))
 
 ;;
 
