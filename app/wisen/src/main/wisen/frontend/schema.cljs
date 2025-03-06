@@ -12,7 +12,7 @@
   (if-let [res (first
                 (rdf/subject-predicate-objects
                  schema
-                 (rdf/make-symbol (tree/node-uri type))
+                 (rdf/make-symbol (tree/type-uri type))
                  (rdf/make-symbol "http://www.w3.org/2000/01/rdf-schema#label")))]
     (if (rdf/literal-string? res)
       (rdf/literal-string-value res)
@@ -32,9 +32,6 @@
 
     (= tree/ref sort)
     "Reference"
-
-    (tree/ref? sort)
-    (label-for-type schema (tree/make-node (tree/ref-uri sort)))
 
     :else
     (label-for-type schema sort)))
@@ -76,7 +73,7 @@
      "http://schema.org/keywords"]
     (when-let [properties (rdf/subject-predicate-objects
                            schema
-                           (rdf/make-symbol (tree/node-uri type))
+                           (rdf/make-symbol (tree/type-uri type))
                            (rdf/make-symbol "http://www.w3.org/ns/shacl#property"))]
       (map (fn [property]
              (rdf/symbol-uri
