@@ -67,7 +67,21 @@
     []
     ))
 
+(defn- unpack-datatype [datatype]
+  (assert (rdf/symbol? datatype)
+          (str "Datatype not a symbol: " (pr-str datatype)))
+  (case (rdf/symbol-uri datatype)
+    "http://www.w3.org/2001/XMLSchema#string"
+    tree/literal-string
+
+    "http://www.w3.org/2001/XMLSchema#float"
+    tree/literal-decimal
+
+    "http://www.w3.org/2001/XMLSchema#boolean"
+    tree/literal-boolean))
+
 (defn sorts-for-predicate [schema predicate]
+  (assert (some? schema))
   (let [subject
         (first
          (rdf/predicate-object-subjects
@@ -79,42 +93,44 @@
         (rdf/subject-predicate-objects
          schema
          subject
-         (rdf/make-symbol "http://www.w3.org/ns/shacl#or"))
+         (rdf/make-symbol "http://www.w3.org/ns/shacl#or"))]
 
-        nodes (mapcat rdf/collection-elements objects)]
+    (if (not-empty objects)
+      (let [nodes (mapcat rdf/collection-elements objects)]
+        (map
+         (fn [node]
+           (if-let [cls (first (rdf/subject-predicate-objects
+                                schema
+                                node
+                                (rdf/make-symbol "http://www.w3.org/ns/shacl#class")))]
+             (do
+               (assert (rdf/symbol? cls))
+               (tree/make-node
+                (rdf/symbol-uri cls)))
 
-    (map
-     (fn [node]
-       (if-let [cls (first (rdf/subject-predicate-objects
-                            schema
-                            node
-                            (rdf/make-symbol "http://www.w3.org/ns/shacl#class")))]
-         (do
-           (assert (rdf/symbol? cls))
-           (tree/make-node
-            (rdf/symbol-uri cls)))
+             ;; else
+             (if-let [datatype (first (rdf/subject-predicate-objects
+                                       schema
+                                       node
+                                       (rdf/make-symbol "http://www.w3.org/ns/shacl#datatype")))]
+               (unpack-datatype datatype)
+               ;; else
+               (if-let [nodekind (first (rdf/subject-predicate-objects
+                                         schema
+                                         node
+                                         (rdf/make-symbol "http://www.w3.org/ns/shacl#nodeKind")))]
+                 ;; assume IRI
+                 tree/literal-string
 
-         ;; else
-         (if-let [datatype (first (rdf/subject-predicate-objects
-                                   schema
-                                   node
-                                   (rdf/make-symbol "http://www.w3.org/ns/shacl#datatype")))]
-           (do
-             (assert (rdf/symbol? datatype) (str (pr-str predicate )" | datatype not a symbol: " (pr-str datatype)))
-             (case (rdf/symbol-uri datatype)
-               "http://www.w3.org/2001/XMLSchema#string"
-               tree/literal-string
+                 ;; else
+                 (assert false (str "No datatype for node" (pr-str node) " – " (pr-str subject) " – " (pr-str predicate) " – " (pr-str objects))))
+               )))
+         nodes))
 
-               "http://www.w3.org/2001/XMLSchema#float"
-               tree/literal-decimal
-
-               "http://www.w3.org/2001/XMLSchema#boolean"
-               tree/literal-boolean
-
-               ;; fallback
-               tree/literal-string
-               ))
-           ;; fallback
-           tree/literal-string
-           )))
-     nodes)))
+      ;; else, no shacl#or (or at least no cases)
+      ;; try for datatype directly
+      (let [datatypes (rdf/subject-predicate-objects
+                       schema
+                       subject
+                       (rdf/make-symbol "http://www.w3.org/ns/shacl#datatype"))]
+        (map unpack-datatype datatypes)))))
