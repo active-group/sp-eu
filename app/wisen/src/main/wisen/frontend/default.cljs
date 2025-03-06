@@ -22,8 +22,8 @@
 (def default-geo-coordinates
   (make-node
    "GeoCoordinates"
-   [(property "latitude" (lit-s "48.52105844145676"))
-    (property "longitude" (lit-s "9.054090697517525"))]))
+   (property "latitude" (lit-s "48.52105844145676"))
+   (property "longitude" (lit-s "9.054090697517525"))))
 
 (def default-organization
   (make-node
