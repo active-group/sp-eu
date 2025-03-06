@@ -42,23 +42,28 @@
 ;;
 
 (defn label-for-predicate [schema predicate]
-  (let [subject
-        (first
-         (rdf/predicate-object-subjects
-          schema
-          (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
-          (rdf/make-symbol predicate)))
+  (cond
+    (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+    "type"
 
-        object
-        (first
-         (rdf/subject-predicate-objects
-          schema
-          subject
-          (rdf/make-symbol "http://www.w3.org/ns/shacl#name")))]
+    :else
+    (let [subject
+          (first
+           (rdf/predicate-object-subjects
+            schema
+            (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
+            (rdf/make-symbol predicate)))
 
-    (if (rdf/literal-string? object)
-      (rdf/literal-string-value object)
-      "Unknown predicate")))
+          object
+          (first
+           (rdf/subject-predicate-objects
+            schema
+            subject
+            (rdf/make-symbol "http://www.w3.org/ns/shacl#name")))]
+
+      (if (rdf/literal-string? object)
+        (rdf/literal-string-value object)
+        "Unknown predicate"))))
 
 (defn predicates-for-type [schema type]
   (set
