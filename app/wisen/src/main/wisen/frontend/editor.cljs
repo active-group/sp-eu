@@ -110,7 +110,7 @@
 
 (defn- node-organization? [node]
   (= "http://schema.org/Organization"
-     (tree/node-uri (tree/node-type node))))
+     (tree/type-uri (tree/node-type node))))
 
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [resource predicate :local schemaorg/default-predicate]

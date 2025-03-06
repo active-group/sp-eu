@@ -64,6 +64,9 @@
     (= type tree/literal-boolean)
     (lit-b "true")
 
+    (= type tree/ref)
+    (tree/make-ref "https://wisen.active-group.de/")
+
     :else
     (case (tree/node-uri type)
       "http://schema.org/GeoCoordinates"
