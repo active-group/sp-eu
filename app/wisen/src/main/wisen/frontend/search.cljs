@@ -165,7 +165,7 @@
              :gap "16px"}}
     (dom/div "I'm looking for ")
     (c/focus :type
-             (forms/select
+             (ds/select
               (forms/option {:value :organization}
                             "organizations")
               (forms/option {:value :place}
@@ -176,7 +176,7 @@
                             "events")))
     (dom/div "targeted towards")
     (c/focus :target
-             (forms/select
+             (ds/select
               (forms/option {:value :elderly}
                             "elderly")
               (forms/option {:value :queer}
@@ -187,7 +187,7 @@
 
     (dom/div "with tag")
     (c/focus (lens/>> :tags lens/first)
-             (forms/input))
+             (ds/select))
 
     (dom/button {:type "submit"} "Search in map area"))
 
