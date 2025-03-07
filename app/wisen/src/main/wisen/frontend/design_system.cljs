@@ -57,3 +57,16 @@
                    :border-radius "3px"
                    :cursor "pointer"}})
          children))
+
+(dom/defn-dom input [attrs & children]
+  (apply forms/input
+         (dom/merge-attributes attrs
+                               {:style
+                                {:background-color "#fefefe"
+                                 :border "1px solid #888"
+                                 :padding "4px 8px"
+                                 :font-size "14px"
+                                 :color "#333"
+                                 :border-radius "3px"
+                                 :cursor "pointer"}})
+         children))

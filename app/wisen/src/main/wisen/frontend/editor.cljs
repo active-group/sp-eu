@@ -112,7 +112,7 @@
     (dom/div
      (c/focus lens/second
               (apply
-               forms/select
+               ds/select
                (map (fn [pred]
                       (forms/option {:value pred} (schema/label-for-predicate schema pred)))
                     predicates)))
@@ -388,7 +388,7 @@
        (tree/literal-string? tree)
        (c/focus tree/literal-string-value
                 (if force-editing?
-                  (forms/input)
+                  (ds/input)
                   (c/dynamic str)))
 
        (tree/literal-decimal? tree)
