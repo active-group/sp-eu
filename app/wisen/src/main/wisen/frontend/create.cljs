@@ -12,10 +12,10 @@
 (def organization-type (tree/make-node "http://schema.org/Organization"))
 (def event-type (tree/make-node "http://schema.org/Event"))
 
-(def ^:private empty-tree
+(defonce ^:private empty-tree
   (tree/make-node))
 
-(def ^:private initial-organization
+(defonce ^:private initial-organization
   (-> (tree/make-node)
       (tree/node-type organization-type)))
 
@@ -28,7 +28,12 @@
        (c/isolate-state
         initial-organization
         (dom/div
-         (editor/tree-component schema [organization-type event-type] true true false false)
+         (dom/div
+          {:style {:background "rgba(170,170,170,1.0)"
+                   :border "1px solid gray"
+                   :border-radius "4px"
+                   :padding "8px 16px"}}
+          (editor/tree-component schema [organization-type event-type] true true false false))
 
          ;; commit
          (c/with-state-as [tree local-state :local {:commit? false

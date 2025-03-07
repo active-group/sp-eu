@@ -167,7 +167,8 @@
                    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
                    [:style "html, body {margin: 0; padding: 0;
                                         font-family: 'Helvetica Neue', Helvetica, sans-serif;}
-                            ul, ol {margin: 0; padding: 0; padding-left: 1.4em;}"]
+                            ul, ol {margin: 0; padding: 0; padding-left: 1.4em;}
+                            hr {margin: 0; padding: 0; border: 0; border-bottom: 1px solid gray;}"]
                    ;; TODO: use these two leaflet resources via node module (package.json)
                    [:link {:rel "stylesheet"
                            :href "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"

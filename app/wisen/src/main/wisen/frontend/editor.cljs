@@ -78,7 +78,6 @@
                             ))
 
     (dom/div {:style {:margin-left "0em"
-                      :margin-top "1ex"
                       :display "flex"}}
              (tree-component
               schema
@@ -92,11 +91,15 @@
   (c/with-state-as property
     (let [predicate (tree/property-predicate property)]
       (dom/div
-       {:style {:display "flex"}}
+       {:style {:display "flex"
+                :min-height "4ex"
+                :align-items "center"}}
        (dom/div
         {:style {:flex 1 :display "flex" :gap "1em" :align-items "baseline"}}
-        (dom/div (dom/strong
-                  (schema/label-for-predicate schema predicate)))
+        (dom/div
+         {:style {:min-width "7em"}}
+         (dom/strong
+          (schema/label-for-predicate schema predicate)))
         (c/focus tree/property-object
                  (component-for-predicate predicate schema editable? editing? can-focus? can-expand?)))
        (when editing?
@@ -273,7 +276,7 @@
     (c/fragment
 
      (c/focus lens/second
-              (dom/button {:onClick (constantly true)} title))
+              (ds/button-primary {:onClick (constantly true)} title))
 
      (when show?
        (-> (modal/main
@@ -289,43 +292,42 @@
 (defn- node-component [schema editable? force-editing? can-focus? can-expand?]
   (c/with-state-as [node editing? :local force-editing?]
     (let [uri (tree/node-uri node)]
-      (dom/div
+      (dom/details
        {:id uri
-        :style {:display "flex"
-                :align-items "flex-start"}}
+        :style {:border "1px solid gray"
+                :box-shadow "0 1px 0px rgba(0,0,0,0.5)"
+                :background "rgba(255,255,255,0.5)"
+                :border-radius "4px"}}
 
-       ;; aufklapper
-       (when can-expand?
-         (load-more-button uri))
+       (dom/summary
+        {:style {:color "#555"
+                 :border-bottom "1px solid gray"
+                 :padding "8px 16px"}}
+        uri
+        (when editable?
+          (c/focus lens/second
+                   (ds/button-primary {:onClick not} "Edit"))))
 
-       ;; header
        (dom/div
+        {:style {:padding "8px 16px"}}
 
-        (dom/div {:style {:display "flex"
-                          :justify-content "flex-start"
-                          :align-items "center"}}
+        ;; header
+        (dom/summary {:style {:display "flex"
+                              :justify-content "flex-start"
+                              :align-items "center"}}
 
-                 (dom/div
-                  {:style {:color "#555"
-                           :font-size "12px"}}
-                  uri)
+                     (when editing?
+                       (c/focus lens/first
+                                (modal-button "Ask AI" (partial ask-ai schema))))
 
-                 (when editable?
-                   (c/focus lens/second
-                            (dom/button {:onClick not} "Edit mode")))
-
-                 (when editable?
-                   (c/focus lens/first
-                            (modal-button "Ask AI" (partial ask-ai schema))))
-
-                 #_(when can-focus?
-                     (ds/padded-1
-                      (dom/button {:onClick
-                                   (fn [_]
-                                     (c/return :action
-                                               (focus-query-action focus-query-action-query
-                                                                   (focus-query uri))))}
-                                  "Focus"))))
+                     #_(when can-focus?
+                         (ds/padded-1
+                          (dom/button {:onClick
+                                       (fn [_]
+                                         (c/return :action
+                                                   (focus-query-action focus-query-action-query
+                                                                       (focus-query uri))))}
+                                      "Focus"))))
 
         (c/focus
          lens/first
@@ -351,7 +353,8 @@
                        (apply
                         dom/div
                         {:style {:display "flex"
-                                 :flex-direction "column"}}
+                                 :flex-direction "column"
+                                 :gap "1ex"}}
 
                         (->> props
                              (map-indexed (fn [idx property]
@@ -376,13 +379,15 @@
   (c/with-state-as tree
     (dom/div
      {:style {:display "flex"
-              :gap "1em"}}
+              :gap "1em"
+              :align-items "baseline"}}
      (c/focus default/tree-sort
               (if force-editing?
                 (apply forms/select (map (fn [sort]
                                            (forms/option {:value sort} (schema/label-for-sort schema sort)))
                                          sorts))
-                (c/dynamic (partial schema/label-for-sort schema))))
+                (dom/i
+                 (c/dynamic (partial schema/label-for-sort schema)))))
      (cond
        (tree/node? tree)
        (node-component schema editable? force-editing? can-focus? can-expand?)
