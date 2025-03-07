@@ -156,6 +156,9 @@
 
 (c/defn-item quick-search []
   (dom/div
+   {:style {:padding "8px"
+            :display "flex"
+            :justify-content "center"}}
    (forms/form
     {:onSubmit (fn [state event]
                  (.preventDefault event)
@@ -197,7 +200,12 @@
     (c/focus (lens/>> :tags lens/first)
              (ds/input))
 
-    (ds/button-primary {:type "submit"} "Search"))
+    (ds/button-primary {:type "submit"
+                        :style {:background "#923dd2"
+                                :padding "6px 16px"
+                                :border-radius "20px"
+                                :color "white"}}
+                       "Search"))
 
    ))
 
@@ -268,9 +276,10 @@
               {:style {:position "relative"}}
               (dom/div
                {:style {:position "absolute"
-                        :top "16px"
-                        :right "16px"
-                        :z-index 999}}
+                        :bottom 0
+                        :left 0
+                        :z-index 999
+                        :width "100%"}}
                (quick-search))
               (c/focus :location
                        (leaflet/main {:style {:height 460}}
