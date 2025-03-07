@@ -303,7 +303,7 @@
         {:style {:color "#555"
                  :border-bottom "1px solid gray"
                  :padding "8px 16px"}}
-        uri
+        (dom/span {:style {:margin-right "1em"}} uri)
         (when editable?
           (c/focus lens/second
                    (ds/button-primary {:onClick not} "Edit"))))
