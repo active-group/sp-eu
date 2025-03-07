@@ -38,5 +38,8 @@
   (apply dom/button
          (dom/merge-attributes attrs
                                {:style {:color "#3228dd"
-                                        :font-weight "bold"}})
+                                        :font-weight "bold"
+                                        :appearance "none"
+                                        :border "none"
+                                        :font-size "1em"}})
          children))
