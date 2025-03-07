@@ -51,14 +51,6 @@
     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     (c/dynamic (partial schema/label-for-sort schema))
 
-    "http://schema.org/name"
-    (c/focus tree/literal-string-value
-             (if editing?
-               (forms/input {:style {:font-size "2em"
-                                     :width "100%"}})
-               (c/dynamic str)
-               ))
-
     "http://schema.org/description"
     (c/focus tree/literal-string-value
              (if editing?
