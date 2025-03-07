@@ -59,7 +59,7 @@
                (c/dynamic dom/div)))
 
     "http://schema.org/dayOfWeek"
-    (c/focus tree/node-uri (forms/select
+    (c/focus tree/node-uri (ds/select
                             (forms/option {:value "http://schema.org/Monday"} "Monday")
                             (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
                             (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
@@ -175,7 +175,7 @@
     (dom/div
 
      (c/focus (lens/>> lens/second :osm-uri)
-              (forms/input
+              (ds/input
                {:type "url"
                 :placeholder "https://www.openstreetmap.org/..."}))
 
@@ -401,13 +401,13 @@
        (tree/literal-decimal? tree)
        (c/focus tree/literal-decimal-value
                 (if force-editing?
-                  (forms/input {:type "decimal"})
+                  (ds/input {:type "decimal"})
                   (c/dynamic str)))
 
        (tree/literal-boolean? tree)
        (c/focus tree/literal-boolean-value
                 (if force-editing?
-                  (forms/input {:type "checkbox"})
+                  (ds/input {:type "checkbox"})
                   (c/dynamic str)))
 
        (tree/ref? tree)
