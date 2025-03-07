@@ -379,19 +379,20 @@
     (dom/div
      {:style (merge {:display "flex"
                      :align-items "baseline"}
-                    (if (tree/node? tree)
-                      {:flex-direction "column"
-                       :gap "0.8ex"}
+                    (if (tree/primitive? tree)
                       {:flex-direction "row"
-                       :gap "1em"}))}
+                       :gap "1em"}
+                      {:flex-direction "column"
+                       :gap "0.8ex"}))}
      (c/focus default/tree-sort
               (if force-editing?
                 (apply ds/select
                        (map (fn [sort]
                               (forms/option {:value sort} (schema/label-for-sort schema sort)))
                             sorts))
-                (dom/i
-                 (c/dynamic (partial schema/label-for-sort schema)))))
+                (when-not (tree/primitive? tree)
+                  (dom/i
+                   (c/dynamic (partial schema/label-for-sort schema))))))
      (cond
        (tree/node? tree)
        (node-component schema editable? force-editing? can-focus? can-expand?)
