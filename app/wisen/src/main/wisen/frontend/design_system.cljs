@@ -42,7 +42,8 @@
                                         :font-weight "bold"
                                         :appearance "none"
                                         :border "none"
-                                        :font-size "1em"}})
+                                        :font-size "1em"
+                                        :padding 0}})
          children))
 
 (dom/defn-dom select [attrs & children]
