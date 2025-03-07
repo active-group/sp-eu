@@ -74,6 +74,7 @@
 (def-record node [node-uri :- URI
                   node-properties :- (realm/sequence-of property)])
 
+;; TODO: this is a bad side-effect that leads to a lot of suffering down the road:
 (defn- fresh-uri! []
   (str "http://wisen.active-group.de/resource/" (random-uuid)))
 
