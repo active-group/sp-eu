@@ -162,7 +162,15 @@
                  (c/return :action (make-focus-query-action
                                     (quick-search->sparql state))))
      :style {:display "flex"
-             :gap "16px"}}
+             :align-items "baseline"
+             :gap "16px"
+             :border "1px solid rgba(255,255,255,0.8)"
+             :background "rgba(255,255,255,0.5)"
+             :backdrop-filter "blur(20px)"
+             :padding "10px 32px"
+             :border-radius "48px"
+             :box-shadow "0 2px 8px rgba(0,0,0,0.3)"
+             }}
     (dom/div "I'm looking for ")
     (c/focus :type
              (ds/select
@@ -187,9 +195,9 @@
 
     (dom/div "with tag")
     (c/focus (lens/>> :tags lens/first)
-             (ds/select))
+             (ds/input))
 
-    (dom/button {:type "submit"} "Search in map area"))
+    (ds/button-primary {:type "submit"} "Search"))
 
    ))
 
@@ -257,7 +265,13 @@
               :location [[48.484 48.550]
                          [9.0051 9.106]]}
              (dom/div
-              (quick-search)
+              {:style {:position "relative"}}
+              (dom/div
+               {:style {:position "absolute"
+                        :top "16px"
+                        :right "16px"
+                        :z-index 999}}
+               (quick-search))
               (c/focus :location
                        (leaflet/main {:style {:height 460}}
                                      (when-let [graph (:graph state)]
