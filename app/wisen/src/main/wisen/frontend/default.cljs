@@ -25,12 +25,6 @@
    (property "latitude" (lit-s "48.52105844145676"))
    (property "longitude" (lit-s "9.054090697517525"))))
 
-(def default-organization
-  (make-node
-   "Organization"
-   (property "name" (lit-s "Name"))
-   (property "description" (lit-s "Description"))))
-
 (def default-postal-address
   (make-node
    "PostalAddress"
@@ -50,6 +44,16 @@
    (property "dayOfWeek" (tree/make-node (schema "Monday")))
    (property "opens" (lit-s "10:00:00"))
    (property "closes" (lit-s "17:00:00"))))
+
+(def default-organization
+  (make-node
+   "Organization"
+   (property "name" (lit-s "Name"))
+   (property "description" (lit-s "Description"))
+   (property "keywords" (lit-s "education, fun, games"))
+   (property "location" default-place)
+   (property "url" (lit-s "https://..."))
+   (property "openingHoursSpecification" default-opening-hours-specification)))
 
 (def default-event
   (make-node

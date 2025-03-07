@@ -7,6 +7,7 @@
             [wisen.frontend.editor :as editor]
             [wisen.frontend.util :as util]
             [wisen.frontend.change :as change]
+            [wisen.frontend.default :as default]
             [reacl-c-basics.ajax :as ajax]))
 
 (def organization-type (tree/make-node "http://schema.org/Organization"))
@@ -16,8 +17,7 @@
   (tree/make-node))
 
 (defonce ^:private initial-organization
-  (-> (tree/make-node)
-      (tree/node-type organization-type)))
+  default/default-organization)
 
 (defn main []
   (util/with-schemaorg
