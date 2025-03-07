@@ -377,9 +377,13 @@
 (defn tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree
     (dom/div
-     {:style {:display "flex"
-              :gap "1em"
-              :align-items "baseline"}}
+     {:style (merge {:display "flex"
+                     :align-items "baseline"}
+                    (if (tree/node? tree)
+                      {:flex-direction "column"
+                       :gap "0.8ex"}
+                      {:flex-direction "row"
+                       :gap "1em"}))}
      (c/focus default/tree-sort
               (if force-editing?
                 (apply ds/select
