@@ -40,12 +40,58 @@
 
 ;;
 
-(defn label-for-predicate [schema predicate]
-  (cond
-    (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-    "type"
+(defn nice-name [x]
+  (case x
+      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+      "Type"
 
-    :else
+      "http://schema.org/name"
+      "Name"
+
+      "http://schema.org/description"
+      "Description"
+
+      "http://schema.org/keywords"
+      "Tags"
+
+      "http://schema.org/location"
+      "Location"
+
+      "http://schema.org/openingHoursSpecification"
+      "Opening Hours"
+
+      "http://schema.org/url"
+      "Website"
+
+      "http://schema.org/address"
+      "Address"
+
+      "http://schema.org/streetAddress"
+      "Street + Nr"
+
+      "http://schema.org/postalCode"
+      "Postal code"
+
+      "http://schema.org/addressLocality"
+      "Town/region"
+
+      "http://schema.org/addressCountry"
+      "Country code"
+
+      "http://schema.org/dayOfWeek"
+      "Day of week"
+
+      "http://schema.org/opens"
+      "Opens"
+
+      "http://schema.org/closes"
+      "Closes"
+
+      nil))
+
+(defn label-for-predicate [schema predicate]
+  (if-let [nice (nice-name predicate)]
+    nice
     (let [subject
           (first
            (rdf/predicate-object-subjects
