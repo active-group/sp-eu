@@ -36,14 +36,14 @@
 
 (dom/defn-dom button-primary [attrs & children]
   (apply dom/button
-         (dom/merge-attributes attrs
-                               {:style {:color "#3228dd"
+         (dom/merge-attributes {:style {:color "#3228dd"
                                         :background "none"
                                         :font-weight "bold"
                                         :appearance "none"
                                         :border "none"
                                         :font-size "1em"
-                                        :padding 0}})
+                                        :padding 0}}
+                               attrs)
          children))
 
 (dom/defn-dom select [attrs & children]
