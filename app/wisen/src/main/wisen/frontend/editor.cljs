@@ -110,6 +110,8 @@
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [resource predicate :local schemaorg/default-predicate]
     (dom/div
+     {:style {:display "flex"
+              :gap "1em"}}
      (c/focus lens/second
               (apply
                ds/select
@@ -117,14 +119,14 @@
                       (forms/option {:value pred} (schema/label-for-predicate schema pred)))
                     predicates)))
 
-     (dom/button {:onClick
-                  (fn [[node predicate] _]
-                    (c/return :state [(tree/node-assoc node
-                                                       predicate
-                                                       (default/default-tree-for-sort
-                                                        (first (schema/sorts-for-predicate schema predicate))))
-                                      predicate]))}
-                 "Add property"))))
+     (ds/button-primary {:onClick
+                         (fn [[node predicate] _]
+                           (c/return :state [(tree/node-assoc node
+                                                              predicate
+                                                              (default/default-tree-for-sort
+                                                               (first (schema/sorts-for-predicate schema predicate))))
+                                             predicate]))}
+                        "Add property"))))
 
 (defn- remove-index
   "remove elem in coll"
@@ -294,7 +296,8 @@
        (dom/summary
         {:style {:color "#555"
                  :border-bottom "1px solid gray"
-                 :padding "8px 16px"}}
+                 :padding "8px 16px"
+                 :cursor "pointer"}}
         (dom/span {:style {:margin-right "1em"}} uri)
         (when editable?
           (c/focus lens/second
@@ -365,7 +368,11 @@
                              (interpose (dom/hr {:style {:width "100%"}})))))))
 
           (when editing?
-            (add-property-button schema (schema/predicates-for-type schema (tree/node-type node)))))))))))
+            (dom/div
+             {:style {:border-top "1px solid gray"
+                      :padding "1.5ex 0"
+                      :margin-top "1ex"}}
+             (add-property-button schema (schema/predicates-for-type schema (tree/node-type node))))))))))))
 
 (defn tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree
