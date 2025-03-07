@@ -136,6 +136,7 @@
                       ?location <http://schema.org/geo> ?coords .
                       ?coords <http://schema.org/latitude> ?lat .
                       ?coords <http://schema.org/longitude> ?long .
+                      ?location ?locationp ?locationo .
  }
           WHERE { ?s ?p ?o .
                   ?s a " ty ".
@@ -145,8 +146,13 @@
                   ?location <http://schema.org/geo> ?coords .
                   ?coords <http://schema.org/latitude> ?lat .
                   ?coords <http://schema.org/longitude> ?long .
+
+                      OPTIONAL {
+                        ?location ?locationp ?locationo .
+                      }
                   FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
-                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\")) }")))
+                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
+                  }")))
 
 (c/defn-item quick-search []
   (dom/div
