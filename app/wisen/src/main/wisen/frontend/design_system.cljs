@@ -38,8 +38,22 @@
   (apply dom/button
          (dom/merge-attributes attrs
                                {:style {:color "#3228dd"
+                                        :background "none"
                                         :font-weight "bold"
                                         :appearance "none"
                                         :border "none"
                                         :font-size "1em"}})
+         children))
+
+(dom/defn-dom select [attrs & children]
+  (apply forms/select
+         (dom/merge-attributes
+          attrs
+          {:style {:background-color "#f0f0f0"
+                   :border "1px solid #888"
+                   :padding "4px 8px"
+                   :font-size "14px"
+                   :color "#333"
+                   :border-radius "3px"
+                   :cursor "pointer"}})
          children))

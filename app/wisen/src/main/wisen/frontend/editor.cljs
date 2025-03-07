@@ -383,9 +383,10 @@
               :align-items "baseline"}}
      (c/focus default/tree-sort
               (if force-editing?
-                (apply forms/select (map (fn [sort]
-                                           (forms/option {:value sort} (schema/label-for-sort schema sort)))
-                                         sorts))
+                (apply ds/select
+                       (map (fn [sort]
+                              (forms/option {:value sort} (schema/label-for-sort schema sort)))
+                            sorts))
                 (dom/i
                  (c/dynamic (partial schema/label-for-sort schema)))))
      (cond
