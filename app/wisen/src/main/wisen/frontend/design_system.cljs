@@ -46,6 +46,17 @@
                                attrs)
          children))
 
+(dom/defn-dom button-secondary [attrs & children]
+  (apply dom/button
+         (dom/merge-attributes {:style {:color "#444"
+                                        :background "none"
+                                        :appearance "none"
+                                        :border "none"
+                                        :font-size "1em"
+                                        :padding 0}}
+                               attrs)
+         children))
+
 (dom/defn-dom select [attrs & children]
   (apply forms/select
          (dom/merge-attributes

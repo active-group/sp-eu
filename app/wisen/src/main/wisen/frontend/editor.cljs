@@ -84,20 +84,25 @@
     (let [predicate (tree/property-predicate property)]
       (dom/div
        {:style {:display "flex"
-                :min-height "4ex"
-                :align-items "center"}}
+                :align-items "flex-start"
+                :gap "1em"}}
        (dom/div
         {:style {:flex 1 :display "flex" :gap "1em" :align-items "baseline"}}
         (dom/div
          {:style {:min-width "7em"}}
          (dom/strong
-          (schema/label-for-predicate schema predicate)))
+          (schema/label-for-predicate schema predicate))
+         (when editing?
+           (ds/button-secondary {:onClick (constantly
+                                           (c/return :action ::delete))
+                                 :style {:font-size "25px"
+                                         :font-weight "normal"
+                                         :cursor "pointer"
+                                         :margin-left "6px"}}
+                                "×")))
         (c/focus tree/property-object
                  (component-for-predicate predicate schema editable? editing? can-focus? can-expand?)))
-       (when editing?
-         (dom/button {:onClick (constantly
-                                (c/return :action ::delete))}
-                     "Delete"))))))
+       ))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
