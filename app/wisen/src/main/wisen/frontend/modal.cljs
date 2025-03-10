@@ -16,6 +16,22 @@
     (.addEventListener e "close" handler)
     #(.removeEventListener e "close" handler)))
 
+(dom/defn-dom padded [attrs & items]
+  (apply dom/div
+         (dom/merge-attributes
+          {:style {:padding "8px 16px"}}
+          attrs)
+         items))
+
+(dom/defn-dom toolbar [attrs & items]
+  (apply padded
+         (dom/merge-attributes
+          {:style {:border-top "1px solid #888"
+                   :display "flex"
+                   :justify-content "space-between"}}
+          attrs)
+         items))
+
 (dom/defn-dom main [attrs close-action & items]
   (c/with-ref
     (fn [ref]
@@ -24,7 +40,17 @@
        (apply
         dom/h
         "dialog"
-        (assoc attrs :ref ref)
+        (dom/merge-attributes {:ref ref
+                               :style {:min-width "70%"
+                                       :padding 0
+                                       :margin "0 auto"
+                                       :border "1px solid #888"
+                                       :border-top 0
+                                       :box-shadow "0 2px 16px rgba(0,0,0,0.4)"
+                                       :border-bottom-right-radius "5px"
+                                       :border-bottom-left-radius "5px"
+                                       }}
+                              attrs)
         items)
 
        ;; open modal upon first render

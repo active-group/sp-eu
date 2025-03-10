@@ -48,7 +48,7 @@
 
 (dom/defn-dom button-secondary [attrs & children]
   (apply dom/button
-         (dom/merge-attributes {:style {:color "#444"
+         (dom/merge-attributes {:style {:color "#111"
                                         :background "none"
                                         :appearance "none"
                                         :border "none"

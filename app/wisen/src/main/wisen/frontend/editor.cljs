@@ -192,36 +192,40 @@
                                              :osm-uri osm-uri
                                              :commit-osm-uri nil}]
     (dom/div
+     (modal/padded
+      (dom/h3 (if osm-uri "Update " "Link with ") "OpenStreetMap")
 
-     (c/focus (lens/>> lens/second :osm-uri)
-              (ds/input
-               {:type "url"
-                :placeholder "https://www.openstreetmap.org/..."}))
+      (c/focus (lens/>> lens/second :osm-uri)
+               (ds/input
+                {:type "url"
+                 :placeholder "https://www.openstreetmap.org/..."}))
 
-     (c/focus (lens/>> lens/second :graph)
-              (osm-importer schema (:commit-osm-uri local-state)))
+      (c/focus (lens/>> lens/second :graph)
+               (osm-importer schema (:commit-osm-uri local-state))))
 
-     (dom/button {:onClick #(c/return :action close-action)}
-                 "Cancel")
+     (modal/toolbar
+      (ds/button-secondary {:onClick #(c/return :action close-action)}
+                           "Cancel")
 
-     (c/focus lens/second
-              (dom/button {:onClick (fn [ls]
-                                      (assoc ls :commit-osm-uri (:osm-uri ls)))}
-                          "Ask OSM!"))
+      (c/focus lens/second
+               (ds/button-primary {:onClick (fn [ls]
+                                              (assoc ls :commit-osm-uri (:osm-uri ls)))}
+                                  "Ask OSM!"))
 
-     (ds/button-primary
-      {:onClick (fn [[node local-state]]
-                  (let [place-node (first (tree/graph->trees (:graph local-state)))]
-                    (assert (tree/node? place-node))
-                    (c/return :state [(osm/organization-do-link-osm
-                                       node
-                                       (:osm-uri local-state)
-                                       place-node)
-                                      (-> local-state
-                                          (dissoc :graph)
-                                          (dissoc :commit-osm-uri))]
-                              :action close-action)))}
-      "Add properties as 'location'"))))
+      (when (:graph local-state)
+        (ds/button-primary
+         {:onClick (fn [[node local-state]]
+                     (let [place-node (first (tree/graph->trees (:graph local-state)))]
+                       (assert (tree/node? place-node))
+                       (c/return :state [(osm/organization-do-link-osm
+                                          node
+                                          (:osm-uri local-state)
+                                          place-node)
+                                         (-> local-state
+                                             (dissoc :graph)
+                                             (dissoc :commit-osm-uri))]
+                                 :action close-action)))}
+         "Add properties as 'location'"))))))
 
 ;; LLM
 
@@ -246,41 +250,43 @@
                 :flex-direction "column"
                 :gap "2ex"}}
 
-       (c/focus (lens/>> lens/second :prompt)
-                (forms/textarea))
+       (modal/padded
 
-       (when commit-prompt
-         (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                  (graph-resolver (llm-query (prepare-prompt (tree/node-uri
-                                                              (tree/node-type node))
-                                                             commit-prompt)))))
+        (dom/h3 "Ask an AI to fill out this form")
 
-       (when current-graph
-         #_(pr-str current-graph)
-         (readonly schema current-graph))
+        (c/focus (lens/>> lens/second :prompt)
+                 (ds/textarea))
 
-       (dom/div
-        {:style {:display "flex"
-                 :gap "2em"
-                 :border "1px solid red"}}
+        (when commit-prompt
+          (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
+                   (graph-resolver (llm-query (prepare-prompt (tree/node-uri
+                                                               (tree/node-type node))
+                                                              commit-prompt)))))
 
-        (dom/button {:onClick #(c/return :action close-action)}
-                    "Cancel")
+        (when current-graph
+          #_(pr-str current-graph)
+          (readonly schema current-graph)))
+
+       (modal/toolbar
+
+        (ds/button-secondary {:onClick #(c/return :action close-action)}
+                             "Cancel")
 
         (c/focus lens/second
-                 (dom/button {:onClick (fn [ls]
-                                         (assoc ls :commit-prompt (:prompt ls)))}
-                             "Ask AI!"))
+                 (ds/button-primary {:onClick (fn [ls]
+                                                (assoc ls :commit-prompt (:prompt ls)))}
+                                    "Ask AI!"))
 
-        (ds/button-primary
-         {:onClick (fn [[node local-state]]
-                     (let [ai-node (first (tree/graph->trees current-graph))]
-                       (assert (tree/node? ai-node))
-                       (c/return :state [#_(tree/merge node ai-node)
-                                         ai-node
-                                         {}]
-                                 :action close-action)))}
-         "Use these properties"))))))
+        (when (:graphs local-state)
+          (ds/button-primary
+           {:onClick (fn [[node local-state]]
+                       (let [ai-node (first (tree/graph->trees current-graph))]
+                         (assert (tree/node? ai-node))
+                         (c/return :state [#_(tree/merge node ai-node)
+                                           ai-node
+                                           {}]
+                                   :action close-action)))}
+           "Use these properties")))))))
 
 ;; ---
 
@@ -293,7 +299,6 @@
 
      (when show?
        (-> (modal/main
-            {:style {:border "1px solid blue"}}
             ::close-action
             (c/focus lens/first (item-f ::close-action)))
 
@@ -306,7 +311,7 @@
   (c/with-state-as node
     (dom/div {:style {:display "flex"
                       :padding "1.5ex 16px"
-                      :background "#dae0eb"
+                      :background "rgba(218, 224, 235, 0.7)"
                       :gap "2em"
                       :align-items "center"
                       :border-bottom "1px solid gray"
