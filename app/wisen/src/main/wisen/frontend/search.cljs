@@ -261,7 +261,7 @@
                    :flex-direction "column"
                    :overflow "auto"}}
 
-          (ds/padded-2
+          (dom/div
            {:style {:border-bottom ds/border}}
            (dom/div
             #_(query-form)
@@ -294,7 +294,8 @@
 
            ;; display when we have a graph
            (when-let [graph (:graph state)]
-             (editor/readwrite schema graph make-focus-query-action make-expand-by-query-action))
+             (ds/padded-2
+              (editor/readwrite schema graph make-focus-query-action make-expand-by-query-action)))
            ))
 
          (c/handle-action

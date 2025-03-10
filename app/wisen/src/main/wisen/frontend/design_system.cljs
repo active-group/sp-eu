@@ -4,7 +4,7 @@
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]))
 
-(def border "1px solid #ddd")
+(def border "1px solid gray")
 
 (dom/defn-dom card [attrs & children]
   (apply dom/div
@@ -30,8 +30,8 @@
 
 (dom/defn-dom padded-2 [attrs & children]
   (apply dom/div
-         (dom/merge-attributes attrs
-                               {:style {:padding "6px 16px"}})
+         (dom/merge-attributes {:style {:padding "6px 16px"}}
+                               attrs)
          children))
 
 (dom/defn-dom button-primary [attrs & children]
