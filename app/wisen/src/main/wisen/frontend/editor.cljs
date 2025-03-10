@@ -118,21 +118,34 @@
     (dom/div
      {:style {:display "flex"
               :gap "1em"}}
-     (c/focus lens/second
-              (apply
-               ds/select
-               (map (fn [pred]
-                      (forms/option {:value pred} (schema/label-for-predicate schema pred)))
-                    predicates)))
+     (dom/div
+      {:style {:display "flex"
+               :border "1px solid #888"
+               :border-radius "3px"}}
+      (c/focus lens/second
+               (apply
+                ds/select
+                {:style {:border 0
+                         :border-right "1px solid #888"
+                         :border-top-right-radius "0px"
+                         :border-bottom-right-radius "0px"}}
+                (map (fn [pred]
+                       (forms/option {:value pred} (schema/label-for-predicate schema pred)))
+                     predicates)))
 
-     (ds/button-primary {:onClick
-                         (fn [[node predicate] _]
-                           (c/return :state [(tree/node-assoc node
-                                                              predicate
-                                                              (default/default-tree-for-sort
-                                                               (first (schema/sorts-for-predicate schema predicate))))
-                                             predicate]))}
-                        "Add property"))))
+      (ds/button-primary
+       {:style {:padding "2px 12px"
+                :color "#444"
+                :background "#ddd"
+                :font-weight "normal"}
+        :onClick
+        (fn [[node predicate] _]
+          (c/return :state [(tree/node-assoc node
+                                             predicate
+                                             (default/default-tree-for-sort
+                                              (first (schema/sorts-for-predicate schema predicate))))
+                            predicate]))}
+       "Add property")))))
 
 (defn- remove-index
   "remove elem in coll"
@@ -292,35 +305,29 @@
 (defn- node-component-header [schema]
   (c/with-state-as node
     (dom/div {:style {:display "flex"
-                      :justify-content "flex-start"
                       :padding "1.5ex 16px"
                       :background "#dae0eb"
                       :gap "2em"
                       :align-items "center"
-                      :border-bottom "1px solid gray"}}
+                      :border-bottom "1px solid gray"
+                      :justify-content "space-between"}}
 
              (add-property-button schema (schema/predicates-for-type schema (tree/node-type node)))
 
-             (modal-button "Ask AI" (partial ask-ai schema))
+             (dom/div
+              {:style {:display "flex"
+                       :gap "1em"}}
+              (when (node-organization? node)
+                (if-let [osm-uri (osm/node-osm-uri node)]
 
-             (when (node-organization? node)
-               (if-let [osm-uri (osm/node-osm-uri node)]
+                  (dom/div
+                   {:style {:display "flex"
+                            :gap "1em"}}
+                   (pr-osm-uri osm-uri)
+                   (modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
+                  (modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
 
-                 (dom/div
-                  {:style {:display "flex"
-                           :gap "1em"}}
-                  (pr-osm-uri osm-uri)
-                  (modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
-                 (modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
-
-             #_(when can-focus?
-                 (ds/padded-1
-                  (dom/button {:onClick
-                               (fn [_]
-                                 (c/return :action
-                                           (focus-query-action focus-query-action-query
-                                                               (focus-query uri))))}
-                              "Focus"))))))
+              (modal-button "Ask AI" (partial ask-ai schema))))))
 
 (defn- node-component [schema editable? force-editing? can-focus? can-expand?]
   (c/with-state-as [node editing? :local force-editing?]
