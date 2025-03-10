@@ -65,7 +65,8 @@
 (defn primitive? [x]
   (or (literal-string? x)
       (literal-decimal? x)
-      (literal-boolean? x)))
+      (literal-boolean? x)
+      (ref? x)))
 
 ;;
 
