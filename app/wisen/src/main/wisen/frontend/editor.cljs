@@ -337,7 +337,7 @@
         :style {:border "1px solid gray"
                 :box-shadow "0 1px 0px rgba(0,0,0,0.5)"
                 :background "rgba(255,255,255,0.5)"
-                :border-radius "4px"}}
+                :border-radius "0 4px 4px 4px"}}
 
        (dom/summary
         {:style {:color "#555"
@@ -384,47 +384,70 @@
 
 (defn tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree
-    (dom/div
-     {:style (merge {:display "flex"
-                     :align-items "baseline"}
-                    (if (tree/primitive? tree)
-                      {:flex-direction "row"
-                       :gap "1em"}
-                      {:flex-direction "column"
-                       :gap "0.8ex"}))}
-     (c/focus default/tree-sort
-              (if force-editing?
-                (apply ds/select
-                       (map (fn [sort]
-                              (forms/option {:value sort} (schema/label-for-sort schema sort)))
-                            sorts))
-                (when-not (tree/primitive? tree)
+    (if (tree/primitive? tree)
+      (dom/div
+       {:style {:display "flex"
+                :flex-direction "row"
+                :align-items "baseline"
+                :border (when force-editing? "1px solid #888")
+                :border-radius "3px"}}
+       (c/focus default/tree-sort
+                (if force-editing?
+                  (apply ds/select
+                         {:style {:border 0}}
+                         (map (fn [sort]
+                                (forms/option {:value sort} (schema/label-for-sort schema sort)))
+                              sorts))
+                  (when-not (tree/primitive? tree)
+                    (dom/i
+                     (c/dynamic (partial schema/label-for-sort schema))))))
+       (let [primitive-style {:border-radius "0 3px 3px 0"
+                              :border-width "0 0 0 1px"
+                              :border-color "#888"
+                              }]
+         (cond
+           (tree/literal-string? tree)
+           (c/focus tree/literal-string-value
+                    (if force-editing?
+                      (ds/input {:style primitive-style})
+                      (c/dynamic str)))
+
+           (tree/literal-decimal? tree)
+           (c/focus tree/literal-decimal-value
+                    (if force-editing?
+                      (ds/input {:type "decimal"
+                                 :style primitive-style})
+                      (c/dynamic str)))
+
+           (tree/literal-boolean? tree)
+           (c/focus tree/literal-boolean-value
+                    (if force-editing?
+                      (ds/input {:type "checkbox"
+                                 :style primitive-style})
+                      (c/dynamic str)))
+
+           (tree/ref? tree)
+           (dom/div "REF: " (tree/ref-uri tree)))))
+
+      ;; else node
+      (dom/div
+       {:style {:display "flex"
+                :align-items "baseline"
+                :flex-direction "column"}}
+       (c/focus default/tree-sort
+                (if force-editing?
+                  (apply ds/select
+                         {:style {:border-width "1px 1px 0 1px"
+                                  :border-radius "3px 3px 0 0"
+                                  }}
+                         (map (fn [sort]
+                                (forms/option {:value sort}
+                                              (schema/label-for-sort schema sort)))
+                              sorts))
                   (dom/i
-                   (c/dynamic (partial schema/label-for-sort schema))))))
-     (cond
-       (tree/node? tree)
-       (node-component schema editable? force-editing? can-focus? can-expand?)
+                   (c/dynamic (partial schema/label-for-sort schema)))))
 
-       (tree/literal-string? tree)
-       (c/focus tree/literal-string-value
-                (if force-editing?
-                  (ds/input)
-                  (c/dynamic str)))
-
-       (tree/literal-decimal? tree)
-       (c/focus tree/literal-decimal-value
-                (if force-editing?
-                  (ds/input {:type "decimal"})
-                  (c/dynamic str)))
-
-       (tree/literal-boolean? tree)
-       (c/focus tree/literal-boolean-value
-                (if force-editing?
-                  (ds/input {:type "checkbox"})
-                  (c/dynamic str)))
-
-       (tree/ref? tree)
-       (dom/div "REF: " (tree/ref-uri tree))))))
+       (node-component schema editable? force-editing? can-focus? can-expand?)))))
 
 (c/defn-item commit-changes [changes]
   (c/isolate-state
