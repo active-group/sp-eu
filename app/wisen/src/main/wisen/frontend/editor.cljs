@@ -54,8 +54,8 @@
     "http://schema.org/description"
     (c/focus tree/literal-string-value
              (if editing?
-               (forms/textarea {:style {:width "100%"
-                                        :min-height "6em"}})
+               (ds/textarea {:style {:width "100%"
+                                     :min-height "6em"}})
                (c/dynamic dom/div)))
 
     "http://schema.org/dayOfWeek"
