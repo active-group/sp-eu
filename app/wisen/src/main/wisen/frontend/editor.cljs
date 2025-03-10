@@ -83,13 +83,14 @@
   (c/with-state-as property
     (let [predicate (tree/property-predicate property)]
       (dom/div
-       {:style {:display "flex"
+       {:style {:padding "1ex 0"
+                :display "flex"
                 :align-items "flex-start"
                 :gap "1em"}}
        (dom/div
         {:style {:flex 1 :display "flex" :gap "1em" :align-items "baseline"}}
         (dom/div
-         {:style {:min-width "7em"}}
+         {:style {:min-width "10em"}}
          (dom/strong
           (schema/label-for-predicate schema predicate))
          (when editing?
@@ -288,6 +289,42 @@
                                 (c/return :state [state false])
                                 (c/return :action ac)))))))))
 
+(defn- node-component-header [schema editing?]
+  (c/with-state-as node
+    (dom/div {:style {:display "flex"
+                      :justify-content "flex-start"
+                      :padding "1.5ex 16px"
+                      :background "#dae0eb"
+                      :gap "2em"
+                      :align-items "center"
+                      :border-bottom "1px solid gray"}}
+
+             (when editing?
+               (add-property-button schema (schema/predicates-for-type schema (tree/node-type node))))
+
+             (when editing?
+               (modal-button "Ask AI" (partial ask-ai schema)))
+
+             (when (and editing?
+                        (node-organization? node))
+               (if-let [osm-uri (osm/node-osm-uri node)]
+
+                 (dom/div
+                  {:style {:display "flex"
+                           :gap "1em"}}
+                  (pr-osm-uri osm-uri)
+                  (modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
+                 (modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
+
+             #_(when can-focus?
+                 (ds/padded-1
+                  (dom/button {:onClick
+                               (fn [_]
+                                 (c/return :action
+                                           (focus-query-action focus-query-action-query
+                                                               (focus-query uri))))}
+                              "Focus"))))))
+
 (defn- node-component [schema editable? force-editing? can-focus? can-expand?]
   (c/with-state-as [node editing? :local force-editing?]
     (let [uri (tree/node-uri node)]
@@ -308,76 +345,37 @@
           (c/focus lens/second
                    (ds/button-primary {:onClick not} "Edit"))))
 
-       (dom/div
-        {:style {:padding "8px 16px"}}
+       (c/focus
+        lens/first
+        (dom/div
 
-        ;; header
-        (dom/summary {:style {:display "flex"
-                              :justify-content "flex-start"
-                              :align-items "center"}}
+         (node-component-header schema editing?)
 
-                     (when editing?
-                       (c/focus lens/first
-                                (modal-button "Ask AI" (partial ask-ai schema))))
+         (let [props (tree/node-properties node)]
+           (when-not (empty? props)
 
-                     #_(when can-focus?
-                         (ds/padded-1
-                          (dom/button {:onClick
-                                       (fn [_]
-                                         (c/return :action
-                                                   (focus-query-action focus-query-action-query
-                                                                       (focus-query uri))))}
-                                      "Focus"))))
+             (c/focus tree/node-properties
+                      (apply
+                       dom/div
+                       {:style {:display "flex"
+                                :flex-direction "column"
+                                :padding "0 1em"}}
 
-        (c/focus
-         lens/first
-
-         (c/fragment
-
-          ;; OSM
-          (when (and editing?
-                     (node-organization? node))
-            (if-let [osm-uri (osm/node-osm-uri node)]
-
-              (dom/div
-               {:style {:display "flex"
-                        :gap "1em"}}
-               (pr-osm-uri osm-uri)
-               (modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
-              (modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
-
-          (let [props (tree/node-properties node)]
-            (when-not (empty? props)
-
-              (c/focus tree/node-properties
-                       (apply
-                        dom/div
-                        {:style {:display "flex"
-                                 :flex-direction "column"
-                                 :gap "1ex"}}
-
-                        (->> props
-                             (map-indexed (fn [idx property]
-                                            [(tree/property-predicate property)
-                                             (c/handle-action
-                                              (c/focus (lens/at-index idx)
-                                                       (property-component schema editable? editing? can-focus? can-expand?))
-                                              (fn [props ac]
-                                                (if (= ::delete ac)
-                                                  (c/return :state (remove-index idx props))
-                                                  (c/return :action ac)))
-                                              )]))
-                             (remove (comp schemaorg/hide-predicate first))
-                             (sort-by first schemaorg/compare-predicate)
-                             (map second)
-                             (interpose (dom/hr {:style {:width "100%"}})))))))
-
-          (when editing?
-            (dom/div
-             {:style {:border-top "1px solid gray"
-                      :padding "1.5ex 0"
-                      :margin-top "1ex"}}
-             (add-property-button schema (schema/predicates-for-type schema (tree/node-type node))))))))))))
+                       (->> props
+                            (map-indexed (fn [idx property]
+                                           [(tree/property-predicate property)
+                                            (c/handle-action
+                                             (c/focus (lens/at-index idx)
+                                                      (property-component schema editable? editing? can-focus? can-expand?))
+                                             (fn [props ac]
+                                               (if (= ::delete ac)
+                                                 (c/return :state (remove-index idx props))
+                                                 (c/return :action ac)))
+                                             )]))
+                            (remove (comp schemaorg/hide-predicate first))
+                            (sort-by first schemaorg/compare-predicate)
+                            (map second)
+                            (interpose (dom/hr {:style {:width "100%"}})))))))))))))
 
 (defn tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree
