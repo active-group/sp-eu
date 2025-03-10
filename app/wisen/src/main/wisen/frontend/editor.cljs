@@ -334,6 +334,26 @@
 
               (modal-button "Ask AI" (partial ask-ai schema))))))
 
+;; http://wisen.active-group.de/resource/fccbaef2-4c3c-428e-8e3e-741250b469a6
+
+(defn- set-reference [close-action]
+  (c/with-state-as node
+    (c/local-state
+     (tree/node-uri node)
+     (dom/div
+      (modal/padded
+       (dom/h3 "Set as reference to another node")
+
+       (c/focus lens/second (ds/input {:size 80})))
+
+      (modal/toolbar
+       (ds/button-secondary {:onClick #(c/return :action close-action)}
+                            "Cancel")
+       (ds/button-primary {:onClick
+                           (fn [[_ uri]]
+                             (c/return :state [(tree/make-node uri) uri]))}
+                          "Set reference"))))))
+
 (defn- node-component [schema editable? force-editing? can-focus? can-expand?]
   (c/with-state-as [node editing? :local force-editing?]
     (let [uri (tree/node-uri node)]
@@ -350,6 +370,9 @@
                  :padding "8px 16px"
                  :cursor "pointer"}}
         (dom/span {:style {:margin-right "1em"}} uri)
+        (when editing?
+          (c/focus lens/first
+                   (modal-button "Set reference" set-reference)))
         (when editable?
           (c/focus lens/second
                    (ds/button-primary {:onClick not} "Edit"))))
