@@ -60,13 +60,13 @@
 (dom/defn-dom select [attrs & children]
   (apply forms/select
          (dom/merge-attributes
-          attrs
           {:style {:background-color "#f0f0f0"
                    :border "1px solid #888"
                    :padding "4px 8px"
                    :font-size "14px"
                    :color "#333"
-                   :border-radius "3px"}})
+                   :border-radius "3px"}}
+          attrs)
          children))
 
 (dom/defn-dom input [attrs & children]
