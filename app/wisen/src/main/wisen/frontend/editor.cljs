@@ -289,7 +289,7 @@
                                 (c/return :state [state false])
                                 (c/return :action ac)))))))))
 
-(defn- node-component-header [schema editing?]
+(defn- node-component-header [schema]
   (c/with-state-as node
     (dom/div {:style {:display "flex"
                       :justify-content "flex-start"
@@ -299,14 +299,11 @@
                       :align-items "center"
                       :border-bottom "1px solid gray"}}
 
-             (when editing?
-               (add-property-button schema (schema/predicates-for-type schema (tree/node-type node))))
+             (add-property-button schema (schema/predicates-for-type schema (tree/node-type node)))
 
-             (when editing?
-               (modal-button "Ask AI" (partial ask-ai schema)))
+             (modal-button "Ask AI" (partial ask-ai schema))
 
-             (when (and editing?
-                        (node-organization? node))
+             (when (node-organization? node)
                (if-let [osm-uri (osm/node-osm-uri node)]
 
                  (dom/div
@@ -349,7 +346,8 @@
         lens/first
         (dom/div
 
-         (node-component-header schema editing?)
+         (when editing?
+           (node-component-header schema))
 
          (let [props (tree/node-properties node)]
            (when-not (empty? props)
