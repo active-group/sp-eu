@@ -30,6 +30,7 @@
     (c/fragment
      (if (nil? graph)
        (c/fragment
-        spinner/main
+        (spinner/main {:style {:padding "32px"}}
+                      "Loading schema")
         (c/focus lens/second (load-schemaorg)))
        (c/focus lens/first (k graph))))))
