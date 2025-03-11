@@ -12,6 +12,7 @@
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.util :refer [with-schemaorg]]
+            [wisen.frontend.spinner :as spinner]
             ["jsonld" :as jsonld]))
 
 (def-record place [place-label place-bounding-box])
@@ -154,7 +155,7 @@
                   FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
                   }")))
 
-(c/defn-item quick-search []
+(c/defn-item quick-search [loading?]
   (dom/div
    {:style {:padding "8px"
             :display "flex"
@@ -205,9 +206,21 @@
                                 :padding "6px 16px"
                                 :border-radius "20px"
                                 :color "white"}}
-                       "Search"))
+                       (if loading?
+                         (dom/div
+                          {:style {:display "flex"
+                                   :align-items "center"
+                                   :gap "0.5em"}}
+                          "Searching …"
+                          spinner/main)
+                         "Search"))
 
-   ))
+    #_(dom/div
+     {:style {:position "relative"
+              :top "2px"
+              :margin-left "-8px"
+              :margin-right "-20px"}}
+     spinner/main))))
 
 (defn run-query [q]
   (c/isolate-state
@@ -280,7 +293,7 @@
                         :left 0
                         :z-index 999
                         :width "100%"}}
-               (quick-search))
+               (quick-search (some? (:last-focus-query state))))
               (c/focus :location
                        (leaflet/main {:style {:height 460}}
                                      (when-let [graph (:graph state)]
@@ -312,31 +325,35 @@
 
      ;; perform focus query
      (when-let [last-focus-query (:last-focus-query state)]
-       (-> (run-query last-focus-query)
-           (c/handle-action (fn [st ac]
-                              ;; TODO: error handling
-                              (if (and (ajax/response? ac)
-                                       (ajax/response-ok? ac))
-                                (c/return :state
-                                          (-> st
-                                              (assoc :graph (ajax/response-value ac))
-                                              (dissoc :last-focus-query)))
-                                (c/return :action ac))))))
+       (c/fragment
+        spinner/main
+        (-> (run-query last-focus-query)
+            (c/handle-action (fn [st ac]
+                               ;; TODO: error handling
+                               (if (and (ajax/response? ac)
+                                        (ajax/response-ok? ac))
+                                 (c/return :state
+                                           (-> st
+                                               (assoc :graph (ajax/response-value ac))
+                                               (dissoc :last-focus-query)))
+                                 (c/return :action ac)))))))
 
      ;; perform expand-by query
      (when-let [last-expand-by-query (:last-expand-by-query state)]
-       (-> (run-query last-expand-by-query)
-           (c/handle-action (fn [st ac]
-                              ;; TODO: error handling
-                              (if (and (ajax/response? ac)
-                                       (ajax/response-ok? ac))
-                                (c/return :state
-                                          (-> st
-                                              (update :graph
-                                                      (fn [g]
-                                                        (rdf/merge g (ajax/response-value ac))))
-                                              (dissoc :last-expand-by-query)))
-                                (c/return :action ac)))))))))
+       (c/fragment
+        spinner/main
+        (-> (run-query last-expand-by-query)
+            (c/handle-action (fn [st ac]
+                               ;; TODO: error handling
+                               (if (and (ajax/response? ac)
+                                        (ajax/response-ok? ac))
+                                 (c/return :state
+                                           (-> st
+                                               (update :graph
+                                                       (fn [g]
+                                                         (rdf/merge g (ajax/response-value ac))))
+                                               (dissoc :last-expand-by-query)))
+                                 (c/return :action ac))))))))))
 
 (c/defn-item main []
   (c/isolate-state

@@ -168,7 +168,17 @@
                    [:style "html, body {margin: 0; padding: 0;
                                         font-family: 'Helvetica Neue', Helvetica, sans-serif;}
                             ul, ol {margin: 0; padding: 0; padding-left: 1.4em;}
-                            hr {margin: 0; padding: 0; border: 0; border-bottom: 1px solid gray;}"]
+                            hr {margin: 0; padding: 0; border: 0; border-bottom: 1px solid gray;}
+
+    @keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+    }
+"]
                    ;; TODO: use these two leaflet resources via node module (package.json)
                    [:link {:rel "stylesheet"
                            :href "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
