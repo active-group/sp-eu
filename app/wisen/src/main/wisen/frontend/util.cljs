@@ -3,7 +3,8 @@
             [active.clojure.lens :as lens]
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.promise :as promise]
-            [wisen.frontend.rdf :as rdf]))
+            [wisen.frontend.rdf :as rdf]
+            [wisen.frontend.spinner :as spinner]))
 
 (c/defn-item load-schemaorg []
   (c/with-state-as [graph response :local nil]
@@ -28,5 +29,7 @@
   (c/with-state-as [state graph :local nil]
     (c/fragment
      (if (nil? graph)
-       (c/focus lens/second (load-schemaorg))
+       (c/fragment
+        spinner/main
+        (c/focus lens/second (load-schemaorg)))
        (c/focus lens/first (k graph))))))
