@@ -194,6 +194,9 @@
       (let [[links* tree] (node->tree g links x)]
         [links* (conj trees tree)]))
     [#{} []]
+    ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
+    ;; -> A has no roots.  rather look for "basis", a minimal set of
+    ;; nodes from which every other root is reachable
     (rdf/roots g))))
 
 (defn- tree->statements [statements tree]
