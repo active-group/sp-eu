@@ -131,6 +131,7 @@
         [[min-lat max-lat] [min-long max-long]] (:location m)]
     (str "CONSTRUCT { ?s ?p ?o .
                       ?s a " ty ".
+                      ?s <https://wisen.active-group.de/target-group> ?target .
                       ?s <http://schema.org/keywords> ?keywords .
                       ?s <http://schema.org/location> ?location .
                       ?location a <http://schema.org/Place> .
@@ -141,6 +142,7 @@
  }
           WHERE { ?s ?p ?o .
                   ?s a " ty ".
+                  ?s <https://wisen.active-group.de/target-group> ?target .
                   ?s <http://schema.org/keywords> ?keywords .
                   ?s <http://schema.org/location> ?location .
                   ?location a <http://schema.org/Place> .
@@ -153,6 +155,7 @@
                       }
                   FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
                   FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
+                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
                   }")))
 
 (c/defn-item quick-search [loading?]
@@ -189,11 +192,11 @@
     (dom/div "targeted towards")
     (c/focus :target
              (ds/select
-              (forms/option {:value :elderly}
+              (forms/option {:value "elderly"}
                             "elderly")
-              (forms/option {:value :queer}
+              (forms/option {:value "queer"}
                             "queer")
-              (forms/option {:value :immigrants}
+              (forms/option {:value "immigrants"}
                             "immigrants")
               ))
 
@@ -281,7 +284,7 @@
 
             (c/isolate-state
              {:type :organization
-              :target :elderly
+              :target "elderly"
               :tags ["education"]
               :location [[48.484 48.550]
                          [9.0051 9.106]]}
