@@ -73,6 +73,12 @@
 
 ;; ---
 
+(extend-type rdflib/NamedNode
+  cljs.core/IEquiv
+  (-equiv [this other]
+    (and (instance? rdflib/NamedNode other)
+         (= (.-value this) (.-value other)))))
+
 (defn make-symbol [string]
   (rdflib/sym string))
 
@@ -102,6 +108,13 @@
     (blank-node-uri x)))
 
 ;;
+
+(extend-type rdflib/Literal
+  cljs.core/IEquiv
+  (-equiv [this other]
+    (and (instance? rdflib/Literal other)
+         (= (.-value this) (.-value other))
+         (= (.-datatype this) (.-datatype other)))))
 
 (def xsd-string (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#string"))
 
