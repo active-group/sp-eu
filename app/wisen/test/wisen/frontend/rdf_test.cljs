@@ -12,40 +12,6 @@
                        "foaf:knows" {"@id" "http://example.org/bob"
                                      "foaf:name" "Bob"}})))
 
-(def jsonld-2
-  "{
-    \"@graph\": [
-        {
-            \"@id\": \"_:b0\",
-            \"http://schema.org/geoMidpoint\": {
-                \"@id\": \"_:b1\"
-            },
-            \"@type\": \"http://schema.org/GeoCircle\"
-        },
-        {
-            \"@id\": \"_:b2\",
-            \"http://schema.org/geoMidpoint\": {
-                \"@id\": \"_:b3\"
-            },
-            \"@type\": \"http://schema.org/GeoCircle\"
-        },
-        {
-            \"@id\": \"http://example.org/hurnson\",
-            \"http://schema.org/areaServed\": [
-                {
-                    \"@id\": \"_:b0\"
-                },
-                {
-                    \"@id\": \"_:b2\"
-                }
-            ],
-            \"http://schema.org/keywords\": \"education, fun, play\",
-            \"@type\": \"http://schema.org/Organization\"
-        }
-    ]
-}
-")
-
 (def g (rdf/json-ld-string->graph-promise jsonld))
 
 (deftest types-test
@@ -70,6 +36,10 @@
     (is (rdf/collection? nodes))
     (is (= [node] (rdf/collection-elements nodes)))))
 
+(deftest equality-test
+  (is (= (rdf/make-symbol "http://example.org/name")
+         (rdf/make-symbol "http://example.org/name"))))
+
 (deftest graph-test
   (async done
     (.then g
@@ -92,5 +62,28 @@
                         (set
                          (map (comp rdf/node-to-string rdf/property-object)
                               props))))))
+
+             (done)))))
+
+(deftest graph-test-2
+  (async done
+    (.then (rdf/json-ld-string->graph-promise
+            (js/JSON.stringify (clj->js
+                                {"@id" "http://example.org/alice"
+                                 "http://example.org/name" ["Alice" "Alicia"]})))
+
+           (fn [g]
+             (testing "subject-properties multiple"
+
+               (is (= #{(rdf/make-symbol "http://example.org/name")}
+                      (rdf/subject-predicates g (rdf/make-symbol "http://example.org/alice"))))
+
+               (is (= #{(rdf/property
+                         rdf/property-predicate (rdf/make-symbol "http://example.org/name")
+                         rdf/property-object (rdf/make-literal-string "Alice"))
+                        (rdf/property
+                         rdf/property-predicate (rdf/make-symbol "http://example.org/name")
+                         rdf/property-object (rdf/make-literal-string "Alicia"))}
+                      (set (rdf/subject-properties g (rdf/make-symbol "http://example.org/alice"))))))
 
              (done)))))
