@@ -212,7 +212,7 @@
                                    :align-items "center"
                                    :gap "0.5em"}}
                           "Searching …"
-                          spinner/main)
+                          (spinner/main))
                          "Search"))
 
     #_(dom/div
@@ -220,7 +220,7 @@
               :top "2px"
               :margin-left "-8px"
               :margin-right "-20px"}}
-     spinner/main))))
+     (spinner/main)))))
 
 (defn run-query [q]
   (c/isolate-state
@@ -326,7 +326,7 @@
      ;; perform focus query
      (when-let [last-focus-query (:last-focus-query state)]
        (c/fragment
-        spinner/main
+        (spinner/main)
         (-> (run-query last-focus-query)
             (c/handle-action (fn [st ac]
                                ;; TODO: error handling
@@ -341,7 +341,7 @@
      ;; perform expand-by query
      (when-let [last-expand-by-query (:last-expand-by-query state)]
        (c/fragment
-        spinner/main
+        (spinner/main)
         (-> (run-query last-expand-by-query)
             (c/handle-action (fn [st ac]
                                ;; TODO: error handling
