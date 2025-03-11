@@ -69,6 +69,13 @@
                             (forms/option {:value "http://schema.org/Sunday"} "Sunday")
                             ))
 
+    "https://wisen.active-group.de/target-group"
+    (c/focus tree/literal-string-value
+             (ds/select
+              (forms/option {:value "elderly"} "Elderly")
+              (forms/option {:value "queer"} "Queer")
+              (forms/option {:value "immigrants"} "Immigrants")))
+
     (dom/div {:style {:margin-left "0em"
                       :display "flex"}}
              (tree-component
@@ -142,8 +149,7 @@
         (fn [[node predicate] _]
           (c/return :state [(tree/node-assoc node
                                              predicate
-                                             (default/default-tree-for-sort
-                                              (first (schema/sorts-for-predicate schema predicate))))
+                                             (default/default-tree-for-predicate schema predicate))
                             predicate]))}
        "Add property")))))
 
