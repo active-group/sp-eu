@@ -1,5 +1,6 @@
 (ns wisen.frontend.default
-  (:require [wisen.frontend.tree :as tree]))
+  (:require [wisen.frontend.tree :as tree]
+            [wisen.frontend.schema :as schema]))
 
 (def ^:private lit-s tree/make-literal-string)
 (def ^:private lit-d tree/make-literal-decimal)
@@ -165,9 +166,14 @@
 
     tree/literal-string))
 
-(defn default-tree-for-predicate [pred]
-  (default-tree-for-sort
-   (default-sort-for-predicate pred)))
+(defn default-tree-for-predicate [schema predicate]
+  (case predicate
+    "https://wisen.active-group.de/target-group"
+    (lit-s "elderly")
+
+    (default-tree-for-sort
+     (first
+      (schema/sorts-for-predicate schema predicate)))))
 
 (defn tree-sort
 

@@ -30232,6 +30232,13 @@
     "name" : "OpenStreetMap URI",
     "nodeKind" : "sh:IRI",
     "path" : "wisen:osm-uri"
+  }, {
+     "@id" : "wisen:Thing-target-group",
+     "@type" : "sh:PropertyShape",
+     "description" : "The intended target group or audience",
+     "name" : "Target group",
+     "datatype" : "xsd:string",
+     "path" : "wisen:target-group"
   }],
   "@context" : {
     "name" : {
