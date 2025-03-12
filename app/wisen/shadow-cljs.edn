@@ -9,4 +9,6 @@
   :test {:target :browser-test
          :test-dir "target/public/test"
          :devtools {:http-port 9501
-                    :http-root "target/public/test"}}}}
+                    :http-root "target/public/test"}}
+  :karma-test {:target :karma
+               :output-to "target/public/test/karma/test.js"}}}
