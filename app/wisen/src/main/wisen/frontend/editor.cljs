@@ -384,11 +384,14 @@
           (dom/span {:style {:margin-right "1em"}} uri)
 
           (when editing?
-            (c/focus lens/first
-                     (modal-button "Set reference" set-reference)))
+            (c/fragment
+             (c/focus lens/first
+                      (modal-button "Set reference" set-reference))
+             " | "))
 
           (when editable?
-            (ds/button-primary {:onClick #(c/return :action ::toggle-edit)} "Edit")))
+            (ds/button-primary {:onClick #(c/return :action ::toggle-edit)}
+                               (if editing? "Done" "Edit"))))
 
          (c/focus
           lens/first
