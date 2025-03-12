@@ -196,6 +196,16 @@
     (collection? x)
     (pr-str x)))
 
+(extend-type rdflib/Statement
+  cljs.core/IEquiv
+  (-equiv [this other]
+    (and (instance? rdflib/Statement other)
+         (= (.-subject this) (.-subject other))
+         (= (.-predicate this) (.-predicate other))
+         (= (.-object this) (.-object other))
+         ;; TODO: is this relevant for us?
+         #_(= (.-graph this) (.-graph other)))))
+
 (defn make-statement [s p o]
   (rdflib/Statement. s p o))
 

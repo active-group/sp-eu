@@ -37,6 +37,20 @@
     (is (= [node] (rdf/collection-elements nodes)))))
 
 (deftest equality-test
+  (is (= (rdf/make-statement (rdf/make-literal-string "a")
+                             (rdf/make-literal-string "b")
+                             (rdf/make-literal-string "c"))
+         (rdf/make-statement (rdf/make-literal-string "a")
+                             (rdf/make-literal-string "b")
+                             (rdf/make-literal-string "c"))))
+
+  (is (= (rdf/make-statement (rdf/make-symbol "http://example.org/a")
+                             (rdf/make-symbol "http://example.org/b")
+                             (rdf/make-symbol "http://example.org/c"))
+         (rdf/make-statement (rdf/make-symbol "http://example.org/a")
+                             (rdf/make-symbol "http://example.org/b")
+                             (rdf/make-symbol "http://example.org/c"))))
+
   (is (= (rdf/make-symbol "http://example.org/name")
          (rdf/make-symbol "http://example.org/name"))))
 
