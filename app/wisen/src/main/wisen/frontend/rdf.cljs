@@ -3,6 +3,7 @@
   (:require [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as r]
             [active.clojure.lens :as lens]
+            [clojure.set :as set]
             ["rdflib" :as rdflib])
   (:import goog.object))
 
@@ -64,12 +65,6 @@
    (fn [node]
      (empty? (ingoing graph node)))
    (subjects graph)))
-
-(defn merge [g1 g2]
-  (let [gres (rdflib/graph)]
-    (.addAll gres (.-statements g1))
-    (.addAll gres (.-statements g2))
-    gres))
 
 ;; ---
 
@@ -214,10 +209,23 @@
 
 ;; ---
 
+(defn graph->statements [g]
+  (set
+   (js->clj (.-statements g))))
+
 (defn statements->graph [stmts]
   (let [g (rdflib/graph)]
     (.addAll g (clj->js stmts))
     g))
+
+;; ---
+
+
+(defn merge [g1 g2]
+  (statements->graph
+   (set/union
+    (graph->statements g1)
+    (graph->statements g2))))
 
 ;; ---
 

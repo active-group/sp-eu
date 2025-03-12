@@ -101,3 +101,53 @@
                       (set (rdf/subject-properties g (rdf/make-symbol "http://example.org/alice"))))))
 
              (done)))))
+
+(deftest merge-idem-test
+  (let [edn-1 {"@id" "http://example.org/alice"
+               "http://example.org/name" "Alice"
+               "http://example.org/foo" {"@id" "http://example.org/Foo"}}]
+
+    (async done
+      (.then (rdf/json-ld-string->graph-promise
+              (js/JSON.stringify (clj->js edn-1)))
+
+             (fn [g1]
+               (.then (rdf/json-ld-string->graph-promise
+                       (js/JSON.stringify (clj->js edn-1)))
+
+                      (fn [g2]
+                        (is (= (rdf/graph->statements g1)
+                               (rdf/graph->statements (rdf/merge g1 g2))))
+
+                        (done))))))))
+
+(deftest merge-test
+  (let [edn-1 {"@id" "http://example.org/alice"
+               "http://example.org/name" "Alice"
+               "http://example.org/foo" {"@id" "http://example.org/Foo"}}
+        edn-2 {"@id" "http://example.org/alice"
+               "http://example.org/name" "Alice"
+               "http://example.org/bar" {"@id" "http://example.org/Bar"}}
+        edn-3 {"@id" "http://example.org/alice"
+               "http://example.org/name" "Alice"
+               "http://example.org/bar" {"@id" "http://example.org/Bar"}
+               "http://example.org/foo" {"@id" "http://example.org/Foo"}}
+        ]
+
+    (async done
+      (.then (rdf/json-ld-string->graph-promise
+              (js/JSON.stringify (clj->js edn-1)))
+
+             (fn [g1]
+               (.then (rdf/json-ld-string->graph-promise
+                       (js/JSON.stringify (clj->js edn-2)))
+
+                      (fn [g2]
+                        (.then (rdf/json-ld-string->graph-promise
+                                (js/JSON.stringify (clj->js edn-3)))
+
+                               (fn [g3]
+                                 (is (= (rdf/graph->statements g3)
+                                        (rdf/graph->statements (rdf/merge g1 g2))))
+
+                                 (done))))))))))
