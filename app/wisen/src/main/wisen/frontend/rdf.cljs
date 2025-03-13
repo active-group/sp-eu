@@ -3,7 +3,6 @@
   (:require [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as r]
             [active.clojure.lens :as lens]
-            [clojure.set :as set]
             ["rdflib" :as rdflib])
   (:import goog.object))
 
@@ -220,10 +219,28 @@
 
 ;; ---
 
+(defn- schmontains? [coll x]
+  (reduce (fn [acc y]
+            (if (= y x)
+              (reduced true)
+              acc))
+          false
+          coll))
+
+(defn- schmunion
+  "Union two sets with `=` as equivalence."
+  [s1 s2]
+  (reduce
+   (fn [acc x]
+     (if (schmontains? acc x)
+       acc
+       (conj acc x)))
+   s1
+   s2))
 
 (defn merge [g1 g2]
   (statements->graph
-   (set/union
+   (schmunion
     (graph->statements g1)
     (graph->statements g2))))
 

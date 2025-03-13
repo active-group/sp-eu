@@ -84,7 +84,7 @@
 
 ;; TODO: this is a bad side-effect that leads to a lot of suffering down the road:
 (defn- fresh-uri! []
-  (str "http://wisen.active-group.de/resource/" (random-uuid)))
+  (str "http://localhost:4321/resource/" (random-uuid)))
 
 (defn make-node
   ([]

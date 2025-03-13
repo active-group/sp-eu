@@ -16,6 +16,8 @@
             [wisen.frontend.modal :as modal]
             [wisen.frontend.details :as details]
             [wisen.frontend.schemaorg :as schemaorg]
+            [wisen.frontend.util :as util]
+            [wisen.frontend.or-error :refer [success? success-value]]
             [wisen.frontend.schema :as schema]))
 
 ;; [ ] Fix links for confluences
@@ -361,75 +363,102 @@
                              (c/return :state [(tree/make-node uri) uri]))}
                           "Set reference"))))))
 
+(defn- refresh-node-request [uri]
+  (ajax/GET uri
+            {:headers {:accept "application/ld+json"}}))
+
+(c/defn-item ^:private refresh-node [uri]
+  (util/load-json-ld
+   (refresh-node-request uri)))
+
+(defn- refresh-button []
+  (c/with-state-as [node refresh? :local false]
+    (c/fragment
+     (c/focus lens/second
+              (ds/button-primary {:onClick #(c/return :state true)}
+                                 "Refresh"))
+     (when refresh?
+       (-> (refresh-node (tree/node-uri node))
+           (c/handle-action (fn [[node _] ac]
+                              (if (success? ac)
+                                (let [before-graph (tree/trees->graph [node])
+                                      new-graph (success-value ac)
+                                      merged-graph (rdf/merge before-graph
+                                                              new-graph)]
+                                  [(first (tree/graph->trees merged-graph))
+                                   false])
+                                (assert false "TODO: implement error handling")))))))))
+
 (defn- node-component [schema editable? force-editing? can-focus? can-expand?]
   (c/with-state-as [node local-state :local {:editing? force-editing?
                                              :open? true}]
+
     (let [editing? (:editing? local-state)
           uri (tree/node-uri node)]
-      (->
+
+      (details/details
+       {:id uri
+        :style {:border "1px solid gray"
+                :box-shadow "0 1px 0px rgba(0,0,0,0.5)"
+                :background "rgba(255,255,255,0.5)"
+                :border-radius "0 4px 4px 4px"}}
+
+       (lens/>> lens/second :open?)
+
+       (details/summary
+        {:style {:color "#555"
+                 :border-bottom "1px solid gray"
+                 :padding "8px 16px"
+                 :cursor "pointer"}}
+        (dom/span {:style {:margin-right "1em"}} uri)
+
+        (when editing?
+          (c/fragment
+           (c/focus lens/first
+                    (modal-button "Set reference" set-reference))
+           " | "))
+
+        (c/focus lens/first (refresh-button))
+
+        " | "
+
+        (when editable?
+          (c/focus (lens/>> lens/second :editing?)
+                   (ds/button-primary {:onClick not}
+                                      (if editing? "Done" "Edit")))))
+
        (c/focus
-        (lens/pattern [lens/first (lens/>> lens/second :open?)])
-        (details/details
-         {:id uri
-          :style {:border "1px solid gray"
-                  :box-shadow "0 1px 0px rgba(0,0,0,0.5)"
-                  :background "rgba(255,255,255,0.5)"
-                  :border-radius "0 4px 4px 4px"}}
+        lens/first
+        (dom/div
 
-         (details/summary
-          {:style {:color "#555"
-                   :border-bottom "1px solid gray"
-                   :padding "8px 16px"
-                   :cursor "pointer"}}
-          (dom/span {:style {:margin-right "1em"}} uri)
+         (when editing?
+           (node-component-header schema))
 
-          (when editing?
-            (c/fragment
-             (c/focus lens/first
-                      (modal-button "Set reference" set-reference))
-             " | "))
+         (let [props (tree/node-properties node)]
+           (when-not (empty? props)
 
-          (when editable?
-            (ds/button-primary {:onClick #(c/return :action ::toggle-edit)}
-                               (if editing? "Done" "Edit"))))
+             (c/focus tree/node-properties
+                      (apply
+                       dom/div
+                       {:style {:display "flex"
+                                :flex-direction "column"
+                                :padding "0 1em"}}
 
-         (c/focus
-          lens/first
-          (dom/div
-
-           (when editing?
-             (node-component-header schema))
-
-           (let [props (tree/node-properties node)]
-             (when-not (empty? props)
-
-               (c/focus tree/node-properties
-                        (apply
-                         dom/div
-                         {:style {:display "flex"
-                                  :flex-direction "column"
-                                  :padding "0 1em"}}
-
-                         (->> props
-                              (map-indexed (fn [idx property]
-                                             [(tree/property-predicate property)
-                                              (c/handle-action
-                                               (c/focus (lens/at-index idx)
-                                                        (property-component schema editable? editing? can-focus? can-expand?))
-                                               (fn [props ac]
-                                                 (if (= ::delete ac)
-                                                   (c/return :state (remove-index idx props))
-                                                   (c/return :action ac)))
-                                               )]))
-                              (remove (comp schemaorg/hide-predicate first))
-                              (sort-by first schemaorg/compare-predicate)
-                              (map second)
-                              (interpose (dom/hr {:style {:width "100%"}})))))))))))
-
-       (c/handle-action (fn [[st ls] ac]
-                          (if (= ac ::toggle-edit)
-                            (c/return :state [st (update ls :editing? not)])
-                            (c/return :action ac))))))))
+                       (->> props
+                            (map-indexed (fn [idx property]
+                                           [(tree/property-predicate property)
+                                            (c/handle-action
+                                             (c/focus (lens/at-index idx)
+                                                      (property-component schema editable? editing? can-focus? can-expand?))
+                                             (fn [props ac]
+                                               (if (= ::delete ac)
+                                                 (c/return :state (remove-index idx props))
+                                                 (c/return :action ac)))
+                                             )]))
+                            (remove (comp schemaorg/hide-predicate first))
+                            (sort-by first schemaorg/compare-predicate)
+                            (map second)
+                            (interpose (dom/hr {:style {:width "100%"}})))))))))))))
 
 (defn tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
   (c/with-state-as tree

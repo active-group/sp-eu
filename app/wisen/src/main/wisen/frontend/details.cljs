@@ -13,17 +13,17 @@
     #(.removeEventListener elem "toggle" handler)
     ))
 
-(dom/defn-dom details [attrs & children]
-  (c/with-state-as [state open?]
+(dom/defn-dom details [attrs open?-lens & children]
+  (c/with-state-as state
     (c/with-ref
       (fn [ref]
         (c/fragment
          (apply dom/details
                 (dom/merge-attributes attrs
                                       {:ref ref
-                                       :open open?})
+                                       :open (open?-lens state)})
                 children)
-         (c/focus lens/second
+         (c/focus open?-lens
                   (c/handle-action (details-open ref)
                                    (fn [_ new-open?] new-open?))))))))
 
