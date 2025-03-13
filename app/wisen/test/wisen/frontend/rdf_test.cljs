@@ -151,7 +151,3 @@
                                         (rdf/graph->statements (rdf/merge g1 g2))))
 
                                  (done))))))))))
-
-
-(deftest pipeline-break
-  (is (= 1 2)))
