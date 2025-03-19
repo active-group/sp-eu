@@ -1,9 +1,9 @@
 image: nixpkgs/nix-flakes@sha256:95bce4317c15dfab3babac5a6d19d3ed41e31a02a8aaf3d4f6639778cb763b0a
 
-build-frontend:
+build:
   script:
     - cd app
-    - nix develop -c bash -c "cd wisen && npm install && clj -M:shadow-cljs:frontend compile :frontend"
+    - nix develop -c bash -c "cd wisen && clj -P && npm i && clj -T:build uber"
 
 test-frontend:
   script:
