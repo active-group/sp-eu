@@ -5,7 +5,9 @@
 (def version (format "0.1.%s" (b/git-count-revs nil)))
 (def class-dir "target/classes")
 (def output-dir "public/js")
-(def uber-file (format "target/%s-%s-standalone.jar" (name lib) version))
+(def uber-dir "target/uber")
+(def uber-file (str uber-dir
+                    (format "/%s-%s-standalone.jar" (name lib) version)))
 
 ;; delay to defer side effects (artifact downloads)
 (def basis (delay (b/create-basis {:project "deps.edn"
@@ -17,7 +19,8 @@
 
 (defn clean [_]
   (b/delete {:path class-dir})
-  (b/delete {:path output-dir}))
+  (b/delete {:path output-dir})
+  (b/delete {:path uber-dir}))
 
 (defn shadow-cljs [_]
   (let [cmds (b/java-command {:basis @cljs-basis
