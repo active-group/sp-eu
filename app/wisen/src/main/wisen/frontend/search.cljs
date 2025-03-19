@@ -7,7 +7,6 @@
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.promise :as promise]
             [wisen.frontend.editor :as editor]
-            [wisen.frontend.routes :as routes]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.leaflet :as leaflet]

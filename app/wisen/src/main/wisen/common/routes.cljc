@@ -1,4 +1,4 @@
-(ns wisen.frontend.routes
+(ns wisen.common.routes
   (:require #?(:clj [reacl-c-basics.pages.routes :as r])
             #?(:cljs [reacl-c-basics.pages.routes :as r :include-macros true])))
 
