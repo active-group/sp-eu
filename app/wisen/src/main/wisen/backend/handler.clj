@@ -8,13 +8,13 @@
             [ring.middleware.resource]
             [reacl-c-basics.pages.ring :as pages.ring]
             [muuntaja.core]
-            [wisen.frontend.routes :as frontend.routes]
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
             [wisen.backend.sparql :as sparql]
+            [wisen.common.routes :as routes]
             [clojure.edn :as edn]
             [wisen.common.change-api :as change-api])
   (:import
@@ -205,4 +205,4 @@
   (-> handler*
       (ring.middleware.resource/wrap-resource "/")
       (wrap-caching "max-age=0")
-      (pages.ring/wrap-client-routes frontend.routes/routes client-response)))
+      (pages.ring/wrap-client-routes routes/routes client-response)))

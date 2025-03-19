@@ -2,7 +2,7 @@
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [reacl-c.main :as cmain]
-            [wisen.frontend.routes :as routes]
+            [wisen.common.routes :as routes]
             [wisen.frontend.home :as home]
             [wisen.frontend.search :as search]
             [wisen.frontend.create :as create]
