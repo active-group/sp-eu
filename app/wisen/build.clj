@@ -34,7 +34,7 @@
                   :class-dir class-dir}))
 
 (defn copy-dirs [_]
-  (b/copy-dir {:src-dirs ["src"]
+  (b/copy-dir {:src-dirs ["src" "public"]
                :target-dir class-dir}))
 
 (defn make-uber [_]
@@ -45,7 +45,7 @@
 
 (defn uber [_]
   (clean nil)
-  (copy-dirs nil)
   (shadow-cljs nil)
+  (copy-dirs nil)
   (compile-clj nil)
   (make-uber nil))
