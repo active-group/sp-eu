@@ -2,10 +2,10 @@ image: nixpkgs/nix-flakes@sha256:95bce4317c15dfab3babac5a6d19d3ed41e31a02a8aaf3d
 
 build:
   script:
-    - cd app
-    - nix develop -c bash -c "cd wisen && clj -P && npm i && clj -T:build uber"
+    - cd app/wisen
+    - nix develop -c bash -c "clj -T:build uber"
 
 test-frontend:
   script:
-    - cd app
-    - nix develop .#testWeb -c bash -c "cd wisen && clj -P && npm i && clj -M:shadow-cljs compile :karma-test && npx karma start --single-run"
+    - cd app/wisen
+    - nix develop .#testWeb -c bash -c "clj -T:build karma"
