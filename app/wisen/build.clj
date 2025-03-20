@@ -20,16 +20,24 @@
 (defn clean [_]
   (b/delete {:path class-dir})
   (b/delete {:path output-dir})
-  (b/delete {:path uber-dir}))
+  (b/delete {:path uber-dir})
+  (b/delete {:path ".shadow-cljs"}))
 
-(defn shadow-cljs [_]
-  (let [cmds (b/java-command {:basis @cljs-basis
+(defn shadow-cljs [opts]
+  (let [target (:target opts)
+        task (:task opts)
+        cmds (b/java-command {:basis @cljs-basis
                               :main 'clojure.main
                               :main-args ["-m"
                                           "shadow.cljs.devtools.cli"
-                                          "release"
-                                          "frontend"]})]
+                                          task
+                                          target]})]
+    (b/process {:command-args ["npm" "i"]})
     (b/process cmds)))
+
+(defn karma [_]
+  (shadow-cljs {:task "compile" :target "karma-test"})
+  (b/process {:command-args ["npx" "karma" "start" "--single-run"]}))
 
 (defn compile-clj [_]
   (b/compile-clj {:basis @basis
@@ -48,7 +56,7 @@
 
 (defn uber [_]
   (clean nil)
-  (shadow-cljs nil)
+  (shadow-cljs {:task "release" :target "frontend"})
   (copy-dirs nil)
   (compile-clj nil)
   (make-uber nil))
