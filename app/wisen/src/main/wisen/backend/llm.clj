@@ -37,8 +37,10 @@
     guidelines
     prompt)))
 
+(def ollama-model (or (System/getenv "OLLAMA_MODEL") "phi4"))
+
 (defn make-ollama-request-string [prompt]
-  (str "{\"model\": \"phi4\", \"stream\": false, \"prompt\": \"" prompt "\"}"))
+  (str "{\"model\": \"" ollama-model "\", \"stream\": false, \"prompt\": \"" prompt "\"}"))
 
 (defn extract-json-ld [s]
   (-> s
@@ -57,13 +59,17 @@
       (extract-json-ld)
       (remove-comments-from-json-string)))
 
+(def ollama-request-url
+  (str (or (System/getenv "OLLAMA_HOST")  "http://localhost:11434")
+        "/api/generate"))
+
 (defn ollama-request! [prompt]
   (let [response
-        (client/post "http://localhost:11434/api/generate" {:content-type :json
-                                                            :accept :json
-                                                            :as :json
-                                                            :body (make-ollama-request-string
-                                                                   (format-ollama-prompt prompt))})]
+        (client/post ollama-request-url {:content-type :json
+                                         :accept :json
+                                         :as :json
+                                         :body (make-ollama-request-string
+                                                 (format-ollama-prompt prompt))})]
     (case (:status response)
       ;; TODO: error handling?
       200 (let [llm-response (get-in response [:body :response])
