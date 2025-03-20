@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  wisen:
+    build:
+      context: .
+      dockerfile: wisen.Dockerfile
+    ports:
+      - "4321:4321"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=phi4
+    depends_on:
+      ollama:
+        condition: service_started
+    networks:
+      - app-network
+
+  ollama:
+    image: ollama/ollama:0.6.2
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:11434"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    #   start_period: 10s
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  ollama-data:
