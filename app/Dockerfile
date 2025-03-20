@@ -5,13 +5,13 @@ WORKDIR /build
 
 COPY flake.nix .
 COPY wisen/deps.edn .
+COPY wisen/package*.json ./
+COPY wisen/shadow-cljs.edn ./
 COPY wisen/build.clj .
 COPY wisen/src ./src
 COPY wisen/public/schema ./public/schema
-COPY wisen/package*.json ./
-COPY wisen/shadow-cljs.edn ./
 
-RUN nix develop -c bash -c "clj -P && npm i && clj -T:build uber"
+RUN nix develop -c bash -c "clj -T:build uber"
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-jammy
