@@ -1,5 +1,5 @@
 # Build stage
-FROM nixos/nix:2.26.3 AS builder
+FROM nixpkgs/nix-flakes@sha256:95bce4317c15dfab3babac5a6d19d3ed41e31a02a8aaf3d4f6639778cb763b0a AS builder
 
 WORKDIR /build
 
@@ -11,8 +11,7 @@ COPY wisen/public/schema ./public/schema
 COPY wisen/package*.json ./
 COPY wisen/shadow-cljs.edn ./
 
-RUN echo "experimental-features = nix-command flakes" >> /etc/nix/nix.conf && \
-    nix develop --command bash -c "clj -P && npm i && clj -T:build uber"
+RUN nix develop -c bash -c "clj -P && npm i && clj -T:build uber"
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-jammy
