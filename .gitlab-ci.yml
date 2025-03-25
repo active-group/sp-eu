@@ -32,5 +32,6 @@ deploy:
     - ssh root@sp-eu.ci.active-group.de 'systemctl restart sp-eu.service'
   needs:
     - build
+    - test-frontend
   dependencies:
     - build
