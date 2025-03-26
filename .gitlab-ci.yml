@@ -9,6 +9,7 @@ build:
     paths:
     - app/wisen/target/uber/*-standalone.jar
     - app/wisen/public/schema/schemaorg.jsonld
+    - app/wisen/src/main/datashapesorg.ttl
 
 test-frontend:
   script:
@@ -29,6 +30,7 @@ deploy:
     - echo "$SP_EU_SSH_SERVER_HOSTKEY" >> ~/.ssh/known_hosts
     - scp app/wisen/target/uber/*-standalone.jar root@sp-eu.ci.active-group.de:/root/wisen/app.jar
     - scp app/wisen/public/schema/schemaorg.jsonld root@sp-eu.ci.active-group.de:/root/wisen/public/schema/schemaorg.jsonld
+    - scp app/wisen/src/main/datashapesorg.ttl root@sp-eu.ci.active-group.de:/root/wisen/datashapesorg.ttl
     - ssh root@sp-eu.ci.active-group.de 'systemctl restart sp-eu.service'
   needs:
     - build
