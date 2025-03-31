@@ -5,5 +5,13 @@ processes:
     command: clj -M:shadow-cljs:frontend watch :frontend
   backend:
     command: clj -M:backend -m wisen.backend.main
-  # ollama-server:
-  #   command: ollama serve
+  ollama-server:
+    command: ollama serve
+  keycloak:
+    command: >
+      docker run -p 8080:8080
+      -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+      -v $(pwd)/keycloak:/opt/keycloak/data/import
+      quay.io/keycloak/keycloak:latest
+      start-dev --import-realm
+    shell: true

@@ -1,0 +1,15 @@
+{:auth
+ {:free-for-all? false
+
+  :openid-profiles
+  [{:provider {:name       "SP-EU Authentication"
+               :config-uri "http://localhost:8080/realms/master/.well-known/openid-configuration"}
+
+    :client   {:id             "sp-eu"
+               :secret         "a3I7AfWLHGtwQCirxqINbQuwNINulHmJ"
+               :base-uri       "http://localhost:4321"
+               :scopes         ["openid" "profile"]
+               :user-info-from :jwt}
+
+    :proxy    {:proxy-host "PROXY"
+               :proxy-port 8888}}]}}

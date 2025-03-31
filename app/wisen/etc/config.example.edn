@@ -1,0 +1,16 @@
+{:auth
+ {:free-for-all? false
+
+  :openid-profiles
+  [{:provider {:name       "SP-EU Authentication"
+               :config-uri "https://exampleuri/.well-known/openid-configuration"}
+
+    :client   {:id             "client-id"
+               :secret         "client-secret"
+               :base-uri       "https://this.webserver.address"
+               :scopes         ["openid" "profile"]
+               :user-info-from :jwt}
+
+    :proxy    {:proxy-host "PROXY"
+               :proxy-port 8888}}]}}
+                                             

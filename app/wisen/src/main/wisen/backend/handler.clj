@@ -1,13 +1,19 @@
 (ns wisen.backend.handler
-  (:require [hiccup.core :as h]
+  (:require [active.clojure.config :as active.config]
+            [hiccup.core :as h]
             [reitit.ring :as ring]
             [clj-http.client :as http]
             [reitit.ring.coercion :as rrc]
+            [reitit.ring.middleware.exception :as exception]
             [reitit.coercion.spec :as rcs]
             [reitit.ring.middleware.muuntaja :as m]
             [ring.middleware.resource]
+            [ring.middleware.session :as mw.session]
+            [ring.middleware.session.memory :as session.memory]
             [reacl-c-basics.pages.ring :as pages.ring]
             [muuntaja.core]
+            [wisen.backend.auth :as auth]
+            [wisen.backend.config :as config]
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld]
@@ -153,6 +159,7 @@
     {:data {:muuntaja muuntaja.core/instance
             :coercion rcs/coercion
             :middleware [m/format-middleware
+                         exception/exception-middleware
                          rrc/coerce-exceptions-middleware
                          rrc/coerce-request-middleware
                          rrc/coerce-response-middleware]}})))
@@ -201,8 +208,21 @@
                    (fn [v]
                      (or v default)))))))
 
-(def handler
-  (-> handler*
-      (ring.middleware.resource/wrap-resource "/")
-      (wrap-caching "max-age=0")
-      (pages.ring/wrap-client-routes routes/routes client-response)))
+(defonce ^:private session-store (session.memory/memory-store))
+
+(defn handler [cfg]
+  (let [wrap-session  (fn session-mw [handler]
+                        (mw.session/wrap-session handler {:store session-store}))
+        openid-config  (active.config/section-subconfig cfg
+                                                        config/auth-section)
+        free-for-all? (active.config/access cfg
+                                            config/free-for-all?-setting
+                                            config/auth-section)
+        wrap-sso      (auth/mk-sso-mw free-for-all? openid-config)]
+
+    (-> handler*
+        (ring.middleware.resource/wrap-resource "/")
+        (wrap-caching "max-age=0")
+        (pages.ring/wrap-client-routes routes/routes client-response)
+        (wrap-sso)
+        (wrap-session))))
