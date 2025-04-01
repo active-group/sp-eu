@@ -3,10 +3,10 @@
 
   :openid-profiles
   [{:provider {:name       "SP-EU Authentication"
-               :config-uri "http://localhost:8080/realms/master/.well-known/openid-configuration"}
+               :config-uri "http://localhost:8080/realms/SP-EU/.well-known/openid-configuration"}
 
     :client   {:id             "sp-eu"
-               :secret         "a3I7AfWLHGtwQCirxqINbQuwNINulHmJ"
+               :secret         "tehAhByB5uabP7vAQKgh2wmXVnjTxDU9"
                :base-uri       "http://localhost:4321"
                :scopes         ["openid" "profile"]
                :user-info-from :jwt}
