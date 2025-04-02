@@ -33,7 +33,7 @@
                    :border "1px solid gray"
                    :border-radius "4px"
                    :padding "8px 16px"}}
-          (editor/tree-component schema [organization-type event-type] true true false false))
+          #_(editor/tree-component schema [organization-type event-type] true true false false))
 
          ;; commit
          (c/with-state-as [tree local-state :local {:commit? false

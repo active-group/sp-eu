@@ -256,6 +256,130 @@
   (lens/xmap graph->trees
              trees->graph))
 
+;; edit tree
+
+#_(def-record change-primitive-edit
+  [change-primitive-edit-subject
+   change-primitive-edit-predicate
+   change-primitive-edit-object])
+
+(def-record delete-property-edit
+  [delete-property-edit-subject
+   delete-property-edit-predicate
+   delete-property-edit-object-tree])
+
+(def-record add-property-edit
+  [add-property-edit-subject
+   add-property-edit-predicate
+   add-property-edit-object-tree])
+
+(def edit
+  (realm/union
+   delete-property-edit
+   add-property-edit))
+
+(def edit-subject
+  (lens/conditional
+   [(partial record/is-a? delete-property-edit) (partial record/is-a? delete-property-edit) delete-property-edit-subject]
+   [(partial record/is-a? add-property-edit) (partial record/is-a? add-property-edit) add-property-edit-subject]
+   (fn [])))
+
+(def-record edit-tree
+  [edit-tree-tree :- tree
+   edit-tree-edits :- (realm/set-of edit)])
+
+(defn make-edit-tree [tree edits]
+  (edit-tree edit-tree-tree tree
+             edit-tree-edits edits))
+
+(def zip-edit-tree
+  (lens/xmap
+   (fn [[tree edits]]
+     (edit-tree edit-tree-tree tree
+                edit-tree-edits edits))
+   (fn [etree]
+     [(edit-tree-tree etree)
+      (edit-tree-edits etree)])))
+
+(def zip-edit-trees
+  (lens/xmap
+
+   (fn [[trees editss]]
+     (println "zip yank")
+     (map-indexed
+      (fn [idx tree]
+        (let [edits (nth editss idx [])]
+          (make-edit-tree tree edits)))
+      trees))
+
+   (fn [edit-trees]
+     (println "zip shove")
+     (println (pr-str edit-trees))
+     (reduce (fn [[trees edits] edit-tree]
+               (println (pr-str edit-tree))
+               [(conj trees (edit-tree-tree edit-tree))
+                (concat edits (edit-tree-edits edit-tree))])
+             [[] []]
+             edit-trees
+             ))))
+
+(def-record edit-property
+  [edit-property-predicate :- URI
+   edit-property-object :- (realm/delay edit-tree)])
+
+(defn- edit-relevant? [tree edit]
+  (if (record/is-a? node tree)
+    (or
+     ;; either the edit mentions this very node ...
+     (= (edit-subject edit)
+        (node-uri tree))
+     ;; ... or any of the child nodes
+     (some (fn [property]
+             (edit-relevant? (property-object property)
+                             edit))
+           (node-properties tree)))
+    ;; else
+    false
+    ))
+
+(defn- trim-edits [tree edits]
+  (filter (partial edit-relevant? tree) edits))
+
+#_(defn- trim-edit-tree [etree]
+  (let [tree (edit-tree-tree etree)
+        edits (edit-tree-edits etree)
+        trimmed-edits (trim-edits tree edits)]
+    (edit-tree edit-tree-tree tree
+               edit-tree-edits trimmed-edits)))
+
+(defn edit-tree-property-at-index
+  "edit-tree in, edit-property-out"
+  [idx]
+
+  (lens/lens
+
+   (fn [etree]
+     (let [orig-property (lens/yank etree (lens/>> edit-tree-tree node-properties (lens/at-index idx)))
+           orig-predicate (property-predicate orig-property)
+           orig-object (property-object orig-property)]
+       (edit-property edit-property-predicate orig-predicate
+                      edit-property-object (edit-tree
+                                            edit-tree-tree orig-object
+                                            edit-tree-edits (trim-edits orig-object (edit-tree-edits etree))))))
+
+   (fn [etree eprop]
+     (let [prop-obj (edit-property-object eprop) ;; :- edit-tree
+           prop-edits (edit-tree-edits prop-obj)
+           prop-obj* (edit-tree-tree prop-obj) ;; :- tree
+           old-tree (edit-tree-tree etree)     ;; :- tree
+           new-tree (lens/shove old-tree
+                                (lens/>> node-properties (lens/at-index idx))
+                                (make-property (edit-property-predicate eprop)
+                                               prop-obj*))]
+       (-> etree
+           (edit-tree-tree new-tree)
+           (lens/overhaul edit-tree-edits concat prop-edits))))))
+
 ;; schema.org specific
 
 (def node-type
