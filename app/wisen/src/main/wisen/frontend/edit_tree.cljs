@@ -30,9 +30,12 @@
   [edit-tree-tree :- tree/tree
    edit-tree-edits :- (realm/set-of edit)])
 
-(defn make-edit-tree [tree edits]
-  (edit-tree edit-tree-tree tree
-             edit-tree-edits edits))
+(defn make-edit-tree
+  ([tree]
+   (make-edit-tree tree []))
+  ([tree edits]
+   (edit-tree edit-tree-tree tree
+              edit-tree-edits edits)))
 
 (def zip-edit-tree
   (lens/xmap

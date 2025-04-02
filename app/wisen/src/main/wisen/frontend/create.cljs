@@ -4,6 +4,7 @@
             [active.clojure.lens :as lens]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.tree :as tree]
+            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.editor :as editor]
             [wisen.frontend.util :as util]
             [wisen.frontend.change :as change]
@@ -26,17 +27,18 @@
        {:style {:overflow "auto"}}
        (dom/h2 "Create a new resource")
        (c/isolate-state
-        initial-organization
+
+        (edit-tree/make-edit-tree initial-organization)
         (dom/div
          (dom/div
           {:style {:background "rgba(170,170,170,1.0)"
                    :border "1px solid gray"
                    :border-radius "4px"
                    :padding "8px 16px"}}
-          #_(editor/tree-component schema [organization-type event-type] true true false false))
+          (editor/edit-tree-component schema [organization-type event-type] true true false false))
 
          ;; commit
-         (c/with-state-as [tree local-state :local {:commit? false
+         #_(c/with-state-as [tree local-state :local {:commit? false
                                                     :last-saved-tree empty-tree
                                                     :last-error nil}]
            (let [changes (change/delta-tree (:last-saved-tree local-state) tree)]

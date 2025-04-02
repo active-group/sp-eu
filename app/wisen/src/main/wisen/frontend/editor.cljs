@@ -406,31 +406,32 @@
                                 (c/return :action ac)))))))))
 
 (defn- node-component-header [schema]
-  (c/with-state-as node
-    (dom/div {:style {:display "flex"
-                      :padding "1.5ex 16px"
-                      :background "rgba(218, 224, 235, 0.7)"
-                      :gap "2em"
-                      :align-items "center"
-                      :border-bottom "1px solid gray"
-                      :justify-content "space-between"}}
+  (c/with-state-as etree
+    (let [node (edit-tree/edit-tree-tree etree)]
+      (dom/div {:style {:display "flex"
+                        :padding "1.5ex 16px"
+                        :background "rgba(218, 224, 235, 0.7)"
+                        :gap "2em"
+                        :align-items "center"
+                        :border-bottom "1px solid gray"
+                        :justify-content "space-between"}}
 
-             (add-property-button schema (schema/predicates-for-type schema (tree/node-type node)))
+               (add-property-button schema (schema/predicates-for-type schema (tree/node-type node)))
 
-             (dom/div
-              {:style {:display "flex"
-                       :gap "1em"}}
-              (when (node-organization? node)
-                (if-let [osm-uri (osm/node-osm-uri node)]
+               (dom/div
+                {:style {:display "flex"
+                         :gap "1em"}}
+                (when (node-organization? node)
+                  (if-let [osm-uri (osm/node-osm-uri node)]
 
-                  (dom/div
-                   {:style {:display "flex"
-                            :gap "1em"}}
-                   (pr-osm-uri osm-uri)
-                   (modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
-                  (modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
+                    (dom/div
+                     {:style {:display "flex"
+                              :gap "1em"}}
+                     (pr-osm-uri osm-uri)
+                     (modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
+                    (modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
 
-              (modal-button "Ask AI" (partial ask-ai schema))))))
+                (modal-button "Ask AI" (partial ask-ai schema)))))))
 
 ;; http://wisen.active-group.de/resource/fccbaef2-4c3c-428e-8e3e-741250b469a6
 
@@ -571,7 +572,7 @@
                 :align-items "baseline"
                 :border (when force-editing? "1px solid #888")
                 :border-radius "3px"}}
-       (-> (c/focus default/edit-tree-sort
+       #_(-> (c/focus default/edit-tree-sort
                     (if force-editing?
                       (apply ds/select
                              {:style {:border 0}}
