@@ -1,5 +1,6 @@
 (ns wisen.frontend.default
   (:require [wisen.frontend.tree :as tree]
+            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.schema :as schema]))
 
 (def ^:private lit-s tree/make-literal-string)
@@ -201,4 +202,4 @@
      (default-tree-for-sort new-sort))))
 
 (defn edit-tree-sort [etree]
-  (tree-sort (tree/edit-tree-tree etree)))
+  (tree-sort (edit-tree/edit-tree-tree etree)))

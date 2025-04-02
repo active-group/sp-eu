@@ -8,6 +8,7 @@
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.tree :as tree]
+            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
             [wisen.frontend.default :as default]
@@ -171,7 +172,7 @@
   (c/with-state-as edit-property
     #_(pprint edit-property)
 
-    (let [predicate (tree/edit-property-predicate edit-property)]
+    (let [predicate (edit-tree/edit-property-predicate edit-property)]
       (dom/div
        {:style {:padding "1ex 0"
                 :display "flex"
@@ -195,7 +196,7 @@
                                          :margin-left "6px"}}
                                 "×")))
         (c/handle-action
-         (c/focus tree/edit-property-object
+         (c/focus edit-tree/edit-property-object
                   (component-for-predicate predicate schema editable? editing? can-focus? can-expand?))
          (fn [property ac]
            (c/return :action
@@ -483,7 +484,7 @@
   (c/with-state-as [edit-tree local-state :local {:editing? force-editing?
                                              :open? true}]
 
-    (let [node (tree/edit-tree-tree edit-tree)
+    (let [node (edit-tree/edit-tree-tree edit-tree)
           editing? (:editing? local-state)
           uri (tree/node-uri node)]
 
@@ -510,7 +511,7 @@
            " | "))
 
         (c/focus (lens/>> lens/first
-                          tree/edit-tree-tree)
+                          edit-tree/edit-tree-tree)
                  (refresh-button))
 
         " | "
@@ -540,7 +541,7 @@
                        (map-indexed (fn [idx property]
                                       [(tree/property-predicate property)
                                        (c/handle-action
-                                        (c/focus (tree/edit-tree-property-at-index idx)
+                                        (c/focus (edit-tree/edit-tree-property-at-index idx)
                                                  (edit-property-component schema editable? editing? can-focus? can-expand?))
                                         (fn [props ac]
                                           (if (= ::delete ac)
@@ -563,7 +564,7 @@
 
 (defn edit-tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
   (c/with-state-as etree
-    (if (tree/primitive? (tree/edit-tree-tree etree))
+    (if (tree/primitive? (edit-tree/edit-tree-tree etree))
       (dom/div
        {:style {:display "flex"
                 :flex-direction "row"
@@ -584,7 +585,7 @@
                               :border-width "0 0 0 1px"
                               :border-color "#888"
                               }]
-         (c/focus tree/edit-tree-tree
+         (c/focus edit-tree/edit-tree-tree
                   (c/with-state-as tree
                     (-> (cond
                           (tree/literal-string? tree)
@@ -648,7 +649,7 @@
   (c/with-state-as trees
     (c/local-state
      (repeat (count trees) [])
-     (c/focus tree/zip-edit-trees
+     (c/focus edit-tree/zip-edit-trees
               #_(c/dynamic pprint)
               (-> (dom/div
                    #_(pr-str (normalize-edit-actions edits))
