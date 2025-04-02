@@ -199,3 +199,6 @@
    (if (= new-sort (tree-sort tree))
      tree
      (default-tree-for-sort new-sort))))
+
+(defn edit-tree-sort [etree]
+  (tree-sort (tree/edit-tree-tree etree)))
