@@ -2,10 +2,38 @@ image: nixpkgs/nix-flakes@sha256:95bce4317c15dfab3babac5a6d19d3ed41e31a02a8aaf3d
 
 build:
   script:
-    - cd app
-    - nix develop -c bash -c "cd wisen && clj -P && npm i && clj -T:build uber"
+    - cd app/wisen
+    - nix develop -c bash -c "clj -T:build uber"
+    - ls -lisah
+  artifacts:
+    paths:
+    - app/wisen/target/uber/*-standalone.jar
+    - app/wisen/public/schema/schemaorg.jsonld
+    - app/wisen/src/main/datashapesorg.ttl
 
 test-frontend:
   script:
-    - cd app
-    - nix develop .#testWeb -c bash -c "cd wisen && clj -P && npm i && clj -M:shadow-cljs compile :karma-test && npx karma start --single-run"
+    - cd app/wisen
+    - nix develop .#testWeb -c bash -c "clj -T:build karma"
+
+deploy:
+  image: debian@sha256:a726325fb0180a84cf1cb540df42959f413bf190aa2e6090d111222f3ddf8a06
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - apt-get update && apt-get install -y ssh-client
+    - eval $(ssh-agent -s)
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+  script:
+    - echo "$SP_EU_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - echo "$SP_EU_SSH_SERVER_HOSTKEY" >> ~/.ssh/known_hosts
+    - scp app/wisen/target/uber/*-standalone.jar root@sp-eu.ci.active-group.de:/root/wisen/app.jar
+    - scp app/wisen/public/schema/schemaorg.jsonld root@sp-eu.ci.active-group.de:/root/wisen/public/schema/schemaorg.jsonld
+    - scp app/wisen/src/main/datashapesorg.ttl root@sp-eu.ci.active-group.de:/root/wisen/datashapesorg.ttl
+    - ssh root@sp-eu.ci.active-group.de 'systemctl restart sp-eu.service'
+  needs:
+    - build
+    - test-frontend
+  dependencies:
+    - build

@@ -32,6 +32,12 @@
 
           default = pkgs.mkShell {
             buildInputs = basePackages;
+
+            shellHook = ''
+            # process-compose would use port 8080 by default, which we want to use instead
+            export PC_PORT_NUM=8081
+          '';
+
           };
 
           testWeb = pkgs.mkShell {

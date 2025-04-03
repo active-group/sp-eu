@@ -4,6 +4,7 @@
  :deps {de.active-group/active-clojure {:mvn/version "0.44.1"}
         de.active-group/active-data {:mvn/version "0.3.0"}
         de.active-group/active-data-translate {:mvn/version "0.1.0"}
+        de.active-group/active-openid {:mvn/version "0.2.6"}
         de.active-group/reacl-c {:mvn/version "0.11.8"
                                  :exclusions [de.active-group/cljs-async]}
         de.active-group/reacl-c-basics {:mvn/version "0.11.9"}}
