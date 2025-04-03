@@ -21,6 +21,19 @@
             [wisen.frontend.or-error :refer [success? success-value]]
             [wisen.frontend.schema :as schema]))
 
+(defn- color-for-modifier [emode]
+  (cond
+    (= edit-tree/deleted emode)
+    "red"
+
+    (= edit-tree/added emode)
+    "green"
+
+    (= edit-tree/same emode)
+    "gray"))
+
+(def-record delete-property-action [])
+
 (defn pprint [x]
   (dom/pre
    (with-out-str
@@ -75,9 +88,7 @@
     (let [predicate (edit-tree/edit-property-predicate edit-property)]
       (dom/div
        {:style {:flex 1
-                :display "flex"
-                #_#_:align-items "baseline"}}
-
+                :display "flex"}}
 
        (dom/div
         {:style {:min-width "10em"
@@ -89,7 +100,8 @@
         (dom/div
          {:style {:background "white"
                   :display "inline-flex"
-                  :border "1px solid gray"
+                  :border (str "1px solid " (color-for-modifier
+                                             (edit-tree/edit-property-modifier edit-property)))
                   :margin-left "10px"
                   :padding "4px 12px"
                   :position "relative"
@@ -97,11 +109,8 @@
          (schema/label-for-predicate schema predicate))
 
         (when editing?
-          (ds/button-secondary {#_#_:onClick (fn [prop]
-                                               (c/return :action
-                                                         (delete-property-action
-                                                          delete-property-action-object-tree (tree/property-object prop)
-                                                          delete-property-action-predicate (tree/property-predicate prop))))
+          (ds/button-secondary {:onClick (fn [prop]
+                                           (c/return :action (delete-property-action)))
                                 :style {:font-size "25px"
                                         :font-weight "normal"
                                         :cursor "pointer"
@@ -114,15 +123,8 @@
                           :top "14px"
                           :z-index "4"}}))
 
-       (c/handle-action
-        (c/focus edit-tree/edit-property-object
-                 (component-for-predicate predicate schema editable? editing?))
-        (fn [property ac]
-          #_(c/return :action
-                      (if (and (realm/contains? edit-action ac)
-                               (nil? (edit-action-predicate ac)))
-                        (edit-action-predicate ac (tree/property-predicate property))
-                        ac))))))))
+       (c/focus edit-tree/edit-property-object
+                (component-for-predicate predicate schema editable? editing?))))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
@@ -451,8 +453,15 @@
 
               (->> props
                    (map-indexed (fn [idx _]
-                                  (c/focus (edit-tree/edit-tree-property-at-index idx)
-                                           (edit-property-component schema editable? editing?))))))))))))))
+                                  (-> (c/focus (edit-tree/edit-tree-property-at-index idx)
+                                               (c/with-state-as eprop
+                                                 (edit-property-component schema
+                                                                          editable?
+                                                                          editing?)))
+                                      (c/handle-action (fn [node action]
+                                                         (if (is-a? delete-property-action action)
+                                                           (c/return :state (edit-tree/delete-property-at-index node idx))
+                                                           (c/return :action action)))))))))))))))))
 
 (defn edit-tree-component [schema sorts editable? force-editing?]
   (c/with-state-as etree

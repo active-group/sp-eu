@@ -1,19 +1,19 @@
 (ns wisen.frontend.edit-tree
   "Turn a rooted tree (wisen.frontend.tree) into an edit tree, tracking changes"
   (:require [wisen.frontend.tree :as tree]
-            [active.data.record :as record :refer-macros [def-record]]
+            [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
             [active.clojure.lens :as lens]))
 
 (def-record delete-property-edit
   [delete-property-edit-subject
    delete-property-edit-predicate
-   delete-property-edit-object-tree])
+   delete-property-edit-object])
 
 (def-record add-property-edit
   [add-property-edit-subject
    add-property-edit-predicate
-   add-property-edit-object-tree])
+   add-property-edit-object])
 
 (def edit
   (realm/union
@@ -26,51 +26,46 @@
    [(partial record/is-a? add-property-edit) (partial record/is-a? add-property-edit) add-property-edit-subject]
    (fn [])))
 
+(def edit-predicate
+  (lens/conditional
+   [(partial record/is-a? delete-property-edit) (partial record/is-a? delete-property-edit) delete-property-edit-predicate]
+   [(partial record/is-a? add-property-edit) (partial record/is-a? add-property-edit) add-property-edit-predicate]
+   (fn [])))
+
+(def edit-object
+  (lens/conditional
+   [(partial record/is-a? delete-property-edit) (partial record/is-a? delete-property-edit) delete-property-edit-object]
+   [(partial record/is-a? add-property-edit) (partial record/is-a? add-property-edit) add-property-edit-object]
+   (fn [])))
+
 (def-record edit-tree
   [edit-tree-tree :- tree/tree
-   edit-tree-edits :- (realm/set-of edit)])
+   edit-tree-edits* :- (realm/set-of edit)])
+
+(defn- normalize-edits [edits]
+  (distinct edits))
+
+(defn edit-tree-edits
+  ([etree]
+   (normalize-edits (edit-tree-edits* etree)))
+  ([etree edits]
+   (edit-tree-edits* etree edits)))
 
 (defn make-edit-tree
   ([tree]
    (make-edit-tree tree []))
   ([tree edits]
    (edit-tree edit-tree-tree tree
-              edit-tree-edits edits)))
+              edit-tree-edits* edits)))
 
-#_(def zip-edit-tree
-  (lens/xmap
-   (fn [[tree edits]]
-     (edit-tree edit-tree-tree tree
-                edit-tree-edits edits))
-   (fn [etree]
-     [(edit-tree-tree etree)
-      (edit-tree-edits etree)])))
-
-#_(def zip-edit-trees
-  (lens/xmap
-
-   (fn [[trees editss]]
-     (println "zip yank")
-     (map-indexed
-      (fn [idx tree]
-        (let [edits (nth editss idx [])]
-          (make-edit-tree tree edits)))
-      trees))
-
-   (fn [edit-trees]
-     (println "zip shove")
-     (println (pr-str edit-trees))
-     (reduce (fn [[trees edits] edit-tree]
-               (println (pr-str edit-tree))
-               [(conj trees (edit-tree-tree edit-tree))
-                (concat edits (edit-tree-edits edit-tree))])
-             [[] []]
-             edit-trees
-             ))))
+(def deleted ::deleted)
+(def added ::added)
+(def same ::same)
 
 (def-record edit-property
   [edit-property-predicate :- tree/URI
-   edit-property-object :- (realm/delay edit-tree)])
+   edit-property-object :- (realm/delay edit-tree)
+   edit-property-modifier :- (realm/enum same added deleted)])
 
 (defn- edit-relevant? [tree edit]
   (if (record/is-a? tree/node tree)
@@ -90,12 +85,24 @@
 (defn- trim-edits [tree edits]
   (filter (partial edit-relevant? tree) edits))
 
-#_(defn- trim-edit-tree [etree]
-  (let [tree (edit-tree-tree etree)
-        edits (edit-tree-edits etree)
-        trimmed-edits (trim-edits tree edits)]
-    (edit-tree edit-tree-tree tree
-               edit-tree-edits trimmed-edits)))
+(defn- modifier [subject predicate object edits]
+  (reduce (fn [modi edit]
+            (if (and (= (edit-subject edit) subject)
+                     (= (edit-predicate edit) predicate)
+                     (= (edit-object edit) object))
+              (reduced (cond
+                         (is-a? delete-property-edit edit) deleted
+                         (is-a? add-property-edit edit) added))
+              ;; else
+              modi))
+          same
+          edits))
+
+(defn- edit-tree-handle [etree]
+  (tree/tree-handle
+   (edit-tree-tree etree)))
+
+(declare node-uri)
 
 (defn edit-tree-property-at-index
   "edit-tree in, edit-property-out"
@@ -106,11 +113,16 @@
    (fn [etree]
      (let [orig-property (lens/yank etree (lens/>> edit-tree-tree tree/node-properties (lens/at-index idx)))
            orig-predicate (tree/property-predicate orig-property)
-           orig-object (tree/property-object orig-property)]
+           orig-object (tree/property-object orig-property)
+           edits (edit-tree-edits etree)]
        (edit-property edit-property-predicate orig-predicate
                       edit-property-object (edit-tree
                                             edit-tree-tree orig-object
-                                            edit-tree-edits (trim-edits orig-object (edit-tree-edits etree))))))
+                                            edit-tree-edits* (trim-edits orig-object (edit-tree-edits etree)))
+                      edit-property-modifier (modifier (node-uri etree)
+                                                       orig-predicate
+                                                       (tree/tree-handle orig-object)
+                                                       edits))))
 
    (fn [etree eprop]
      (let [prop-obj (edit-property-object eprop) ;; :- edit-tree
@@ -124,6 +136,15 @@
        (-> etree
            (edit-tree-tree new-tree)
            (lens/overhaul edit-tree-edits concat prop-edits))))))
+
+(defn delete-property-at-index [node idx]
+  (let [property ((edit-tree-property-at-index idx) node)]
+    (lens/overhaul node edit-tree-edits
+                   conj (delete-property-edit
+                         delete-property-edit-subject (node-uri node)
+                         delete-property-edit-predicate (edit-property-predicate property)
+                         delete-property-edit-object (edit-tree-handle
+                                                      (edit-property-object property))))))
 
 ;; re-implementations of wisen.frontend.tree stuff
 
