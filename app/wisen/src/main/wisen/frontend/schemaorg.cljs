@@ -5,10 +5,9 @@
             [active.data.realm :as realm]
             [active.clojure.lens :as lens]))
 
-(def hide-predicate #{"http://www.w3.org/1999/02/22-rdf-syntax-ns#type"})
-
 (def ^:private predicate-priority
-  ["http://schema.org/name"
+  ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+   "http://schema.org/name"
    "http://schema.org/description"
    "http://schema.org/keywords"
    "http://schema.org/location"

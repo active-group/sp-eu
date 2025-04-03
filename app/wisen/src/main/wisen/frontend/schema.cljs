@@ -12,7 +12,7 @@
   (if-let [res (first
                 (rdf/subject-predicate-objects
                  schema
-                 (rdf/make-symbol (tree/type-uri type))
+                 (rdf/make-symbol type)
                  (rdf/make-symbol "http://www.w3.org/2000/01/rdf-schema#label")))]
     (if (rdf/literal-string? res)
       (rdf/literal-string-value res)

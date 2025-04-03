@@ -88,30 +88,6 @@
 (defn make-focus-query-action [q]
   (focus-query-action focus-query-action-query q))
 
-(def-record expand-by-query-action
-  [expand-by-query-action-query])
-
-(defn make-expand-by-query-action [q]
-  (expand-by-query-action expand-by-query-action-query q))
-
-(c/defn-item query-form "has no public state" []
-  (c/isolate-state
-   "CONSTRUCT { ?s ?p ?o . } WHERE { ?s ?p ?o . }"
-   (forms/form {:style {:margin 0}
-                :onSubmit (fn [state event]
-                            (.preventDefault event)
-                            (c/return :action (make-focus-query-action state) :state ""))}
-               (dom/div
-                {:style {:display "flex"
-                         :gap "16px"}}
-                (forms/input {:type "search"
-                              :placeholder "Search query"
-                              :style {:flex 1
-                                      :border "1px solid #d3d3d3"
-                                      :padding "8px 16px"
-                                      :border-radius "20px"}})
-                (dom/button "Search")))))
-
 (defn sparql-request [query]
   (-> (ajax/POST "/api/search"
                  {:body (js/JSON.stringify (clj->js {:query query}))
@@ -271,59 +247,45 @@
     (c/fragment
 
      ;; may trigger queries
-     (-> (dom/div
-          {:style {:display "flex"
-                   :flex-direction "column"
-                   :overflow "auto"}}
+     (dom/div
+      {:style {:display "flex"
+               :flex-direction "column"
+               :overflow "auto"}}
 
+      (dom/div
+       {:style {:border-bottom ds/border}}
+       (dom/div
+
+        (c/isolate-state
+         {:type :organization
+          :target "elderly"
+          :tags ["education"]
+          :location [[48.484 48.550]
+                     [9.0051 9.106]]}
+         (dom/div
+          {:style {:position "relative"}}
           (dom/div
-           {:style {:border-bottom ds/border}}
-           (dom/div
-            #_(query-form)
+           {:style {:position "absolute"
+                    :bottom 0
+                    :left 0
+                    :z-index 999
+                    :width "100%"}}
+           (quick-search (some? (:last-focus-query state))))
+          (c/focus :location
+                   (leaflet/main {:style {:height 460}}
+                                 (when-let [graph (:graph state)]
+                                   (map (fn [position]
+                                          (let [coords (unwrap-rdf-literal-decimal-tuple position)]
+                                            (leaflet/make-pin
+                                             "A"
+                                             (color-for-coordinates coords)
+                                             coords)))
+                                        (rdf/geo-positions graph))))))))
 
-            (c/isolate-state
-             {:type :organization
-              :target "elderly"
-              :tags ["education"]
-              :location [[48.484 48.550]
-                         [9.0051 9.106]]}
-             (dom/div
-              {:style {:position "relative"}}
-              (dom/div
-               {:style {:position "absolute"
-                        :bottom 0
-                        :left 0
-                        :z-index 999
-                        :width "100%"}}
-               (quick-search (some? (:last-focus-query state))))
-              (c/focus :location
-                       (leaflet/main {:style {:height 460}}
-                                     (when-let [graph (:graph state)]
-                                       (map (fn [position]
-                                              (let [coords (unwrap-rdf-literal-decimal-tuple position)]
-                                                (leaflet/make-pin
-                                                 "A"
-                                                 (color-for-coordinates coords)
-                                                 coords)))
-                                            (rdf/geo-positions graph))))))))
-
-           ;; display when we have a graph
-           (when-let [graph (:graph state)]
-             (ds/padded-2
-              (editor/readwrite schema graph make-focus-query-action make-expand-by-query-action)))
-           ))
-
-         (c/handle-action
-          (fn [st ac]
-            (cond
-              (record/is-a? focus-query-action ac)
-              (c/return :state (assoc st :last-focus-query (focus-query-action-query ac)))
-
-              (record/is-a? expand-by-query-action ac)
-              (c/return :state (assoc st :last-expand-by-query (expand-by-query-action-query ac)))
-
-              :else
-              (c/return :action ac)))))
+       ;; display when we have a graph
+       (when-let [graph (:graph state)]
+         (ds/padded-2
+          (editor/edit-graph schema true false graph)))))
 
      ;; perform focus query
      (when-let [last-focus-query (:last-focus-query state)]

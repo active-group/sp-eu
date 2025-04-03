@@ -7,7 +7,6 @@
             [wisen.frontend.promise :as promise]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
-            [wisen.frontend.tree :as tree]
             [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
@@ -27,113 +26,17 @@
    (with-out-str
      (cljs.pprint/pprint x))))
 
-;; [ ] Fix links for confluences
-;; [x] Load all properties
-;; [x] Focus
-;; [ ] Patterns for special GUIs
-;; [x] Style
-
-(def-record focus-query-action
-  [focus-query-action-query])
-
-(def-record expand-by-query-action
-  [expand-by-query-action-query])
-
-(def-record change-primitive-action
-  [change-primitive-action-subject
-   change-primitive-action-predicate
-   change-primitive-action-object])
-
-(def-record delete-property-action
-  [delete-property-action-subject
-   delete-property-action-predicate
-   delete-property-action-object-tree])
-
-(def-record add-property-action
-  [add-property-action-subject
-   add-property-action-predicate
-   add-property-action-object-tree])
-
-(def edit-action
-  (realm/union
-   change-primitive-action
-   delete-property-action
-   add-property-action))
-
-(def edit-action-subject
-  (lens/conditional
-   [(partial is-a? change-primitive-action)
-    (partial is-a? change-primitive-action)
-    change-primitive-action-subject]
-   [(partial is-a? delete-property-action)
-    (partial is-a? delete-property-action)
-    delete-property-action-subject]
-   [(partial is-a? add-property-action)
-    (partial is-a? add-property-action)
-    add-property-action-subject]
-   ::FAIL))
-
-(def edit-action-predicate
-  (lens/conditional
-   [(partial is-a? change-primitive-action)
-    (partial is-a? change-primitive-action)
-    change-primitive-action-predicate]
-   [(partial is-a? delete-property-action)
-    (partial is-a? delete-property-action)
-    delete-property-action-predicate]
-   [(partial is-a? add-property-action)
-    (partial is-a? add-property-action)
-    add-property-action-predicate]
-   ::FAIL))
-
-(defn map-values [f m]
-  (into {} (for [[k v] m] [k (f v)])))
-
-(defn- normalize-edit-actions* [actions]
-  (last actions)
-  #_(reduce (fn [base-action action]
-            (cond
-              (realm/contains? add-property-action action)
-              action
-
-              (realm/contains? delete-property-action action)
-              action
-
-              (realm/contains? change-primitive-action action)
-              action))
-          (first actions)
-          (rest actions)))
-
-(defn- normalize-edit-actions [actions]
-  (map-values
-   (fn [actions]
-     (let [groups (group-by edit-action-predicate actions)]
-       (map-values normalize-edit-actions* groups)))
-   (group-by edit-action-subject actions)))
-
-(defn- load-more-query [uri]
-  (str "CONSTRUCT { <" uri "> ?p ?x1 . }
-          WHERE { <" uri "> ?p ?x1 . }"))
-
-(defn- load-more-button [uri]
-  (dom/button
-   {:style {}
-    :onclick (fn [_]
-               (c/return :action
-                         (expand-by-query-action expand-by-query-action-query
-                                                 (load-more-query uri))))}
-   (if ::TODO "v" ">")))
-
 (declare edit-tree-component)
 
-(def-record delete-property [delete-property-property :- tree/property])
+(def-record delete-property [delete-property-property])
 
-(defn component-for-predicate [predicate schema editable? editing? can-focus? can-expand?]
+(defn component-for-predicate [predicate schema editable? editing?]
   (case predicate
-    #_#_#_#_#_#_#_#_"http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-    (c/dynamic (partial schema/label-for-sort schema))
+    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    (c/with-state-as node
+      (schema/label-for-type schema (edit-tree/node-uri node)))
 
-    "http://schema.org/description"
+    #_#_#_#_#_#_"http://schema.org/description"
     (c/focus tree/literal-string-value
              (if editing?
                (ds/textarea {:style {:width "100%"
@@ -164,46 +67,62 @@
               schema
               (schema/sorts-for-predicate schema predicate)
               editable?
-              editing?
-              can-focus?
-              can-expand?))))
+              editing?))))
 
-(c/defn-item edit-property-component [schema editable? editing? can-focus? can-expand?]
+(c/defn-item edit-property-component [schema editable? editing?]
   (c/with-state-as edit-property
-    #_(pprint edit-property)
 
     (let [predicate (edit-tree/edit-property-predicate edit-property)]
       (dom/div
-       {:style {:padding "1ex 0"
+       {:style {:flex 1
                 :display "flex"
-                :align-items "flex-start"
-                :gap "1em"}}
+                #_#_:align-items "baseline"}}
+
+
        (dom/div
-        {:style {:flex 1 :display "flex" :gap "1em" :align-items "baseline"}}
+        {:style {:min-width "10em"
+                 :position "relative"
+                 :display "flex"
+                 :gap "1em"
+                 :align-items "flex-start"}}
+
         (dom/div
-         {:style {:min-width "10em"}}
-         (dom/strong
-          (schema/label-for-predicate schema predicate))
-         (when editing?
-           (ds/button-secondary {:onClick (fn [prop]
-                                            (c/return :action
-                                                      (delete-property-action
-                                                       delete-property-action-object-tree (tree/property-object prop)
-                                                       delete-property-action-predicate (tree/property-predicate prop))))
-                                 :style {:font-size "25px"
-                                         :font-weight "normal"
-                                         :cursor "pointer"
-                                         :margin-left "6px"}}
-                                "×")))
-        (c/handle-action
-         (c/focus edit-tree/edit-property-object
-                  (component-for-predicate predicate schema editable? editing? can-focus? can-expand?))
-         (fn [property ac]
-           (c/return :action
-                     (if (and (realm/contains? edit-action ac)
-                              (nil? (edit-action-predicate ac)))
-                       (edit-action-predicate ac (tree/property-predicate property))
-                       ac)))))))))
+         {:style {:background "white"
+                  :display "inline-flex"
+                  :border "1px solid gray"
+                  :margin-left "10px"
+                  :padding "4px 12px"
+                  :position "relative"
+                  :z-index "5"}}
+         (schema/label-for-predicate schema predicate))
+
+        (when editing?
+          (ds/button-secondary {#_#_:onClick (fn [prop]
+                                               (c/return :action
+                                                         (delete-property-action
+                                                          delete-property-action-object-tree (tree/property-object prop)
+                                                          delete-property-action-predicate (tree/property-predicate prop))))
+                                :style {:font-size "25px"
+                                        :font-weight "normal"
+                                        :cursor "pointer"
+                                        :z-index 5}}
+                               "×"))
+
+        (dom/div {:style {:width "100%"
+                          :border-bottom "1px solid gray"
+                          :position "absolute"
+                          :top "14px"
+                          :z-index "4"}}))
+
+       (c/handle-action
+        (c/focus edit-tree/edit-property-object
+                 (component-for-predicate predicate schema editable? editing?))
+        (fn [property ac]
+          #_(c/return :action
+                      (if (and (realm/contains? edit-action ac)
+                               (nil? (edit-action-predicate ac)))
+                        (edit-action-predicate ac (tree/property-predicate property))
+                        ac))))))))
 
 (defn- focus-query [uri]
   (str "CONSTRUCT { <" uri "> ?p ?o . }
@@ -211,7 +130,7 @@
 
 (defn- node-organization? [node]
   (= "http://schema.org/Organization"
-     (tree/type-uri (tree/node-type node))))
+     (edit-tree/type-uri (edit-tree/node-type node))))
 
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [resource predicate :local schemaorg/default-predicate]
@@ -240,7 +159,7 @@
                 :font-weight "normal"}
         :onClick
         (fn [[node predicate] _]
-          (c/return :action (add-property-action add-property-action-subject (tree/node-uri node)
+          #_(c/return :action (add-property-action add-property-action-subject (edit-tree/node-uri node)
                                                  add-property-action-predicate predicate
                                                  add-property-action-object-tree (default/default-tree-for-predicate schema predicate))))}
        "Add property")))))
@@ -313,8 +232,8 @@
       (when (:graph local-state)
         (ds/button-primary
          {:onClick (fn [[node local-state]]
-                     (let [place-node (first (tree/graph->trees (:graph local-state)))]
-                       (assert (tree/node? place-node))
+                     (let [place-node (first (edit-tree/graph->edit-trees (:graph local-state)))]
+                       (assert (edit-tree/node? place-node))
                        (c/return :state [(osm/organization-do-link-osm
                                           node
                                           (:osm-uri local-state)
@@ -357,8 +276,8 @@
 
         (when commit-prompt
           (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                   (graph-resolver (llm-query (prepare-prompt (tree/node-uri
-                                                               (tree/node-type node))
+                   (graph-resolver (llm-query (prepare-prompt (edit-tree/type-uri
+                                                               (edit-tree/node-type node))
                                                               commit-prompt)))))
 
         (when current-graph
@@ -378,8 +297,8 @@
         (when (:graphs local-state)
           (ds/button-primary
            {:onClick (fn [[node local-state]]
-                       (let [ai-node (first (tree/graph->trees current-graph))]
-                         (assert (tree/node? ai-node))
+                       (let [ai-node (first (edit-tree/graph->edit-trees current-graph))]
+                         (assert (edit-tree/node? ai-node))
                          (c/return :state [#_(tree/merge node ai-node)
                                            ai-node
                                            {}]
@@ -388,57 +307,37 @@
 
 ;; ---
 
-(c/defn-item modal-button [title item-f]
-  (c/with-state-as [state show? :local false]
-    (c/fragment
-
-     (c/focus lens/second
-              (ds/button-primary {:onClick (constantly true)} title))
-
-     (when show?
-       (-> (modal/main
-            ::close-action
-            (c/focus lens/first (item-f ::close-action)))
-
-           (c/handle-action (fn [[state local-state] ac]
-                              (if (= ::close-action ac)
-                                (c/return :state [state false])
-                                (c/return :action ac)))))))))
-
 (defn- node-component-header [schema]
-  (c/with-state-as etree
-    (let [node (edit-tree/edit-tree-tree etree)]
-      (dom/div {:style {:display "flex"
-                        :padding "1.5ex 16px"
-                        :background "rgba(218, 224, 235, 0.7)"
-                        :gap "2em"
-                        :align-items "center"
-                        :border-bottom "1px solid gray"
-                        :justify-content "space-between"}}
+  (c/with-state-as node
+    (dom/div {:style {:display "flex"
+                      :padding "1.5ex 16px"
+                      :background "rgba(218, 224, 235, 0.7)"
+                      :gap "2em"
+                      :align-items "center"
+                      :border-bottom "1px solid gray"
+                      :justify-content "space-between"}}
 
-               (add-property-button schema (schema/predicates-for-type schema (tree/node-type node)))
+             #_(add-property-button schema (schema/predicates-for-type schema (edit-tree/node-type node)))
 
-               (dom/div
-                {:style {:display "flex"
-                         :gap "1em"}}
-                (when (node-organization? node)
-                  (if-let [osm-uri (osm/node-osm-uri node)]
+             (dom/div
+              {:style {:display "flex"
+                       :gap "1em"}}
+              #_(when (node-organization? node)
+                (if-let [osm-uri (osm/node-osm-uri node)]
 
-                    (dom/div
-                     {:style {:display "flex"
-                              :gap "1em"}}
-                     (pr-osm-uri osm-uri)
-                     (modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
-                    (modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
+                  (dom/div
+                   {:style {:display "flex"
+                            :gap "1em"}}
+                   (pr-osm-uri osm-uri)
+                   (modal/modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
+                  (modal/modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
 
-                (modal-button "Ask AI" (partial ask-ai schema)))))))
-
-;; http://wisen.active-group.de/resource/fccbaef2-4c3c-428e-8e3e-741250b469a6
+              (modal/modal-button "Ask AI" (partial ask-ai schema))))))
 
 (defn- set-reference [close-action]
   (c/with-state-as node
     (c/local-state
-     (tree/node-uri node)
+     (edit-tree/node-uri node)
      (dom/div
       (modal/padded
        (dom/h3 "Set as reference to another node")
@@ -450,7 +349,7 @@
                             "Cancel")
        (ds/button-primary {:onClick
                            (fn [[_ uri]]
-                             (c/return :state [(tree/make-node uri) uri]))}
+                             (c/return :state [(edit-tree/make-node uri) uri]))}
                           "Set reference"))))))
 
 (defn- refresh-node-request [uri]
@@ -468,30 +367,34 @@
               (ds/button-primary {:onClick #(c/return :state true)}
                                  "Refresh"))
      (when refresh?
-       (-> (refresh-node (tree/node-uri node))
+       (-> (refresh-node (edit-tree/node-uri node))
            (c/handle-action (fn [[node _] ac]
-                              (println "---")
-                              (println (pr-str ac))
                               (if (success? ac)
-                                (let [before-graph (tree/trees->graph [node])
+                                (let [before-graph (edit-tree/edit-trees->graph [node])
                                       new-graph (success-value ac)
                                       merged-graph (rdf/merge before-graph
                                                               new-graph)]
-                                  [(first (tree/graph->trees merged-graph))
+                                  [(first (edit-tree/graph->edit-trees merged-graph))
                                    false])
                                 (assert false "TODO: implement error handling")))))))))
 
-(defn- node-component [schema editable? force-editing? can-focus? can-expand?]
-  (c/with-state-as [edit-tree local-state :local {:editing? force-editing?
+(defn- the-circle []
+  (dom/div {:style {:border "1px solid #777"
+                    :background "white"
+                    :border-radius "100%"
+                    :width "27px"
+                    :height "27px"}}))
+
+(defn- node-component [schema editable? force-editing?]
+  (c/with-state-as [node local-state :local {:editing? force-editing?
                                              :open? true}]
 
-    (let [node (edit-tree/edit-tree-tree edit-tree)
-          editing? (:editing? local-state)
-          uri (tree/node-uri node)]
+    (let [editing? (:editing? local-state)
+          uri (edit-tree/node-uri node)]
 
       (details/details
        {:id uri
-        :style {:border "1px solid gray"
+        #_#_:style {:border "1px solid gray"
                 :box-shadow "0 1px 0px rgba(0,0,0,0.5)"
                 :background "rgba(255,255,255,0.5)"
                 :border-radius "0 4px 4px 4px"}}
@@ -500,20 +403,22 @@
 
        (details/summary
         {:style {:color "#555"
-                 :border-bottom "1px solid gray"
-                 :padding "8px 16px"
-                 :cursor "pointer"}}
+                 #_#_#_#_:border "1px solid gray"
+                 :border-radius "32px"
+                 :cursor "pointer"
+                 :display "flex"
+                 :align-items "center"
+                 :gap "1em"}}
+        (the-circle)
         (dom/span {:style {:margin-right "1em"}} uri)
 
-        (when editing?
-          (c/fragment
-           (c/focus lens/first
-                    (modal-button "Set reference" set-reference))
-           " | "))
+        #_#_#_#_(when editing?
+                  (c/fragment
+                   (c/focus lens/first
+                            (modal/modal-button "Set reference" set-reference))
+                   " | "))
 
-        (c/focus (lens/>> lens/first
-                          edit-tree/edit-tree-tree)
-                 (refresh-button))
+        (c/focus lens/first (refresh-button))
 
         " | "
 
@@ -524,184 +429,85 @@
 
        (c/focus
         lens/first
-        (-> (dom/div
+        (dom/div
 
-             (when editing?
-               (node-component-header schema))
+         #_(when editing?
+           (node-component-header schema))
 
-             (let [props (tree/node-properties node)]
-               (when-not (empty? props)
+         (let [props (sort (fn [p1 p2]
+                             (schemaorg/compare-predicate
+                              (edit-tree/edit-property-predicate p1)
+                              (edit-tree/edit-property-predicate p2)))
+                           (edit-tree/node-properties node))]
+           (when-not (empty? props)
+             (apply
+              dom/div
+              {:style {:display "flex"
+                       :flex-direction "column"
+                       :gap "2ex"
+                       :margin-left "14px"
+                       :padding-top "12px"
+                       :border-left "1px solid gray"}}
 
-                 (apply
-                  dom/div
-                  {:style {:display "flex"
-                           :flex-direction "column"
-                           :padding "0 1em"}}
+              (->> props
+                   (map-indexed (fn [idx _]
+                                  (c/focus (edit-tree/edit-tree-property-at-index idx)
+                                           (edit-property-component schema editable? editing?))))))))))))))
 
-                  (->> props
-                       (map-indexed (fn [idx property]
-                                      [(tree/property-predicate property)
-                                       (c/handle-action
-                                        (c/focus (edit-tree/edit-tree-property-at-index idx)
-                                                 (edit-property-component schema editable? editing? can-focus? can-expand?))
-                                        (fn [props ac]
-                                          (if (= ::delete ac)
-                                            (c/return :state (remove-index idx props))
-                                            (c/return :action ac)))
-                                        )]))
-                       (remove (comp schemaorg/hide-predicate first))
-                       (sort-by first schemaorg/compare-predicate)
-                       (map second)
-                       (interpose (dom/hr {:style {:width "100%"}})))))))
-            (c/handle-action
-             (fn [node ac]
-               (let [subject (tree/node-uri node)]
-                 (c/return :action
-                           (if (and (realm/contains? edit-action ac)
-                                    (nil? (edit-action-subject ac)))
-                             (edit-action-subject ac subject)
-                             ac)))))))))))
-
-
-(defn edit-tree-component [schema sorts editable? force-editing? can-focus? can-expand?]
+(defn edit-tree-component [schema sorts editable? force-editing?]
   (c/with-state-as etree
-    (if (tree/primitive? (edit-tree/edit-tree-tree etree))
-      (dom/div
-       {:style {:display "flex"
-                :flex-direction "row"
-                :align-items "baseline"
-                :border (when force-editing? "1px solid #888")
-                :border-radius "3px"}}
-       #_(-> (c/focus default/edit-tree-sort
-                    (if force-editing?
-                      (apply ds/select
-                             {:style {:border 0}}
-                             (map (fn [sort]
-                                    (forms/option {:value sort} (schema/label-for-sort schema sort)))
-                                  sorts))))
-           (c/handle-state-change (fn [old new]
-                                    (c/return :action (delete-property-action delete-property-action-object-tree old)
-                                              :action (add-property-action add-property-action-object-tree new)))))
-       (let [primitive-style {:border-radius "0 3px 3px 0"
-                              :border-width "0 0 0 1px"
-                              :border-color "#888"
-                              }]
-         (c/focus edit-tree/edit-tree-tree
-                  (c/with-state-as tree
-                    (-> (cond
-                          (tree/literal-string? tree)
-                          (c/focus tree/literal-string-value
-                                   (if force-editing?
-                                     (ds/input {:style primitive-style})
-                                     (c/dynamic str)))
+    (dom/div
+     #_{:style {:position "relative"}}
+     #_(dom/div {:style {:border "1px solid gray"
+                       :border-radius "100%"
+                       :width "1em"
+                       :height "1em"
+                       :position "absolute"
+                       :top 0
+                       :left 0}})
+     (cond
+       (edit-tree/literal-string? etree)
+       (c/focus edit-tree/literal-string-value
+                (if force-editing?
+                  (ds/input)
+                  (c/dynamic str)))
 
-                          (tree/literal-decimal? tree)
-                          (c/focus tree/literal-decimal-value
-                                   (if force-editing?
-                                     (ds/input {:type "decimal"
-                                                :style primitive-style})
-                                     (c/dynamic str)))
+       (edit-tree/literal-decimal? etree)
+       (c/focus edit-tree/literal-decimal-value
+                (if force-editing?
+                  (ds/input {:type "decimal"})
+                  (c/dynamic str)))
 
-                          (tree/literal-boolean? tree)
-                          (c/focus tree/literal-boolean-value
-                                   (if force-editing?
-                                     (ds/input {:type "checkbox"
-                                                :style primitive-style})
-                                     (c/dynamic str)))
+       (edit-tree/literal-boolean? etree)
+       (c/focus edit-tree/literal-boolean-value
+                (if force-editing?
+                  (ds/input {:type "checkbox"})
+                  (c/dynamic str)))
 
-                          (tree/ref? tree)
-                          (dom/div "REF: " (tree/ref-uri tree)))
+       (edit-tree/ref? etree)
+       (dom/div "REF: " (edit-tree/ref-uri etree))
 
-                        (c/handle-state-change (fn [old new]
-                                                 (c/return :action (change-primitive-action change-primitive-action-object new)))))))))
-
-      ;; else node
-      (dom/div
-       {:style {:display "flex"
-                :align-items "baseline"
-                :flex-direction "column"}}
-       #_(c/focus default/tree-sort
-                  (if force-editing?
-                    (apply ds/select
-                           {:style {:border-width "1px 1px 0 1px"
-                                    :border-radius "3px 3px 0 0"
-                                    }}
-                           (map (fn [sort]
-                                  (forms/option {:value sort}
-                                                (schema/label-for-sort schema sort)))
-                                sorts))
-                    (dom/i
-                     (c/dynamic (partial schema/label-for-sort schema)))))
-
-       (node-component schema editable? force-editing? can-focus? can-expand?)))))
-
-(c/defn-item commit-changes [changes]
-  (c/isolate-state
-   nil
-   (c/fragment
-    (c/dynamic pr-str)
-    (ajax/fetch (change/commit-changes-request changes)))))
+       (edit-tree/node? etree)
+       (node-component schema editable? force-editing?)
+       ))))
 
 ;; The editor handles rooted graphs with edits
 
+(c/defn-item edit-trees-component [schema editable? force-editing?]
+  (c/with-state-as etrees
+    (apply
+     dom/div
+     (map-indexed (fn [idx _]
+                    (c/focus (lens/at-index idx)
+                             (edit-tree-component schema [] editable? force-editing?)))
+                  etrees))))
 
+(defn display-edits [_]
+  "TODO")
 
-(c/defn-item main* [schema editable? force-editing? can-focus? can-expand?]
-  (c/with-state-as trees
-    (c/local-state
-     (repeat (count trees) [])
-     (c/focus edit-tree/zip-edit-trees
-              #_(c/dynamic pprint)
-              (-> (dom/div
-                   #_(pr-str (normalize-edit-actions edits))
-                   #_(when editable?
-                       (change/changes-component
-                        schema
-                        (change/delta-trees trees working-trees)))
-
-                   #_(when editable?
-                     (c/isolate-state false
-                                      (c/with-state-as commit?
-                                        (c/fragment
-                                         (pr-str commit?)
-                                         #_(when commit?
-                                             (commit-changes (change/delta-trees trees working-trees)))
-                                         (dom/button {:onclick (constantly true)} "Commit changes")))))
-
-                   (dom/hr)
-                   (c/with-state-as edit-trees
-                     (apply
-                      dom/div
-                      (map-indexed (fn [idx _]
-                                     (c/focus (lens/at-index idx)
-                                              (edit-tree-component schema [] editable? force-editing? can-focus? can-expand?)))
-                                   edit-trees))))
-
-                    #_(c/handle-action (fn [[trees edits] ac]
-                                       (println (pr-str ac))
-                                       (if (realm/contains? edit-action ac)
-                                         [trees (conj edits ac)]
-                                         (c/return :action ac)))))))))
-
-(defn main [schema editable? force-editing? make-focus-query-action make-expand-by-query-action]
-  (let [can-focus? (some? make-focus-query-action)
-        can-expand? (some? make-expand-by-query-action)]
-    (c/handle-action
-     (c/focus tree/graph<->trees (main* schema editable? force-editing? can-focus? can-expand?))
-     (fn [_ ac]
-       (c/return :action
-                 (cond
-                   (record/is-a? focus-query-action ac)
-                   (make-focus-query-action (focus-query-action-query ac))
-
-                   (record/is-a? expand-by-query-action ac)
-                   (make-expand-by-query-action (expand-by-query-action-query ac))
-
-                   :else
-                   ac))))))
-
-(defn readonly [schema graph & [make-focus-query-action make-expand-by-query-action]]
-  (c/isolate-state graph (main schema false false make-focus-query-action make-expand-by-query-action)))
-
-(defn readwrite [schema graph & [make-focus-query-action make-expand-by-query-action]]
-  (c/isolate-state graph (main schema true false make-focus-query-action make-expand-by-query-action)))
+(c/defn-item edit-graph [schema editable? force-editing? graph]
+  (c/isolate-state (edit-tree/graph->edit-trees graph)
+                   (dom/div
+                    (edit-trees-component schema editable? force-editing?)
+                    (c/with-state-as etrees
+                      (display-edits (apply concat (map edit-tree/edit-tree-edits etrees)))))))

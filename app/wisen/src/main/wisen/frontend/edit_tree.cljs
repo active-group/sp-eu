@@ -37,7 +37,7 @@
    (edit-tree edit-tree-tree tree
               edit-tree-edits edits)))
 
-(def zip-edit-tree
+#_(def zip-edit-tree
   (lens/xmap
    (fn [[tree edits]]
      (edit-tree edit-tree-tree tree
@@ -46,7 +46,7 @@
      [(edit-tree-tree etree)
       (edit-tree-edits etree)])))
 
-(def zip-edit-trees
+#_(def zip-edit-trees
   (lens/xmap
 
    (fn [[trees editss]]
@@ -124,3 +124,59 @@
        (-> etree
            (edit-tree-tree new-tree)
            (lens/overhaul edit-tree-edits concat prop-edits))))))
+
+;; re-implementations of wisen.frontend.tree stuff
+
+(defn- lift-edit-tree [f]
+  (comp f edit-tree-tree))
+
+(defn make-node [uri]
+  (make-edit-tree (tree/make-node uri)))
+
+(def node? (lift-edit-tree tree/node?))
+
+(def node-uri (lift-edit-tree tree/node-uri))
+
+(defn node-properties "Get a list of edit-property" [etree]
+  (map
+   (fn [idx]
+     (lens/yank etree (edit-tree-property-at-index idx)))
+   (range
+    (count (tree/node-properties
+            (edit-tree-tree etree))))))
+
+(def node-type
+  (lens/>>
+   edit-tree-tree
+   tree/node-type))
+
+(defn type-uri [type]
+  (tree/type-uri type))
+
+(def primitive? (lift-edit-tree tree/primitive?))
+
+(def literal-string? (lift-edit-tree tree/literal-string?))
+
+(def literal-string-value (lift-edit-tree tree/literal-string-value))
+
+(def literal-decimal? (lift-edit-tree tree/literal-decimal?))
+
+(def literal-decimal-value (lift-edit-tree tree/literal-decimal-value))
+
+(def literal-boolean? (lift-edit-tree tree/literal-boolean?))
+
+(def literal-boolean-value (lift-edit-tree tree/literal-boolean-value))
+
+(def ref? (lift-edit-tree tree/ref?))
+
+(def ref-uri (lift-edit-tree tree/ref-uri))
+
+(defn graph->edit-trees [graph]
+  (map make-edit-tree (tree/graph->trees graph)))
+
+(defn edit-trees->graph [etrees]
+  (tree/trees->graph (map edit-tree-tree etrees)))
+
+(def graph<->edit-trees
+  (lens/xmap graph->edit-trees
+             edit-trees->graph))
