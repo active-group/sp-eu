@@ -4,7 +4,6 @@ services:
   wisen:
     build:
       context: .
-      dockerfile: wisen.Dockerfile
     ports:
       - "4321:4321"
     environment:
