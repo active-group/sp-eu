@@ -199,6 +199,23 @@
     ;; nodes from which every other root is reachable
     (rdf/roots g))))
 
+(defn tree-handle [obj]
+  (cond
+    (record/is-a? ref obj)
+    (ref-uri obj)
+
+    (record/is-a? literal-string obj)
+    (literal-string-value obj)
+
+    (record/is-a? literal-decimal obj)
+    (literal-decimal-value obj)
+
+    (record/is-a? literal-boolean obj)
+    (literal-boolean-value obj)
+
+    (record/is-a? node obj)
+    (node-uri obj)))
+
 (defn- tree->statements [statements tree]
   (cond
     (record/is-a? ref tree)
