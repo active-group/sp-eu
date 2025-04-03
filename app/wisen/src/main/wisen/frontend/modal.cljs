@@ -60,3 +60,20 @@
        ;; listen for close event
        (close-modal-sub ref close-action)
        ))))
+
+(c/defn-item modal-button [title item-f]
+  (c/with-state-as [state show? :local false]
+    (c/fragment
+
+     (c/focus lens/second
+              (ds/button-primary {:onClick (constantly true)} title))
+
+     (when show?
+       (-> (main
+            ::close-action
+            (c/focus lens/first (item-f ::close-action)))
+
+           (c/handle-action (fn [[state local-state] ac]
+                              (if (= ::close-action ac)
+                                (c/return :state [state false])
+                                (c/return :action ac)))))))))
