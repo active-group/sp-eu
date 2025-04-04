@@ -8,6 +8,7 @@
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
             #_[wisen.frontend.edit-tree :as edit-tree]
+            [wisen.frontend.tree :as tree]
             [wisen.frontend.edit-tree-2 :as edit-tree]
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
@@ -35,6 +36,24 @@
 
     (edit-tree/changed? marked)
     "orange"))
+
+(defn- style-for-marked [marked]
+  (cond
+    (edit-tree/deleted? marked)
+    {:border "1px solid red"
+     :color "red"
+     :text-decoration "line-through"}
+
+    (edit-tree/added? marked)
+    {:border "1px solid green"
+     :color "green"}
+
+    (edit-tree/same? marked)
+    {:border "1px solid gray"}
+
+    (edit-tree/changed? marked)
+    {:border "1px solid orange"
+     :color "orange"}))
 
 (def-record delete-property-action [])
 
@@ -317,15 +336,11 @@
                                  "Refresh"))
      (when refresh?
        (-> (refresh-node (edit-tree/node-uri node))
-           (c/handle-action (fn [[node _] ac]
+           (c/handle-action (fn [[enode _] ac]
                               (if (success? ac)
                                 (let [new-graph (success-value ac)
-                                      new-edit
-                                      merged-graph (rdf/merge before-graph
-                                                              new-graph)]
-                                  ()
-                                  [(first (edit-tree/graph->edit-trees merged-graph))
-                                   false])
+                                      new-node (first (tree/graph->trees new-graph))]
+                                  [(edit-tree/set-edit-node-original enode new-node) false])
                                 (assert false "TODO: implement error handling")))))))))
 
 (defn- the-circle []
@@ -353,13 +368,14 @@
                                                 :align-items "flex-start"}}
 
                                        (dom/div
-                                        {:style {:background "white"
-                                                 :display "inline-flex"
-                                                 :border (str "1px solid " (color-for-marked marked-edit-tree))
-                                                 :margin-left "10px"
-                                                 :padding "4px 12px"
-                                                 :position "relative"
-                                                 :z-index "5"}}
+                                        {:style (merge {:background "white"
+                                                        :display "inline-flex"
+                                                        :border (str "1px solid gray")
+                                                        :margin-left "10px"
+                                                        :padding "4px 12px"
+                                                        :position "relative"
+                                                        :z-index "5"}
+                                                       (style-for-marked marked-edit-tree))}
                                         (schema/label-for-predicate schema predicate))
 
                                        (when (and force-editing?
@@ -432,7 +448,7 @@
         (the-circle)
         (dom/span {:style {:margin-right "1em"}} uri)
 
-        #_#_#_(when editing?
+        (when editing?
                 (c/fragment
                  (c/focus lens/first
                           (modal/modal-button "Set reference" set-reference))
