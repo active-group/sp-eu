@@ -3,7 +3,8 @@
   (:require [wisen.frontend.tree :as tree]
             [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
-            [active.clojure.lens :as lens]))
+            [active.clojure.lens :as lens]
+            [wisen.frontend.change :as change]))
 
 (def-record deleted
   [deleted-original-value
@@ -80,7 +81,7 @@
 
 (declare edit-tree-original)
 
-(defn- tree->edit-tree [tree]
+(defn- make-edit-tree [tree cns]
   (cond
     (tree/ref? tree)
     tree
@@ -101,11 +102,18 @@
                                     (update eprops
                                             (tree/property-predicate prop)
                                             conj
-                                            (make-same
-                                             (tree->edit-tree
-                                              (tree/property-object prop)))))
+                                            (cns
+                                             (make-edit-tree
+                                              (tree/property-object prop)
+                                              cns))))
                                   {}
                                   (tree/node-properties tree)))))
+
+(defn- make-added-edit-tree [tree]
+  (make-edit-tree tree make-added))
+
+(defn- make-same-edit-tree [tree]
+  (make-edit-tree tree make-same))
 
 (declare edit-tree-result-tree)
 
@@ -157,7 +165,7 @@
                                         (update eprops
                                                 (tree/property-predicate prop)
                                                 conj
-                                                (tree->edit-tree (tree/property-object prop))))
+                                                (make-same-edit-tree (tree/property-object prop))))
                                       {}
                                       (tree/node-properties new-node))))
 
@@ -167,24 +175,89 @@
                    (update eprops
                            predicate
                            conj
-                           (make-added (tree->edit-tree object-tree))))))
+                           (make-added (make-added-edit-tree object-tree))))))
 
 (defn edit-tree-changes [etree]
-  [::TODO])
+  (cond
+    (tree/ref? etree)
+    []
+
+    (tree/literal-string? etree)
+    []
+
+    (tree/literal-decimal? etree)
+    []
+
+    (tree/literal-boolean? etree)
+    []
+
+    (is-a? edit-node etree)
+    (let [subject (edit-node-uri etree)]
+      (mapcat
+       (fn [[predicate metrees]]
+         (mapcat (fn [metree]
+                   (cond
+                     (is-a? maybe-changed metree)
+                     (concat
+                      ;; changes on before tree
+                      (edit-tree-changes
+                       (maybe-changed-original-value metree))
+
+                      ;; changes here
+                      (if (changed? metree)
+                        [(change/make-delete
+                          (change/make-statement subject
+                                                 predicate
+                                                 (edit-tree-handle
+                                                  (maybe-changed-original-value metree))))
+                         (change/make-add
+                          (change/make-statement subject
+                                                 predicate
+                                                 (edit-tree-handle
+                                                  (maybe-changed-result-value metree))))]
+                        [])
+
+                      ;; changes on after tree
+                      (edit-tree-changes
+                       (maybe-changed-result-value metree)))
+
+                     (is-a? added metree)
+                     (conj
+                      (edit-tree-changes
+                       (added-result-value metree))
+                      (change/make-add
+                       (change/make-statement subject
+                                              predicate
+                                              (edit-tree-handle
+                                               (added-result-value metree)))))
+
+                     (is-a? deleted metree)
+                     (conj
+                      (edit-tree-changes
+                       (deleted-original-value metree))
+                      (change/make-delete
+                       (change/make-statement subject
+                                              predicate
+                                              (edit-tree-handle
+                                               (deleted-original-value metree)))))))
+
+                 metrees))
+
+       (edit-node-properties etree)))))
 
 (defn- edit-tree-handle [etree]
   (cond
     (tree/ref? etree)
-    (tree/ref-uri etree)
+    etree
 
     (tree/literal-string? etree)
-    (tree/literal-string-value etree)
+    etree
 
     (tree/literal-decimal? etree)
-    (tree/literal-decimal-value etree)
+    etree
 
     (tree/literal-boolean? etree)
-    (tree/literal-boolean-value etree)
+    etree
 
     (is-a? edit-node etree)
     (edit-node-uri etree)))
@@ -228,11 +301,4 @@
 (def ref-uri tree/ref-uri)
 
 (defn graph->edit-trees [graph]
-  (map tree->edit-tree (tree/graph->trees graph)))
-
-#_(defn edit-trees->graph [etrees]
-  (tree/trees->graph (map edit-tree-tree etrees)))
-
-#_(def graph<->edit-trees
-  (lens/xmap graph->edit-trees
-             edit-trees->graph))
+  (map make-same-edit-tree (tree/graph->trees graph)))

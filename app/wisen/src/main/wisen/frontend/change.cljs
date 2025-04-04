@@ -46,6 +46,12 @@
                                     tree/literal-boolean
                                     tree/URI)])
 
+(defn make-statement [s p o]
+  (statement
+   statement-subject s
+   statement-predicate p
+   statement-object o))
+
 (defn- compare-object [o1 o2]
   (cond
     (= o1 o2)
