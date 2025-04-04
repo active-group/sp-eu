@@ -151,85 +151,15 @@
     (is-a? edit-node etree)
     (edit-node-result-node etree)))
 
-(defn set-edit-node-original
-
-  #_([enode]
-   (tree/make-node
-    (edit-node-uri enode)
-    (reduce (fn [m [pred metrees]]
-              (let [trees (mapcat (fn [metree]
-                                    (case (marked-marker metree)
-                                      same
-                                      [(edit-tree-original
-                                        (marked-value metree))]
-
-                                      added
-                                      []
-
-                                      deleted
-                                      [(edit-tree-original
-                                        (marked-value metree))]))
-                                  etrees)]
-                (if-not (empty? trees)
-                  (assoc m pred trees)
-                  m)))
-            {}
-            (edit-node-properties enode))))
-
-  ([enode new-node]
-   (assert (empty? (edit-node-properties enode)))
-   (edit-node-properties enode (reduce (fn [eprops prop]
-                                         (update eprops
-                                                 (tree/property-predicate prop)
-                                                 conj
-                                                 (tree->edit-tree (tree/property-object prop))))
-                                       {}
-                                       (tree/node-properties new-node)))
-   #_(lens/overhaul enode
-                  edit-node-properties
-                  (fn [eprops]
-                    (reduce (fn [eprops orig-property]
-                              (let [pred (tree/property-predicate orig-property)]
-                                (update eprops pred (fn [olds]
-                                                      (let [[integrated? olds*] ...]
-                                                        (if integrated?
-                                                          olds*
-                                                          (conj olds [(make-marked same (tree->edit-tree
-                                                                                         (tree/property-object orig-property)))]))
-                                                        #_(let [mrkr (marked-marker old)]
-                                                          (cond
-                                                            (= same mkrk)
-                                                            ;; just keep
-                                                            old
-
-                                                            (= deleted mrkr)
-                                                            ;; just keep deleted
-                                                            old
-
-                                                            (= added mrkr)
-                                                            ;; user added a property for a predicate that 
-                                                            )))
-                                                      )))
-                              )
-                            eprops
-                            (tree/node-properties new-node))))))
-
-#_(defn edit-tree-original [etree]
-  (cond
-    (tree/ref? etree)
-    etree
-
-    (tree/literal-string? etree)
-    etree
-
-    (tree/literal-decimal? etree)
-    etree
-
-    (tree/literal-boolean? etree)
-    etree
-
-    (is-a? edit-node etree)
-    (edit-node-original etree)))
+(defn set-edit-node-original [enode new-node]
+  (assert (empty? (edit-node-properties enode)))
+  (edit-node-properties enode (reduce (fn [eprops prop]
+                                        (update eprops
+                                                (tree/property-predicate prop)
+                                                conj
+                                                (tree->edit-tree (tree/property-object prop))))
+                                      {}
+                                      (tree/node-properties new-node))))
 
 (defn edit-node-add-property [enode predicate object-tree]
   (lens/overhaul enode edit-node-properties
@@ -242,7 +172,7 @@
 (defn edit-tree-changes [etree]
   [::TODO])
 
-(defn edit-tree-handle [etree]
+(defn- edit-tree-handle [etree]
   (cond
     (tree/ref? etree)
     (tree/ref-uri etree)
