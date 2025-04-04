@@ -161,41 +161,40 @@
 
 (defn sorts-for-predicate [schema predicate]
   (assert (some? schema))
-  (let [subject
-        (first
-         (rdf/predicate-object-subjects
-          schema
-          (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
-          (rdf/make-symbol predicate)))
+  (if-let [subject
+           (first
+            (rdf/predicate-object-subjects
+             schema
+             (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
+             (rdf/make-symbol predicate)))]
+    (let [or-objects
+          (rdf/subject-predicate-objects
+           schema
+           subject
+           (rdf/make-symbol "http://www.w3.org/ns/shacl#or"))
 
-        _ (assert (some? subject))
+          classes-or-datatypes-or-nodekinds
+          (let [nodes (mapcat rdf/collection-elements or-objects)]
+            (mapcat (fn [node]
+                      (concat
+                       (subject-classes schema node)
+                       (subject-datatypes schema node)
+                       (subject-nodekinds schema node)))
+                    nodes))
 
-        or-objects
-        (rdf/subject-predicate-objects
-         schema
-         subject
-         (rdf/make-symbol "http://www.w3.org/ns/shacl#or"))
+          direct-classes
+          (subject-classes schema subject)
 
-        classes-or-datatypes-or-nodekinds
-        (let [nodes (mapcat rdf/collection-elements or-objects)]
-          (mapcat (fn [node]
-                    (concat
-                     (subject-classes schema node)
-                     (subject-datatypes schema node)
-                     (subject-nodekinds schema node)))
-                  nodes))
+          direct-datatypes
+          (subject-datatypes schema subject)
 
-        direct-classes
-        (subject-classes schema subject)
+          direct-nodekinds
+          (subject-nodekinds schema subject)]
 
-        direct-datatypes
-        (subject-datatypes schema subject)
-
-        direct-nodekinds
-        (subject-nodekinds schema subject)
-        ]
-
-    (map unpack (concat classes-or-datatypes-or-nodekinds
-                        direct-classes
-                        direct-datatypes
-                        direct-nodekinds))))
+      (map unpack (concat classes-or-datatypes-or-nodekinds
+                          direct-classes
+                          direct-datatypes
+                          direct-nodekinds)))
+    ;; else: TODO
+    tree/literal-string
+    ))

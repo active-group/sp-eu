@@ -4,7 +4,7 @@
             [active.clojure.lens :as lens]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.tree :as tree]
-            [wisen.frontend.edit-tree :as edit-tree]
+            [wisen.frontend.edit-tree-2 :as edit-tree]
             [wisen.frontend.editor :as editor]
             [wisen.frontend.util :as util]
             [wisen.frontend.change :as change]
@@ -27,7 +27,7 @@
        {:style {:overflow "auto"}}
        (dom/h2 "Create a new resource")
        (c/isolate-state
-        (edit-tree/make-edit-tree initial-organization)
+        (edit-tree/tree->edit-tree initial-organization)
         (dom/div
          (dom/div
           #_{:style {:background "rgba(170,170,170,1.0)"

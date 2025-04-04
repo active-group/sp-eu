@@ -1,0 +1,308 @@
+(ns wisen.frontend.edit-tree-2
+  "Turn a rooted tree (wisen.frontend.tree) into an edit tree, tracking changes"
+  (:require [wisen.frontend.tree :as tree]
+            [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
+            [active.data.realm :as realm]
+            [active.clojure.lens :as lens]))
+
+(def-record deleted
+  [deleted-original-value
+   deleted-result-value])
+
+(defn deleted? [x]
+  (is-a? deleted x))
+
+(def-record added
+  [added-result-value])
+
+(defn make-added [x]
+  (added added-result-value x))
+
+(defn added? [x]
+  (is-a? added x))
+
+(def-record maybe-changed
+  [maybe-changed-original-value
+   maybe-changed-result-value])
+
+(defn maybe-changed? [x]
+  (is-a? maybe-changed x))
+
+(defn- make-same [x]
+  (maybe-changed
+   maybe-changed-original-value x
+   maybe-changed-result-value x))
+
+(declare edit-tree-handle)
+
+(defn same? [x]
+  (and (is-a? maybe-changed x)
+       (= (edit-tree-handle (maybe-changed-original-value x))
+          (edit-tree-handle (maybe-changed-result-value x)))))
+
+(defn changed? [x]
+  (and (is-a? maybe-changed x)
+       (not (same? x))))
+
+(defn can-delete? [x]
+  (is-a? maybe-changed x))
+
+(defn mark-deleted [x]
+  (assert (is-a? maybe-changed x) "Can only mark deleted maybe-changed")
+  (deleted
+   deleted-original-value
+   (maybe-changed-original-value x)
+   deleted-result-value
+   (maybe-changed-result-value x)))
+
+(def marked (realm/union
+             deleted
+             added
+             maybe-changed))
+
+;; ---
+
+(declare edit-tree)
+
+(def-record edit-node
+  [edit-node-uri :- tree/URI
+   edit-node-properties :- (realm/map-of tree/URI ; predicate
+                                         (realm/sequence-of
+                                          ;; payload: edit-tree
+                                          marked))])
+
+(def edit-tree (realm/union
+                tree/ref
+                tree/literal-string
+                tree/literal-decimal
+                tree/literal-boolean
+                edit-node))
+
+(declare edit-tree-original)
+
+(defn- tree->edit-tree [tree]
+  (cond
+    (tree/ref? tree)
+    tree
+
+    (tree/literal-string? tree)
+    tree
+
+    (tree/literal-decimal? tree)
+    tree
+
+    (tree/literal-boolean? tree)
+    tree
+
+    (tree/node? tree)
+    (edit-node
+     edit-node-uri (tree/node-uri tree)
+     edit-node-properties (reduce (fn [eprops prop]
+                                    (update eprops
+                                            (tree/property-predicate prop)
+                                            conj
+                                            (make-same
+                                             (tree->edit-tree
+                                              (tree/property-object prop)))))
+                                  {}
+                                  (tree/node-properties tree)))))
+
+(declare edit-tree-result-tree)
+
+(defn- edit-node-result-node [enode]
+  (tree/make-node
+   (edit-node-uri enode)
+   (reduce (fn [props [pred metrees]]
+             (let [trees (mapcat (fn [metree]
+                                   (cond
+                                     (is-a? maybe-changed metree)
+                                     [(edit-tree-result-tree
+                                       (maybe-changed-result-value metree))]
+
+                                     (is-a? added metree)
+                                     [(edit-tree-result-tree
+                                       (added-result-value metree))]
+
+                                     (is-a? deleted metree)
+                                     []))
+                                 metrees)]
+               (if-not (empty? trees)
+                 (concat props
+                         (map (partial tree/make-property pred)
+                              trees))
+                 props)))
+           []
+           (edit-node-properties enode))))
+
+(defn edit-tree-result-tree [etree]
+  (cond
+    (tree/ref? etree)
+    etree
+
+    (tree/literal-string? etree)
+    etree
+
+    (tree/literal-decimal? etree)
+    etree
+
+    (tree/literal-boolean? etree)
+    etree
+
+    (is-a? edit-node etree)
+    (edit-node-result-node etree)))
+
+(defn set-edit-node-original
+
+  #_([enode]
+   (tree/make-node
+    (edit-node-uri enode)
+    (reduce (fn [m [pred metrees]]
+              (let [trees (mapcat (fn [metree]
+                                    (case (marked-marker metree)
+                                      same
+                                      [(edit-tree-original
+                                        (marked-value metree))]
+
+                                      added
+                                      []
+
+                                      deleted
+                                      [(edit-tree-original
+                                        (marked-value metree))]))
+                                  etrees)]
+                (if-not (empty? trees)
+                  (assoc m pred trees)
+                  m)))
+            {}
+            (edit-node-properties enode))))
+
+  ([enode new-node]
+   (assert (empty? (edit-node-properties enode)))
+   (edit-node-properties enode (reduce (fn [eprops prop]
+                                         (update eprops
+                                                 (tree/property-predicate prop)
+                                                 conj
+                                                 (tree->edit-tree (tree/property-object prop))))
+                                       {}
+                                       (tree/node-properties new-node)))
+   #_(lens/overhaul enode
+                  edit-node-properties
+                  (fn [eprops]
+                    (reduce (fn [eprops orig-property]
+                              (let [pred (tree/property-predicate orig-property)]
+                                (update eprops pred (fn [olds]
+                                                      (let [[integrated? olds*] ...]
+                                                        (if integrated?
+                                                          olds*
+                                                          (conj olds [(make-marked same (tree->edit-tree
+                                                                                         (tree/property-object orig-property)))]))
+                                                        #_(let [mrkr (marked-marker old)]
+                                                          (cond
+                                                            (= same mkrk)
+                                                            ;; just keep
+                                                            old
+
+                                                            (= deleted mrkr)
+                                                            ;; just keep deleted
+                                                            old
+
+                                                            (= added mrkr)
+                                                            ;; user added a property for a predicate that 
+                                                            )))
+                                                      )))
+                              )
+                            eprops
+                            (tree/node-properties new-node))))))
+
+#_(defn edit-tree-original [etree]
+  (cond
+    (tree/ref? etree)
+    etree
+
+    (tree/literal-string? etree)
+    etree
+
+    (tree/literal-decimal? etree)
+    etree
+
+    (tree/literal-boolean? etree)
+    etree
+
+    (is-a? edit-node etree)
+    (edit-node-original etree)))
+
+(defn edit-node-add-property [enode predicate object-tree]
+  (lens/overhaul enode edit-node-properties
+                 (fn [eprops]
+                   (update eprops
+                           predicate
+                           conj
+                           (make-added (tree->edit-tree object-tree))))))
+
+(defn edit-tree-changes [etree]
+  [::TODO])
+
+(defn edit-tree-handle [etree]
+  (cond
+    (tree/ref? etree)
+    (tree/ref-uri etree)
+
+    (tree/literal-string? etree)
+    (tree/literal-string-value etree)
+
+    (tree/literal-decimal? etree)
+    (tree/literal-decimal-value etree)
+
+    (tree/literal-boolean? etree)
+    (tree/literal-boolean-value etree)
+
+    (is-a? edit-node etree)
+    (edit-node-uri etree)))
+
+;; re-implementations of wisen.frontend.tree stuff
+
+#_(defn- lift-edit-tree [f]
+  (comp f edit-tree-tree))
+
+#_(defn make-node [uri]
+  (make-edit-tree (tree/make-node uri)))
+
+(def node? (partial is-a? edit-node))
+
+(def node-uri edit-node-uri)
+
+(defn node-type [enode]
+  (tree/node-type (edit-tree-result-tree enode)))
+
+(defn type-uri [type]
+  (tree/type-uri type))
+
+(def primitive? tree/primitive?)
+
+(def literal-string? tree/literal-string?)
+
+(def literal-string-value tree/literal-string-value)
+
+(def literal-decimal? tree/literal-decimal?)
+
+(def literal-decimal-value tree/literal-decimal-value)
+
+(def literal-boolean? tree/literal-boolean?)
+
+(def literal-boolean-value tree/literal-boolean-value)
+
+(def make-ref tree/make-ref)
+
+(def ref? tree/ref?)
+
+(def ref-uri tree/ref-uri)
+
+(defn graph->edit-trees [graph]
+  (map tree->edit-tree (tree/graph->trees graph)))
+
+#_(defn edit-trees->graph [etrees]
+  (tree/trees->graph (map edit-tree-tree etrees)))
+
+#_(def graph<->edit-trees
+  (lens/xmap graph->edit-trees
+             edit-trees->graph))

@@ -7,8 +7,8 @@
             [wisen.frontend.promise :as promise]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
-            [wisen.frontend.edit-tree :as edit-tree]
-            [wisen.frontend.edit-tree-2 :as edit-tree-2]
+            #_[wisen.frontend.edit-tree :as edit-tree]
+            [wisen.frontend.edit-tree-2 :as edit-tree]
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
             [wisen.frontend.default :as default]
@@ -22,16 +22,19 @@
             [wisen.frontend.or-error :refer [success? success-value]]
             [wisen.frontend.schema :as schema]))
 
-(defn- color-for-modifier [emode]
+(defn- color-for-marked [marked]
   (cond
-    (= edit-tree/deleted emode)
+    (edit-tree/deleted? marked)
     "red"
 
-    (= edit-tree/added emode)
+    (edit-tree/added? marked)
     "green"
 
-    (= edit-tree/same emode)
-    "gray"))
+    (edit-tree/same? marked)
+    "gray"
+
+    (edit-tree/changed? marked)
+    "orange"))
 
 (def-record delete-property-action [])
 
@@ -75,16 +78,15 @@
               (forms/option {:value "queer"} "Queer")
               (forms/option {:value "immigrants"} "Immigrants")))
 
-    (dom/div {:style {:margin-left "0em"
-                      :display "flex"}}
-             (edit-tree-component
-              schema
-              (schema/sorts-for-predicate schema predicate)
-              editable?
-              editing?))))
+    (edit-tree-component
+     schema
+     (schema/sorts-for-predicate schema predicate)
+     editable?
+     editing?)))
 
 (c/defn-item edit-property-component [schema editable? editing?]
-  (c/with-state-as edit-property
+  "TODO"
+  #_(c/with-state-as edit-property
 
     (let [predicate (edit-tree/edit-property-predicate edit-property)]
       (dom/div
@@ -162,17 +164,12 @@
                 :font-weight "normal"}
         :onClick
         (fn [[node predicate] _]
-          (edit-tree/add-property node predicate)
+          [(edit-tree/edit-node-add-property node predicate (default/default-tree-for-predicate schema predicate))
+           predicate]
           #_(c/return :action (add-property-action add-property-action-subject (edit-tree/node-uri node)
-                                                 add-property-action-predicate predicate
-                                                 add-property-action-object-tree (default/default-tree-for-predicate schema predicate))))}
+                                                   add-property-action-predicate predicate
+                                                   add-property-action-object-tree (default/default-tree-for-predicate schema predicate))))}
        "Add property")))))
-
-(defn- remove-index
-  "remove elem in coll"
-  [pos coll]
-  (let [v (vec coll)]
-    (into (subvec v 0 pos) (subvec v (inc pos)))))
 
 ;; OSM
 
@@ -323,7 +320,7 @@
 
              (add-property-button schema (schema/predicates-for-type schema (edit-tree/node-type node)))
 
-             (dom/div
+             #_(dom/div
               {:style {:display "flex"
                        :gap "1em"}}
               #_(when (node-organization? node)
@@ -353,7 +350,7 @@
                             "Cancel")
        (ds/button-primary {:onClick
                            (fn [[_ uri]]
-                             (c/return :state [(edit-tree/make-node uri) uri]))}
+                             (c/return :state [(edit-tree/make-ref uri) uri]))}
                           "Set reference"))))))
 
 (defn- refresh-node-request [uri]
@@ -373,7 +370,7 @@
      (when refresh?
        (-> (refresh-node (edit-tree/node-uri node))
            (c/handle-action (fn [[node _] ac]
-                              (if (success? ac)
+                              #_(if (success? ac)
                                 (let [before-graph (edit-tree/edit-trees->graph [node])
                                       new-graph (success-value ac)
                                       merged-graph (rdf/merge before-graph
@@ -388,6 +385,82 @@
                     :border-radius "100%"
                     :width "27px"
                     :height "27px"}}))
+
+(c/defn-item property-object-component [schema predicate editable? force-editing?]
+  (c/with-state-as marked-edit-trees
+    (apply dom/div
+           (map-indexed (fn [idx _]
+                          (c/focus (lens/at-index idx)
+                                   (c/with-state-as marked-edit-tree
+                                     (dom/div
+                                      {:style {:flex 1
+                                               :display "flex"}}
+
+                                      (dom/div
+                                       {:style {:min-width "10em"
+                                                :position "relative"
+                                                :display "flex"
+                                                :gap "1em"
+                                                :align-items "flex-start"}}
+
+                                       (dom/div
+                                        {:style {:background "white"
+                                                 :display "inline-flex"
+                                                 :border (str "1px solid " (color-for-marked marked-edit-tree))
+                                                 :margin-left "10px"
+                                                 :padding "4px 12px"
+                                                 :position "relative"
+                                                 :z-index "5"}}
+                                        (schema/label-for-predicate schema predicate))
+
+                                       (when (and force-editing?
+                                                  (edit-tree/can-delete? marked-edit-tree))
+                                         (ds/button-secondary {:onClick edit-tree/mark-deleted
+                                                               :style {:font-size "25px"
+                                                                       :font-weight "normal"
+                                                                       :cursor "pointer"
+                                                                       :z-index 5}}
+                                                              "×"))
+
+                                       (dom/div {:style {:width "100%"
+                                                         :border-bottom "1px solid gray"
+                                                         :position "absolute"
+                                                         :top "14px"
+                                                         :z-index "4"}}))
+
+                                      (cond
+                                        (edit-tree/deleted? marked-edit-tree)
+                                        (c/focus edit-tree/deleted-result-value
+                                                 (component-for-predicate predicate schema editable? force-editing?))
+
+                                        (edit-tree/added? marked-edit-tree)
+                                        (c/focus edit-tree/added-result-value
+                                                 (component-for-predicate predicate schema editable? force-editing?))
+
+                                        (edit-tree/maybe-changed? marked-edit-tree)
+                                        (dom/div
+                                         (when (edit-tree/changed? marked-edit-tree)
+                                           (c/focus edit-tree/maybe-changed-original-value
+                                                    (dom/div
+                                                     {:style {:text-decoration "line-through"
+                                                              :color "red"}}
+                                                     (component-for-predicate predicate schema false false))))
+                                         (c/focus edit-tree/maybe-changed-result-value
+                                                  (component-for-predicate predicate schema editable? force-editing?))))))))
+
+                        marked-edit-trees))))
+
+(c/defn-item properties-component [schema editable? force-editing?]
+  (c/with-state-as properties
+
+    (apply
+     dom/div
+
+     (map (fn [predicate]
+            (c/focus (lens/member predicate)
+                     (property-object-component schema predicate editable? force-editing?)))
+
+          (sort schemaorg/compare-predicate (keys properties))))))
 
 (defn- node-component [schema editable? force-editing?]
   (c/with-state-as [node local-state :local {:editing? force-editing?
@@ -432,8 +505,7 @@
          (when editing?
            (node-component-header schema))
 
-         (apply
-          dom/div
+         (dom/div
           {:style {:display "flex"
                    :flex-direction "column"
                    :gap "2ex"
@@ -441,22 +513,8 @@
                    :padding-top "12px"
                    :border-left "1px solid gray"}}
 
-          (->>
-
-           (edit-tree/node-properties node)
-
-           #_(sort (fn [p1 p2]
-                   (schemaorg/compare-predicate
-                    (edit-tree/edit-property-predicate p1)
-                    (edit-tree/edit-property-predicate p2))))
-
-           (map-indexed (fn [idx _]
-                          (-> (c/focus (edit-tree/edit-tree-property-at-index idx)
-                                       (edit-property-component schema editable? editing?))
-                              (c/handle-action (fn [node action]
-                                                 (if (is-a? delete-property-action action)
-                                                   (c/return :state (edit-tree/delete-property-at-index node idx))
-                                                   (c/return :action action)))))))))))))))
+          (c/focus edit-tree/edit-node-properties
+                   (properties-component schema editable? force-editing?)))))))))
 
 (defn edit-tree-component [schema sorts editable? force-editing?]
   (c/with-state-as etree
@@ -505,4 +563,4 @@
                    (dom/div
                     (edit-trees-component schema editable? force-editing?)
                     (c/with-state-as etrees
-                      (display-edits (apply concat (map edit-tree/edit-tree-edits etrees)))))))
+                      (display-edits (apply concat (map edit-tree/edit-tree-changes etrees)))))))
