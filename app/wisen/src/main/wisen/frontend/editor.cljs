@@ -53,26 +53,26 @@
     (c/with-state-as node
       (schema/label-for-type schema (edit-tree/node-uri node)))
 
-    #_#_#_#_#_#_"http://schema.org/description"
-    (c/focus tree/literal-string-value
+    "http://schema.org/description"
+    (c/focus edit-tree/literal-string-value
              (if editing?
                (ds/textarea {:style {:width "100%"
                                      :min-height "6em"}})
                (c/dynamic dom/div)))
 
     "http://schema.org/dayOfWeek"
-    (c/focus tree/node-uri (ds/select
-                            (forms/option {:value "http://schema.org/Monday"} "Monday")
-                            (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
-                            (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
-                            (forms/option {:value "http://schema.org/Thursday"} "Thursday")
-                            (forms/option {:value "http://schema.org/Friday"} "Friday")
-                            (forms/option {:value "http://schema.org/Saturday"} "Saturday")
-                            (forms/option {:value "http://schema.org/Sunday"} "Sunday")
-                            ))
+    (c/focus edit-tree/node-uri (ds/select
+                                 (forms/option {:value "http://schema.org/Monday"} "Monday")
+                                 (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
+                                 (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
+                                 (forms/option {:value "http://schema.org/Thursday"} "Thursday")
+                                 (forms/option {:value "http://schema.org/Friday"} "Friday")
+                                 (forms/option {:value "http://schema.org/Saturday"} "Saturday")
+                                 (forms/option {:value "http://schema.org/Sunday"} "Sunday")
+                                 ))
 
     "https://wisen.active-group.de/target-group"
-    (c/focus tree/literal-string-value
+    (c/focus edit-tree/literal-string-value
              (ds/select
               (forms/option {:value "elderly"} "Elderly")
               (forms/option {:value "queer"} "Queer")
@@ -83,55 +83,6 @@
      (schema/sorts-for-predicate schema predicate)
      editable?
      editing?)))
-
-(c/defn-item edit-property-component [schema editable? editing?]
-  "TODO"
-  #_(c/with-state-as edit-property
-
-    (let [predicate (edit-tree/edit-property-predicate edit-property)]
-      (dom/div
-       {:style {:flex 1
-                :display "flex"}}
-
-       (dom/div
-        {:style {:min-width "10em"
-                 :position "relative"
-                 :display "flex"
-                 :gap "1em"
-                 :align-items "flex-start"}}
-
-        (dom/div
-         {:style {:background "white"
-                  :display "inline-flex"
-                  :border (str "1px solid " (color-for-modifier
-                                             (edit-tree/edit-property-modifier edit-property)))
-                  :margin-left "10px"
-                  :padding "4px 12px"
-                  :position "relative"
-                  :z-index "5"}}
-         (schema/label-for-predicate schema predicate))
-
-        (when editing?
-          (ds/button-secondary {:onClick (fn [prop]
-                                           (c/return :action (delete-property-action)))
-                                :style {:font-size "25px"
-                                        :font-weight "normal"
-                                        :cursor "pointer"
-                                        :z-index 5}}
-                               "×"))
-
-        (dom/div {:style {:width "100%"
-                          :border-bottom "1px solid gray"
-                          :position "absolute"
-                          :top "14px"
-                          :z-index "4"}}))
-
-       (c/focus edit-tree/edit-property-object
-                (component-for-predicate predicate schema editable? editing?))))))
-
-(defn- focus-query [uri]
-  (str "CONSTRUCT { <" uri "> ?p ?o . }
-          WHERE { <" uri "> ?p ?o . }"))
 
 (defn- node-organization? [node]
   (= "http://schema.org/Organization"
@@ -165,10 +116,7 @@
         :onClick
         (fn [[node predicate] _]
           [(edit-tree/edit-node-add-property node predicate (default/default-tree-for-predicate schema predicate))
-           predicate]
-          #_(c/return :action (add-property-action add-property-action-subject (edit-tree/node-uri node)
-                                                   add-property-action-predicate predicate
-                                                   add-property-action-object-tree (default/default-tree-for-predicate schema predicate))))}
+           predicate])}
        "Add property")))))
 
 ;; OSM
@@ -370,11 +318,12 @@
      (when refresh?
        (-> (refresh-node (edit-tree/node-uri node))
            (c/handle-action (fn [[node _] ac]
-                              #_(if (success? ac)
-                                (let [before-graph (edit-tree/edit-trees->graph [node])
-                                      new-graph (success-value ac)
+                              (if (success? ac)
+                                (let [new-graph (success-value ac)
+                                      new-edit
                                       merged-graph (rdf/merge before-graph
                                                               new-graph)]
+                                  ()
                                   [(first (edit-tree/graph->edit-trees merged-graph))
                                    false])
                                 (assert false "TODO: implement error handling")))))))))
