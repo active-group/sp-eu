@@ -8,6 +8,7 @@
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.edit-tree :as edit-tree]
+            [wisen.frontend.edit-tree-2 :as edit-tree-2]
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
             [wisen.frontend.default :as default]
@@ -135,7 +136,7 @@
      (edit-tree/type-uri (edit-tree/node-type node))))
 
 (c/defn-item add-property-button [schema predicates]
-  (c/with-state-as [resource predicate :local schemaorg/default-predicate]
+  (c/with-state-as [node predicate :local schemaorg/default-predicate]
     (dom/div
      {:style {:display "flex"
               :gap "1em"}}
@@ -161,6 +162,7 @@
                 :font-weight "normal"}
         :onClick
         (fn [[node predicate] _]
+          (edit-tree/add-property node predicate)
           #_(c/return :action (add-property-action add-property-action-subject (edit-tree/node-uri node)
                                                  add-property-action-predicate predicate
                                                  add-property-action-object-tree (default/default-tree-for-predicate schema predicate))))}
@@ -319,7 +321,7 @@
                       :border-bottom "1px solid gray"
                       :justify-content "space-between"}}
 
-             #_(add-property-button schema (schema/predicates-for-type schema (edit-tree/node-type node)))
+             (add-property-button schema (schema/predicates-for-type schema (edit-tree/node-type node)))
 
              (dom/div
               {:style {:display "flex"
@@ -395,18 +397,12 @@
           uri (edit-tree/node-uri node)]
 
       (details/details
-       {:id uri
-        #_#_:style {:border "1px solid gray"
-                :box-shadow "0 1px 0px rgba(0,0,0,0.5)"
-                :background "rgba(255,255,255,0.5)"
-                :border-radius "0 4px 4px 4px"}}
+       {:id uri}
 
        (lens/>> lens/second :open?)
 
        (details/summary
         {:style {:color "#555"
-                 #_#_#_#_:border "1px solid gray"
-                 :border-radius "32px"
                  :cursor "pointer"
                  :display "flex"
                  :align-items "center"
@@ -414,11 +410,11 @@
         (the-circle)
         (dom/span {:style {:margin-right "1em"}} uri)
 
-        #_#_#_#_(when editing?
-                  (c/fragment
-                   (c/focus lens/first
-                            (modal/modal-button "Set reference" set-reference))
-                   " | "))
+        #_#_#_(when editing?
+                (c/fragment
+                 (c/focus lens/first
+                          (modal/modal-button "Set reference" set-reference))
+                 " | "))
 
         (c/focus lens/first (refresh-button))
 
@@ -433,72 +429,62 @@
         lens/first
         (dom/div
 
-         #_(when editing?
+         (when editing?
            (node-component-header schema))
 
-         (let [props (sort (fn [p1 p2]
-                             (schemaorg/compare-predicate
-                              (edit-tree/edit-property-predicate p1)
-                              (edit-tree/edit-property-predicate p2)))
-                           (edit-tree/node-properties node))]
-           (when-not (empty? props)
-             (apply
-              dom/div
-              {:style {:display "flex"
-                       :flex-direction "column"
-                       :gap "2ex"
-                       :margin-left "14px"
-                       :padding-top "12px"
-                       :border-left "1px solid gray"}}
+         (apply
+          dom/div
+          {:style {:display "flex"
+                   :flex-direction "column"
+                   :gap "2ex"
+                   :margin-left "14px"
+                   :padding-top "12px"
+                   :border-left "1px solid gray"}}
 
-              (->> props
-                   (map-indexed (fn [idx _]
-                                  (-> (c/focus (edit-tree/edit-tree-property-at-index idx)
-                                               (c/with-state-as eprop
-                                                 (edit-property-component schema
-                                                                          editable?
-                                                                          editing?)))
-                                      (c/handle-action (fn [node action]
-                                                         (if (is-a? delete-property-action action)
-                                                           (c/return :state (edit-tree/delete-property-at-index node idx))
-                                                           (c/return :action action)))))))))))))))))
+          (->>
+
+           (edit-tree/node-properties node)
+
+           #_(sort (fn [p1 p2]
+                   (schemaorg/compare-predicate
+                    (edit-tree/edit-property-predicate p1)
+                    (edit-tree/edit-property-predicate p2))))
+
+           (map-indexed (fn [idx _]
+                          (-> (c/focus (edit-tree/edit-tree-property-at-index idx)
+                                       (edit-property-component schema editable? editing?))
+                              (c/handle-action (fn [node action]
+                                                 (if (is-a? delete-property-action action)
+                                                   (c/return :state (edit-tree/delete-property-at-index node idx))
+                                                   (c/return :action action)))))))))))))))
 
 (defn edit-tree-component [schema sorts editable? force-editing?]
   (c/with-state-as etree
-    (dom/div
-     #_{:style {:position "relative"}}
-     #_(dom/div {:style {:border "1px solid gray"
-                       :border-radius "100%"
-                       :width "1em"
-                       :height "1em"
-                       :position "absolute"
-                       :top 0
-                       :left 0}})
-     (cond
-       (edit-tree/literal-string? etree)
-       (c/focus edit-tree/literal-string-value
-                (if force-editing?
-                  (ds/input)
-                  (c/dynamic str)))
+    (cond
+      (edit-tree/literal-string? etree)
+      (c/focus edit-tree/literal-string-value
+               (if force-editing?
+                 (ds/input)
+                 (c/dynamic str)))
 
-       (edit-tree/literal-decimal? etree)
-       (c/focus edit-tree/literal-decimal-value
-                (if force-editing?
-                  (ds/input {:type "decimal"})
-                  (c/dynamic str)))
+      (edit-tree/literal-decimal? etree)
+      (c/focus edit-tree/literal-decimal-value
+               (if force-editing?
+                 (ds/input {:type "decimal"})
+                 (c/dynamic str)))
 
-       (edit-tree/literal-boolean? etree)
-       (c/focus edit-tree/literal-boolean-value
-                (if force-editing?
-                  (ds/input {:type "checkbox"})
-                  (c/dynamic str)))
+      (edit-tree/literal-boolean? etree)
+      (c/focus edit-tree/literal-boolean-value
+               (if force-editing?
+                 (ds/input {:type "checkbox"})
+                 (c/dynamic str)))
 
-       (edit-tree/ref? etree)
-       (dom/div "REF: " (edit-tree/ref-uri etree))
+      (edit-tree/ref? etree)
+      (dom/div "REF: " (edit-tree/ref-uri etree))
 
-       (edit-tree/node? etree)
-       (node-component schema editable? force-editing?)
-       ))))
+      (edit-tree/node? etree)
+      (node-component schema editable? force-editing?)
+      )))
 
 ;; The editor handles rooted graphs with edits
 

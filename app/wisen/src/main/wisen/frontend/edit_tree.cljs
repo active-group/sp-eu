@@ -3,7 +3,9 @@
   (:require [wisen.frontend.tree :as tree]
             [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
-            [active.clojure.lens :as lens]))
+            [active.clojure.lens :as lens]
+            [wisen.frontend.edit-tree-2]))
+
 
 (def-record delete-property-edit
   [delete-property-edit-subject
@@ -146,6 +148,13 @@
                          delete-property-edit-object (edit-tree-handle
                                                       (edit-property-object property))))))
 
+(defn add-property [node predicate]
+  (lens/overhaul node edit-tree-edits
+                 conj (add-property-edit
+                       add-property-edit-subject (node-uri node)
+                       add-property-edit-predicate predicate
+                       add-property-edit-object (tree/make-node))))
+
 ;; re-implementations of wisen.frontend.tree stuff
 
 (defn- lift-edit-tree [f]
@@ -159,12 +168,17 @@
 (def node-uri (lift-edit-tree tree/node-uri))
 
 (defn node-properties "Get a list of edit-property" [etree]
-  (map
-   (fn [idx]
-     (lens/yank etree (edit-tree-property-at-index idx)))
-   (range
-    (count (tree/node-properties
-            (edit-tree-tree etree))))))
+  (concat
+   (map
+    (fn [idx]
+      (lens/yank etree (edit-tree-property-at-index idx)))
+    (range
+     (count (tree/node-properties
+             (edit-tree-tree etree)))))
+   (map (fn [edit]
+          
+          )
+        (edit-tree-edits etree))))
 
 (def node-type
   (lens/>>
