@@ -175,31 +175,3 @@
     (default-tree-for-sort
      (first
       (schema/sorts-for-predicate schema predicate)))))
-
-(defn tree-sort
-
-  ([tree]
-    (cond
-      (tree/node? tree)
-      (tree/node-type tree)
-
-      (tree/ref? tree)
-      tree/ref
-
-      (tree/literal-string? tree)
-      tree/literal-string
-
-      (tree/literal-decimal? tree)
-      tree/literal-decimal
-
-      (tree/literal-boolean? tree)
-      tree/literal-boolean
-      ))
-
-  ([tree new-sort]
-   (if (= new-sort (tree-sort tree))
-     tree
-     (default-tree-for-sort new-sort))))
-
-(defn edit-tree-sort [etree]
-  (tree-sort (edit-tree/edit-tree-tree etree)))
