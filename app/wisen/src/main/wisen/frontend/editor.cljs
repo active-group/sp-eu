@@ -520,6 +520,9 @@
   (c/with-state-as etrees
     (apply
      dom/div
+     {:style {:display "flex"
+              :flex-direction "column"
+              :gap "2ex"}}
      (map-indexed (fn [idx _]
                     (c/focus (lens/at-index idx)
                              (edit-tree-component schema [] editable? force-editing?)))
