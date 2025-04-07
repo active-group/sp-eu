@@ -248,6 +248,22 @@
     (partial pr-change schema)
     changes)))
 
+(defn changes-summary [schema changes]
+  (let [deletions (filter delete? changes)
+        additions (filter add? changes)]
+    (dom/div
+     {:style {:display "flex"
+              :gap "1em"}}
+     (dom/div
+      {:style {:color "green"}}
+      (str (count additions))
+      " Additions")
+
+     (dom/div
+      {:style {:color "red"}}
+      (str (count deletions))
+      " Deletions"))))
+
 (defn commit-changes-request [changes]
   (ajax/POST "/api/changes"
              {:body (pr-str {:changes

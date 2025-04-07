@@ -275,17 +275,18 @@
 
 ;; ---
 
+(declare the-circle)
+
 (defn- node-component-header [schema]
   (c/with-state-as node
     (dom/div {:style {:display "flex"
-                      :padding "1.5ex 16px"
-                      :background "rgba(218, 224, 235, 0.7)"
                       :gap "2em"
                       :align-items "center"
-                      :border-bottom "1px solid gray"
                       :justify-content "space-between"}}
 
-             (add-property-button schema (schema/predicates-for-type schema (edit-tree/node-type node)))
+             (dom/div
+              {:style {:display "flex"}}
+              (add-property-button schema (schema/predicates-for-type schema (edit-tree/node-type node))))
 
              #_(dom/div
               {:style {:display "flex"
@@ -420,6 +421,9 @@
 
     (apply
      dom/div
+     {:style {:display "flex"
+              :flex-direction "column"
+              :gap "2ex"}}
 
      (map (fn [predicate]
             (c/focus (lens/member predicate)
@@ -467,19 +471,20 @@
         lens/first
         (dom/div
 
-         (when editing?
-           (node-component-header schema))
-
          (dom/div
           {:style {:display "flex"
                    :flex-direction "column"
                    :gap "2ex"
                    :margin-left "14px"
                    :padding-top "12px"
-                   :border-left "1px solid gray"}}
+                   :border-left "1px solid gray"
+                   :padding-bottom "2ex"}}
 
           (c/focus edit-tree/edit-node-properties
-                   (properties-component schema editable? force-editing?)))))))))
+                   (properties-component schema editable? force-editing?)))
+
+         (when editing?
+           (node-component-header schema))))))))
 
 (defn edit-tree-component [schema sorts editable? force-editing?]
   (c/with-state-as etree
@@ -520,7 +525,7 @@
                              (edit-tree-component schema [] editable? force-editing?)))
                   etrees))))
 
-(defn display-edits [_]
+(defn display-edits [edits]
   "TODO")
 
 (c/defn-item edit-graph [schema editable? force-editing? graph]

@@ -1,6 +1,7 @@
 (ns wisen.frontend.create
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom]
+            [active.data.record :refer [is-a?] :refer-macros [def-record]]
             [active.clojure.lens :as lens]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.tree :as tree]
@@ -20,52 +21,74 @@
 (defonce ^:private initial-organization
   default/default-organization)
 
+(def-record idle [])
+
+(def-record committing [committing-changes])
+
+(def-record commit-successful [commit-successful-changes])
+
+(def-record commit-failed [commit-failed-error])
+
+(defn changes-component [schema changes]
+  (c/isolate-state
+   (idle)
+   (c/with-state-as state
+     (dom/div
+
+      (change/changes-summary schema changes)
+
+      (cond
+        (is-a? idle state)
+        (when-not (empty? changes)
+          (dom/button {:onclick (fn [_]
+                                  (committing committing-changes changes))}
+                      "Commit changes"))
+
+        (is-a? committing state)
+        (dom/div
+         "Committing ..."
+         (wisen.frontend.spinner/main)
+         (c/handle-action
+          (ajax/execute (change/commit-changes-request (committing-changes state)))
+          (fn [st ac]
+            (if (and (ajax/response? ac)
+                     (ajax/response-ok? ac))
+              (c/return :state (commit-successful commit-successful-changes
+                                                  (committing-changes st))
+                        :action (commit-successful commit-successful-changes
+                                                   (committing-changes st)))
+              (commit-failed commit-failed-error
+                             (ajax/response-value ac))))))
+
+        (is-a? commit-successful state)
+        "Success!"
+
+        (is-a? commit-failed state)
+        (dom/div
+         "Commit failed!"
+         (dom/pre
+          (pr-str (commit-failed-error state)))))))))
+
 (defn main []
   (util/with-schemaorg
     (fn [schema]
       (ds/padded-2
        {:style {:overflow "auto"}}
+
        (dom/h2 "Create a new resource")
+
        (c/isolate-state
+
         (edit-tree/make-added-edit-tree initial-organization)
+
         (c/with-state-as etree
           (dom/div
-           (pr-str (edit-tree/edit-tree-changes etree))
-           (dom/div
-            #_{:style {:background "rgba(170,170,170,1.0)"
-                       :border "1px solid gray"
-                       :border-radius "4px"
-                       :padding "8px 16px"}}
-            (editor/edit-tree-component schema [organization-type event-type] true true))
 
-           ;; commit
-           #_(c/with-state-as [tree local-state :local {:commit? false
-                                                        :last-saved-tree empty-tree
-                                                        :last-error nil}]
-               (let [changes (change/delta-tree (:last-saved-tree local-state) tree)]
-                 (c/focus lens/second
-                          (dom/div
+           (c/handle-action
+            (changes-component schema (edit-tree/edit-tree-changes etree))
+            (fn [etree action]
+              (if (is-a? commit-successful action)
+                (c/return :state (edit-tree/edit-tree-commit-changes etree))
+                (c/return))))
 
-                           (change/changes-component schema changes)
-
-                           (when (:commit? local-state)
-                             (c/handle-action
-                              (ajax/execute (change/commit-changes-request changes))
-                              (fn [st ac]
-                                (if (and (ajax/response? ac)
-                                         (ajax/response-ok? ac))
-                                  (-> st
-                                      (assoc :commit? false)
-                                      (assoc :last-saved-tree tree)
-                                      (dissoc :last-error))
-                                  (-> st
-                                      (assoc :commit? false)
-                                      (assoc :last-error (ajax/response-value ac)))))))
-
-                           (if (empty? changes)
-                             "saved"
-                             (str (count changes) " changes"))
-
-                           (c/focus :commit?
-                                    (dom/button {:onclick (constantly true)}
-                                                "Commit changes")))))))))))))
+           (editor/edit-tree-component schema [organization-type event-type] true true))))))))
