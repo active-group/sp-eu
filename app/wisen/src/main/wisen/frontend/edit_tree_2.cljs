@@ -328,7 +328,12 @@
   (tree/node-type (edit-tree-result-tree enode)))
 
 (defn type-uri [type]
-  (tree/type-uri type))
+  (cond
+    (is-a? edit-node type)
+    (edit-node-uri type)
+
+    (tree/ref? type)
+    (tree/ref-uri type)))
 
 (def primitive? tree/primitive?)
 

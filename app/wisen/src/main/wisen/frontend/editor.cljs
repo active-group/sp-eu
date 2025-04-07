@@ -70,7 +70,7 @@
   (case predicate
     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     (c/with-state-as node
-      (schema/label-for-type schema (edit-tree/node-uri node)))
+      (schema/label-for-type schema (edit-tree/type-uri node)))
 
     "http://schema.org/description"
     (c/focus edit-tree/literal-string-value
