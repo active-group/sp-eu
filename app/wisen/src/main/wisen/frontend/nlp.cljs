@@ -53,7 +53,7 @@
                            (promise/call-with-promise-result
                             (rdf/json-ld-string->graph-promise (:json-ld-string resp))
                             (fn [response-graph]
-                             (editor/readonly response-graph :foo :bar)))))))))))))
+                             (editor/readonly-graph response-graph :foo :bar)))))))))))))
 
 (c/defn-item main []
   (c/isolate-state

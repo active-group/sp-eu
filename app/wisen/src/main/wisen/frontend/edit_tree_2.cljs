@@ -61,6 +61,17 @@
              added
              maybe-changed))
 
+(defn marked-current [m]
+  (cond
+    (is-a? maybe-changed m)
+    (maybe-changed-result-value m)
+
+    (is-a? deleted m)
+    (deleted-original-value m)
+
+    (is-a? added m)
+    (added-result-value m)))
+
 ;; ---
 
 (declare edit-tree)
@@ -325,6 +336,8 @@
 
 (def literal-string-value tree/literal-string-value)
 
+(def make-literal-string tree/make-literal-string)
+
 (def literal-decimal? tree/literal-decimal?)
 
 (def literal-decimal-value tree/literal-decimal-value)
@@ -341,3 +354,37 @@
 
 (defn graph->edit-trees [graph]
   (map make-same-edit-tree (tree/graph->trees graph)))
+
+(defn node-object-for-predicate [pred enode]
+  (some (map (fn [[pred* metrees]]
+               (when (= pred pred*)
+                 (marked-current (first metrees)))))
+        (edit-node-properties enode)))
+
+(defn node-assoc-replace [enode pred etree]
+  (-> enode
+      (lens/overhaul edit-node-properties
+                     (fn [old-props]
+                       (reduce (fn [new-props [pred* metrees]]
+                                 (if (= pred pred*)
+                                   (let [metrees* (mapcat (fn [metree]
+                                                            (cond
+                                                              (is-a? maybe-changed metree)
+                                                              [(mark-deleted metree)]
+
+                                                              (is-a? added metree)
+                                                              []
+
+                                                              (is-a? deleted metree)
+                                                              [metree]))
+                                                          metrees)]
+                                     (assoc new-props pred* metrees*))
+                                   ;; else
+                                   (assoc new-props pred* metrees)))
+                               {}
+                               old-props)
+                       ))
+      (lens/overhaul (lens/>> edit-node-properties
+                              (lens/member pred))
+                     conj
+                     (added added-result-value etree))))

@@ -144,7 +144,7 @@
   (dom/a {:href uri}
          "View on OpenStreetMap"))
 
-(declare readonly)
+(declare readonly-graph)
 
 (c/defn-item graph-resolver
   "Take an ajax request that yields json-ld as response. Turn that
@@ -170,7 +170,7 @@
      (when (some? osm-uri)
        (graph-resolver (osm/osm-lookup-request osm-uri)))
 
-     (when graph (readonly schema graph)))))
+     (when graph (readonly-graph schema graph)))))
 
 (c/defn-item link-organization-with-osm-button [schema osm-uri close-action]
   (c/with-state-as [node local-state :local {:graph nil
@@ -250,7 +250,7 @@
 
         (when current-graph
           #_(pr-str current-graph)
-          (readonly schema current-graph)))
+          (readonly-graph schema current-graph)))
 
        (modal/toolbar
 
@@ -277,21 +277,21 @@
 
 (declare the-circle)
 
-(defn- node-component-header [schema]
+(defn- set-properties [schema]
   (c/with-state-as node
     (dom/div {:style {:display "flex"
                       :gap "2em"
-                      :align-items "center"
-                      :justify-content "space-between"}}
+                      :align-items "center"}}
 
              (dom/div
               {:style {:display "flex"}}
               (add-property-button schema (schema/predicates-for-type schema (edit-tree/node-type node))))
 
-             #_(dom/div
+             (dom/div
               {:style {:display "flex"
                        :gap "1em"}}
-              #_(when (node-organization? node)
+
+              (when (node-organization? node)
                 (if-let [osm-uri (osm/node-osm-uri node)]
 
                   (dom/div
@@ -301,7 +301,7 @@
                    (modal/modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
                   (modal/modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
 
-              (modal/modal-button "Ask AI" (partial ask-ai schema))))))
+              (modal/modal-button "Set properties with AI" (partial ask-ai schema))))))
 
 (defn- set-reference [close-action]
   (c/with-state-as node
@@ -484,7 +484,7 @@
                    (properties-component schema editable? force-editing?)))
 
          (when editing?
-           (node-component-header schema))))))))
+           (set-properties schema))))))))
 
 (defn edit-tree-component [schema sorts editable? force-editing?]
   (c/with-state-as etree
@@ -534,3 +534,7 @@
                     (edit-trees-component schema editable? force-editing?)
                     (c/with-state-as etrees
                       (display-edits (apply concat (map edit-tree/edit-tree-changes etrees)))))))
+
+(c/defn-item readonly-graph [schema graph]
+  (c/isolate-state (edit-tree/graph->edit-trees graph)
+                   (edit-trees-component schema false false)))
