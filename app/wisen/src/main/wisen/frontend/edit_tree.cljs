@@ -172,13 +172,8 @@
 
 (defn set-edit-node-original [enode new-node]
   (assert (empty? (edit-node-properties enode)))
-  (edit-node-properties enode (reduce (fn [eprops prop]
-                                        (update eprops
-                                                (tree/property-predicate prop)
-                                                conj
-                                                (make-same-edit-tree (tree/property-object prop))))
-                                      {}
-                                      (tree/node-properties new-node))))
+  (edit-node-properties enode
+                        (edit-node-properties (make-edit-tree new-node make-same))))
 
 (defn edit-node-add-property [enode predicate object-tree]
   (lens/overhaul enode edit-node-properties
