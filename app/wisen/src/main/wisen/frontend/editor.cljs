@@ -481,7 +481,7 @@
                    :padding-bottom "2ex"}}
 
           (c/focus edit-tree/edit-node-properties
-                   (properties-component schema editable? force-editing?)))
+                   (properties-component schema editable? (:editing? local-state))))
 
          (when editing?
            (set-properties schema))))))))
