@@ -3,7 +3,7 @@
             [reacl-c.dom :as dom]
             [active.clojure.lens :as lens]
             [reacl-c-basics.ajax :as ajax]
-            [wisen.frontend.edit-tree-2 :as edit-tree]
+            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.common.vocabulary :as vocabulary]
             [clojure.string :as str]))
 

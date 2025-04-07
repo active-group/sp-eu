@@ -9,7 +9,7 @@
             [wisen.frontend.rdf :as rdf]
             #_[wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.tree :as tree]
-            [wisen.frontend.edit-tree-2 :as edit-tree]
+            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.change :as change]
             [wisen.common.change-api :as change-api]
             [wisen.frontend.default :as default]
