@@ -247,45 +247,53 @@
     (c/fragment
 
      ;; may trigger queries
-     (dom/div
-      {:style {:display "flex"
-               :flex-direction "column"
-               :overflow "auto"}}
+     (-> (dom/div
+          {:style {:display "flex"
+                   :flex-direction "column"
+                   :overflow "auto"}}
 
-      (dom/div
-       {:style {:border-bottom ds/border}}
-       (dom/div
-
-        (c/isolate-state
-         {:type :organization
-          :target "elderly"
-          :tags ["education"]
-          :location [[48.484 48.550]
-                     [9.0051 9.106]]}
-         (dom/div
-          {:style {:position "relative"}}
           (dom/div
-           {:style {:position "absolute"
-                    :bottom 0
-                    :left 0
-                    :z-index 999
-                    :width "100%"}}
-           (quick-search (some? (:last-focus-query state))))
-          (c/focus :location
-                   (leaflet/main {:style {:height 460}}
-                                 (when-let [graph (:graph state)]
-                                   (map (fn [position]
-                                          (let [coords (unwrap-rdf-literal-decimal-tuple position)]
-                                            (leaflet/make-pin
-                                             "A"
-                                             (color-for-coordinates coords)
-                                             coords)))
-                                        (rdf/geo-positions graph))))))))
+           {:style {:border-bottom ds/border}}
+           (dom/div
 
-       ;; display when we have a graph
-       (when-let [graph (:graph state)]
-         (ds/padded-2
-          (editor/edit-graph schema true false graph)))))
+            (c/isolate-state
+             {:type :organization
+              :target "elderly"
+              :tags ["education"]
+              :location [[48.484 48.550]
+                         [9.0051 9.106]]}
+             (dom/div
+              {:style {:position "relative"}}
+              (dom/div
+               {:style {:position "absolute"
+                        :bottom 0
+                        :left 0
+                        :z-index 999
+                        :width "100%"}}
+
+               (quick-search (some? (:last-focus-query state))))
+
+              (c/focus :location
+                       (leaflet/main {:style {:height 460}}
+                                     (when-let [graph (:graph state)]
+                                       (map (fn [position]
+                                              (let [coords (unwrap-rdf-literal-decimal-tuple position)]
+                                                (leaflet/make-pin
+                                                 "A"
+                                                 (color-for-coordinates coords)
+                                                 coords)))
+                                            (rdf/geo-positions graph))))))))
+
+           ;; display when we have a graph
+           (when-let [graph (:graph state)]
+             (ds/padded-2
+              (editor/edit-graph schema true false graph)))))
+
+         (c/handle-action
+          (fn [st ac]
+            (if (record/is-a? focus-query-action ac)
+              (assoc st :last-focus-query (focus-query-action-query ac))
+              (c/return :action ac)))))
 
      ;; perform focus query
      (when-let [last-focus-query (:last-focus-query state)]
@@ -300,23 +308,6 @@
                                            (-> st
                                                (assoc :graph (ajax/response-value ac))
                                                (dissoc :last-focus-query)))
-                                 (c/return :action ac)))))))
-
-     ;; perform expand-by query
-     (when-let [last-expand-by-query (:last-expand-by-query state)]
-       (c/fragment
-        (spinner/main)
-        (-> (run-query last-expand-by-query)
-            (c/handle-action (fn [st ac]
-                               ;; TODO: error handling
-                               (if (and (ajax/response? ac)
-                                        (ajax/response-ok? ac))
-                                 (c/return :state
-                                           (-> st
-                                               (update :graph
-                                                       (fn [g]
-                                                         (rdf/merge g (ajax/response-value ac))))
-                                               (dissoc :last-expand-by-query)))
                                  (c/return :action ac))))))))))
 
 (c/defn-item main []
