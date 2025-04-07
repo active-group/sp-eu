@@ -3,7 +3,7 @@
             [reacl-c.dom :as dom]
             [active.clojure.lens :as lens]
             [reacl-c-basics.ajax :as ajax]
-            [wisen.frontend.tree :as tree]
+            [wisen.frontend.edit-tree-2 :as edit-tree]
             [wisen.common.vocabulary :as vocabulary]
             [clojure.string :as str]))
 
@@ -34,11 +34,11 @@
             {:headers {:accept "application/ld+json"}}))
 
 (defn node-osm-uri [node]
-  (let [obj ((tree/node-object-for-predicate vocabulary/wisen-osm-uri-predicate) node)]
-    (when (tree/literal-string? obj)
-      (tree/literal-string-value obj))))
+  (let [obj (edit-tree/node-object-for-predicate vocabulary/wisen-osm-uri-predicate node)]
+    (when (edit-tree/literal-string? obj)
+      (edit-tree/literal-string-value obj))))
 
 (defn organization-do-link-osm [organization-node osm-id osm-place-node]
   (-> organization-node
-      (tree/node-assoc-replace "http://schema.org/location" osm-place-node)
-      (tree/node-assoc-replace vocabulary/wisen-osm-uri-predicate (tree/make-literal-string osm-id))))
+      (edit-tree/node-assoc-replace "http://schema.org/location" osm-place-node)
+      (edit-tree/node-assoc-replace vocabulary/wisen-osm-uri-predicate (edit-tree/make-literal-string osm-id))))
