@@ -351,7 +351,7 @@
                     :width "27px"
                     :height "27px"}}))
 
-(c/defn-item property-object-component [schema predicate editable? force-editing?]
+(c/defn-item property-object-component [schema predicate editable? force-editing? last?]
   (c/with-state-as marked-edit-trees
     (apply dom/div
            (map-indexed (fn [idx _]
@@ -359,7 +359,20 @@
                                    (c/with-state-as marked-edit-tree
                                      (dom/div
                                       {:style {:flex 1
-                                               :display "flex"}}
+                                               :display "flex"
+                                               :position "relative"}}
+
+                                      (when last?
+                                        (dom/div {:style {:width "1px"
+                                                          :border-left (if force-editing?
+                                                                         "1px dashed gray"
+                                                                         "1px solid #eee")
+                                                          :height "100%"
+                                                          :position "absolute"
+                                                          :top "15px"
+                                                          :z-index "5"
+                                                          :left "-1px"
+                                                          :background "#eee"}}))
 
                                       (dom/div
                                        {:style {:min-width "10em"
@@ -392,7 +405,9 @@
                                                          :border-bottom "1px solid gray"
                                                          :position "absolute"
                                                          :top "14px"
-                                                         :z-index "4"}}))
+                                                         :z-index "4"}})
+
+                                       )
 
                                       (cond
                                         (edit-tree/deleted? marked-edit-tree)
@@ -425,11 +440,13 @@
               :flex-direction "column"
               :gap "2ex"}}
 
-     (map (fn [predicate]
-            (c/focus (lens/member predicate)
-                     (property-object-component schema predicate editable? force-editing?)))
+     (let [ks (sort schemaorg/compare-predicate (keys properties))]
+       (map-indexed (fn [idx predicate]
+                      (c/focus (lens/member predicate)
+                               (let [last? (= idx (dec (count ks)))]
+                                 (property-object-component schema predicate editable? force-editing? last?))))
 
-          (sort schemaorg/compare-predicate (keys properties))))))
+                    ks)))))
 
 (defn- node-component [schema editable? force-editing?]
   (c/with-state-as [node local-state :local {:editing? force-editing?
@@ -471,17 +488,19 @@
         lens/first
         (dom/div
 
-         (dom/div
-          {:style {:display "flex"
-                   :flex-direction "column"
-                   :gap "2ex"
-                   :margin-left "14px"
-                   :padding-top "12px"
-                   :border-left "1px solid gray"
-                   :padding-bottom "2ex"}}
+         (c/focus edit-tree/edit-node-properties
+                  (c/with-state-as eprops
+                    (when-not (empty? eprops)
+                      (dom/div
+                       {:style {:display "flex"
+                                :flex-direction "column"
+                                :gap "2ex"
+                                :margin-left "14px"
+                                :padding-top "12px"
+                                :border-left "1px solid gray"
+                                :padding-bottom "2ex"}}
 
-          (c/focus edit-tree/edit-node-properties
-                   (properties-component schema editable? (:editing? local-state))))
+                       (properties-component schema editable? (:editing? local-state))))))
 
          (when editing?
            (set-properties schema))))))))
