@@ -5,7 +5,7 @@
             [active.clojure.lens :as lens]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.tree :as tree]
-            [wisen.frontend.edit-tree-2 :as edit-tree]
+            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.editor :as editor]
             [wisen.frontend.util :as util]
             [wisen.frontend.change :as change]
@@ -34,15 +34,17 @@
    (idle)
    (c/with-state-as state
      (dom/div
+      {:style {:display "flex"
+               :gap "1em"}}
 
       (change/changes-summary schema changes)
 
       (cond
         (is-a? idle state)
         (when-not (empty? changes)
-          (dom/button {:onclick (fn [_]
-                                  (committing committing-changes changes))}
-                      "Commit changes"))
+          (ds/button-primary {:onclick (fn [_]
+                                         (committing committing-changes changes))}
+                             "Commit changes"))
 
         (is-a? committing state)
         (dom/div
@@ -72,23 +74,29 @@
 (defn main []
   (util/with-schemaorg
     (fn [schema]
-      (ds/padded-2
-       {:style {:overflow "auto"}}
+      (c/isolate-state
 
-       (dom/h2 "Create a new resource")
+       (edit-tree/make-added-edit-tree initial-organization)
 
-       (c/isolate-state
+       (c/with-state-as etree
+         (dom/div
+          {:style {:display "flex"
+                   :flex-direction "column"
+                   :overflow "auto"}}
 
-        (edit-tree/make-added-edit-tree initial-organization)
-
-        (c/with-state-as etree
           (dom/div
+           {:style {:overflow "auto"
+                    :padding "3ex 2em"}}
+           (editor/edit-tree-component schema [organization-type event-type] true true))
 
+          (dom/div
+           {:style {:border-top ds/border
+                    :padding "12px 24px"
+                    :display "flex"
+                    :justify-content "flex-end"}}
            (c/handle-action
             (changes-component schema (edit-tree/edit-tree-changes etree))
             (fn [etree action]
               (if (is-a? commit-successful action)
                 (c/return :state (edit-tree/edit-tree-commit-changes etree))
-                (c/return))))
-
-           (editor/edit-tree-component schema [organization-type event-type] true true))))))))
+                (c/return)))))))))))
