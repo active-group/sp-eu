@@ -245,6 +245,45 @@
 
        (edit-node-properties etree)))))
 
+(defn edit-tree-commit-changes
+  [etree]
+  (cond
+    (tree/ref? etree)
+    etree
+
+    (tree/literal-string? etree)
+    etree
+
+    (tree/literal-decimal? etree)
+    etree
+
+    (tree/literal-boolean? etree)
+    etree
+
+    (is-a? edit-node etree)
+    (let [subject (edit-node-uri etree)]
+      (edit-node-properties
+       etree
+       (reduce (fn [props* [predicate metrees]]
+                 (assoc props* predicate
+                        (mapcat
+                         (fn [metree]
+                           (cond
+                             (is-a? maybe-changed metree)
+                             [(make-same (edit-tree-commit-changes
+                                          (maybe-changed-result-value metree)))]
+
+                             (is-a? added metree)
+                             [(make-same (edit-tree-commit-changes
+                                          (added-result-value metree)))]
+
+                             (is-a? deleted metree)
+                             []))
+                         metrees)
+                        ))
+               {}
+               (edit-node-properties etree))))))
+
 (defn- edit-tree-handle [etree]
   (cond
     (tree/ref? etree)
