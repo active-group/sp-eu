@@ -35,17 +35,18 @@
    (property "addressLocality" (lit-s "Tübingen"))
    (property "addressCountry" (lit-s "DE"))))
 
-(def default-place
-  (make-node
-   "Place"
-   (property "address" default-postal-address)))
-
 (def default-opening-hours-specification
   (make-node
    "OpeningHoursSpecification"
    (property "dayOfWeek" (tree/make-node (schema "Monday")))
    (property "opens" (lit-s "10:00:00"))
    (property "closes" (lit-s "17:00:00"))))
+
+(def default-place
+  (make-node
+   "Place"
+   (property "address" default-postal-address)
+   (property "openingHoursSpecification" default-opening-hours-specification)))
 
 (def default-organization
   (make-node
@@ -54,8 +55,7 @@
    (property "description" (lit-s "Description"))
    (property "keywords" (lit-s "education, fun, games"))
    (property "location" default-place)
-   (property "url" (lit-s "https://..."))
-   (property "openingHoursSpecification" default-opening-hours-specification)))
+   (property "url" (lit-s "https://..."))))
 
 (def default-event
   (make-node
