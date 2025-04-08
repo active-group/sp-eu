@@ -376,7 +376,7 @@
 
                                       (cond
                                         (edit-tree/deleted? marked-edit-tree)
-                                        (c/focus edit-tree/deleted-result-value
+                                        (c/focus edit-tree/deleted-original-value
                                                  (component-for-predicate predicate schema editable? force-editing?))
 
                                         (edit-tree/added? marked-edit-tree)
