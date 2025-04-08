@@ -111,7 +111,7 @@
         "Unknown predicate"))))
 
 (defn predicates-for-type [schema type]
-  (set
+  (sort
    (concat
     ["http://schema.org/name"
      "http://schema.org/description"
