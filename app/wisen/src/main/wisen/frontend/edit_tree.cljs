@@ -322,29 +322,35 @@
       (is-a? deleted x)
       (is-a? added x)))
 
-(defn discard-edit [node predicate idx]
-  (lens/overhaul node
-                 (lens/>> edit-node-properties
-                          (lens/member predicate))
-                 (fn [metrees]
-                   (let [metree (nth metrees idx)]
-                     (cond
-                       (is-a? maybe-changed x)
-                       (assoc metrees idx (make-same (maybe-changed-original-value x)))
+(letfn [(vec-remove
+          [pos coll]
+          (into (subvec coll 0 pos) (subvec coll (inc pos))))]
 
-                       (is-a? deleted x)
-                       (assoc metrees idx (make-same (deleted-original-value x)))
+  (defn discard-edit [node predicate idx]
+    (lens/overhaul node
+                   edit-node-properties
+                   (fn [eprops]
+                     (let [metrees (get eprops predicate)
+                           metree (nth metrees idx)
+                           result-metrees
+                           (cond
+                             (is-a? maybe-changed metree)
+                             (assoc (vec metrees)
+                                    idx
+                                    (make-same (maybe-changed-original-value metree)))
 
-                       (is-a? added x)
-                       (dissoc metrees idx))))))
+                             (is-a? deleted metree)
+                             (assoc (vec metrees)
+                                    idx
+                                    (make-same (deleted-original-value metree)))
+
+                             (is-a? added metree)
+                             (vec-remove idx (vec metrees)))]
+                       (if (empty? result-metrees)
+                         (dissoc eprops predicate)
+                         (assoc eprops predicate result-metrees)))))))
 
 ;; re-implementations of wisen.frontend.tree stuff
-
-#_(defn- lift-edit-tree [f]
-  (comp f edit-tree-tree))
-
-#_(defn make-node [uri]
-  (make-edit-tree (tree/make-node uri)))
 
 (def node? (partial is-a? edit-node))
 
