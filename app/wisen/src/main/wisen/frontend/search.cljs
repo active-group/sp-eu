@@ -157,56 +157,65 @@
     3 "purple"
     ))
 
+(c/defn-item map-search [schema loading? pins]
+  (c/isolate-state
+   {:type :organization
+    :target "elderly"
+    :tags ["education"]
+    :location [[48.484 48.550]
+               [9.0051 9.106]]}
+   (dom/div
+    {:style {:position "relative"}}
+    (dom/div
+     {:style {:position "absolute"
+              :bottom 0
+              :left 0
+              :z-index 999
+              :width "100%"}}
+
+     (quick-search loading?))
+
+    (c/focus :location
+             (leaflet/main {:style {:height 460}} pins)))))
+
 (c/defn-item main* [schema]
   (c/with-state-as state
     (c/fragment
 
      ;; may trigger queries
-     (-> (dom/div
-          {:style {:display "flex"
-                   :flex-direction "column"
-                   :overflow "auto"}}
+     (-> (c/isolate-state
+          (when-let [graph (:graph state)]
+            (edit-tree/graph->edit-trees graph))
 
           (dom/div
-           {:style {:border-bottom ds/border}}
+           {:style {:display "flex"
+                    :flex-direction "column"
+                    :overflow "auto"}}
+
            (dom/div
+            {:class "map-and-search-results"
+             :style {:overflow "auto"
+                     :flex 1}}
 
-            (c/isolate-state
-             {:type :organization
-              :target "elderly"
-              :tags ["education"]
-              :location [[48.484 48.550]
-                         [9.0051 9.106]]}
-             (dom/div
-              {:style {:position "relative"}}
-              (dom/div
-               {:style {:position "absolute"
-                        :bottom 0
-                        :left 0
-                        :z-index 999
-                        :width "100%"}}
+            (map-search schema
+                        (some? (:last-focus-query state))
+                        (when-let [graph (:graph state)]
+                          (map (fn [position]
+                                 (let [coords (unwrap-rdf-literal-decimal-tuple position)]
+                                   (leaflet/make-pin
+                                    "A"
+                                    (color-for-coordinates coords)
+                                    coords)))
+                               (rdf/geo-positions graph))))
 
-               (quick-search (some? (:last-focus-query state))))
+            ;; display when we have a graph
+            (when (:graph state)
+              (ds/padded-2
+               (editor/edit-trees-component schema true false))))
 
-              (c/focus :location
-                       (leaflet/main {:style {:height 460}}
-                                     (when-let [graph (:graph state)]
-                                       (map (fn [position]
-                                              (let [coords (unwrap-rdf-literal-decimal-tuple position)]
-                                                (leaflet/make-pin
-                                                 "A"
-                                                 (color-for-coordinates coords)
-                                                 coords)))
-                                            (rdf/geo-positions graph))))))))
-
-           ;; display when we have a graph
-           (when-let [graph (:graph state)]
-             (c/isolate-state
-              (edit-tree/graph->edit-trees graph)
-              (dom/div
-               (ds/padded-2
-                (editor/edit-trees-component schema true false))
-               (commit/main schema))))))
+           (c/with-state-as etrees
+             (when-not (empty? (edit-tree/edit-trees-changes etrees))
+                       (commit/main schema)))))
 
          (c/handle-action
           (fn [st ac]
