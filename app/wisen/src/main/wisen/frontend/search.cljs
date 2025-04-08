@@ -11,75 +11,12 @@
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.spinner :as spinner]
+            [wisen.frontend.util :as util]
+            [wisen.frontend.or-error :refer [make-success
+                                             success?
+                                             success-value
+                                             make-error]]
             ["jsonld" :as jsonld]))
-
-(def-record place [place-label place-bounding-box])
-
-(defn make-place [lbl bb]
-  (place place-label lbl
-         place-bounding-box bb))
-
-(defn place? [x]
-  (record/is-a? place x))
-
-(def-record group [group-label group-places])
-
-(defn make-group [lbl plcs]
-  (group group-label lbl
-         group-places plcs))
-
-(defn group? [x]
-  (record/is-a? group x))
-
-(def search-places
-  ;; latitude range, longitude range
-  {:berlin (make-group "Berlin"
-                       {:berlin
-                        (make-place "Berlin" [[53.3 52.7]
-                                              [13.0 13.8]])
-                        :berlin-friedrichshain-kreuzberg
-                        (make-place "Friedrichshain-Kreuzberg" [[52.488 52.531]
-                                                                [13.398 13.465]])
-
-                        :berlin-mitte
-                        (make-place "Mitte" [[52.494 52.537]
-                                             [13.354 13.457]])
-                        })
-   :ljubljana (make-place "Ljubljana" [[46.011 46.125]
-                                       [14.411 14.647]])
-   :tuebingen (make-place "Tübingen" [[48.484 48.550]
-                                      [9.0051 9.106]])})
-
-(defn flatten-place-map [m]
-  (apply merge
-         (map (fn [[k v]]
-                (cond
-                  (place? v)
-                  {k v}
-
-                  (group? v)
-                  (flatten-place-map (group-places v))))
-              m)))
-
-(vals (flatten-place-map search-places))
-
-(defn- geo-range-for-key [k]
-  (place-bounding-box
-   (get (flatten-place-map search-places)
-        k)))
-
-(defn- ->options [m]
-  (map (fn [[k v]]
-         (cond
-           (place? v)
-           (forms/option {:value k}
-                         (place-label v))
-
-           (group? v)
-           (apply forms/optgroup
-                  {:label (group-label v)}
-                  (->options (group-places v)))))
-       m))
 
 (def-record focus-query-action
   [focus-query-action-query])
@@ -190,33 +127,10 @@
                                    :gap "0.5em"}}
                           "Searching …"
                           (spinner/main))
-                         "Search"))
-
-    #_(dom/div
-     {:style {:position "relative"
-              :top "2px"
-              :margin-left "-8px"
-              :margin-right "-20px"}}
-     (spinner/main)))))
+                         "Search")))))
 
 (defn run-query [q]
-  (c/isolate-state
-   nil
-   (c/fragment
-    (ajax/fetch (sparql-request q))
-
-    (c/with-state-as response
-      (when (ajax/response? response)
-        (if (ajax/response-ok? response)
-          (promise/call-with-promise-result
-           (rdf/json-ld-string->graph-promise (ajax/response-value response))
-           (fn [response-graph]
-             (c/once
-              (fn [_]
-                (c/return :action (ajax/ok-response response-graph))))))
-          (c/once
-           (fn [_]
-             (c/return :action response)))))))))
+  (util/load-json-ld (sparql-request q)))
 
 (defn- unwrap-rdf-literal-decimal [x]
   (assert (or (rdf/literal-decimal? x)
@@ -301,11 +215,10 @@
         (-> (run-query last-focus-query)
             (c/handle-action (fn [st ac]
                                ;; TODO: error handling
-                               (if (and (ajax/response? ac)
-                                        (ajax/response-ok? ac))
+                               (if (success? ac)
                                  (c/return :state
                                            (-> st
-                                               (assoc :graph (ajax/response-value ac))
+                                               (assoc :graph (success-value ac))
                                                (dissoc :last-focus-query)))
                                  (c/return :action ac))))))))))
 
