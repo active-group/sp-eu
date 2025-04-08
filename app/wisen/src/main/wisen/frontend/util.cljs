@@ -15,29 +15,34 @@
   returns either a success action with the graph (rdf) or an error
   action"
   [request]
-  (c/with-state-as [graph response :local nil]
-    (c/fragment
-     (c/focus lens/second
-              (ajax/fetch request))
+  (c/isolate-state
+   {}
+   (c/with-state-as responses
+     (c/fragment
+      (c/focus (lens/member request)
+               (ajax/fetch request))
 
-     (when (ajax/response? response)
-       (if (ajax/response-ok? response)
-         (promise/call-with-promise-result
-          (rdf/json-ld-string->graph-promise (ajax/response-value response))
-          (fn [response-graph]
-            (c/once
-             (fn [[st resp]]
-               (c/return :action (make-success response-graph))))))
-         (c/once
-          (fn [_]
-            (c/return :action (make-error (ajax/response-value response))))))))))
+      (when-let [current-response (get responses request)]
+        (if (ajax/response-ok? current-response)
+          (promise/call-with-promise-result
+           (rdf/json-ld-string->graph-promise (ajax/response-value current-response))
+           (fn [response-graph]
+             (c/once
+              (fn [_]
+                (c/return :action (make-success response-graph))))))
+          ;; else
+          (c/once
+           (fn [_]
+             (c/return :action (make-error (ajax/response-value current-response)))))))))))
 
 (c/defn-item load-json-ld-state [request]
-  (-> (load-json-ld request)
-      (c/handle-action (fn [_ ac]
-                         (if (success? ac)
-                           (c/return :state (success-value ac))
-                           (c/return :action ac))))))
+  (c/with-state-as graph
+    (when (nil? graph)
+      (-> (load-json-ld request)
+          (c/handle-action (fn [_ ac]
+                             (if (success? ac)
+                               (c/return :state (success-value ac))
+                               (c/return :action ac))))))))
 
 (defn load-schemaorg []
   (load-json-ld-state (ajax/GET "/api/schema"

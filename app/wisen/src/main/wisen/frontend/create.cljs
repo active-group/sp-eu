@@ -15,9 +15,6 @@
 (def organization-type (tree/make-node "http://schema.org/Organization"))
 (def event-type (tree/make-node "http://schema.org/Event"))
 
-(defonce ^:private empty-tree
-  (tree/make-node))
-
 (defonce ^:private initial-organization
   default/default-organization)
 
@@ -89,7 +86,7 @@
                     :padding "3ex 2em"}}
            (editor/edit-tree-component schema [organization-type event-type] true true))
 
-          (dom/div
+          #_(dom/div
            {:style {:border-top ds/border
                     :padding "12px 24px"
                     :display "flex"

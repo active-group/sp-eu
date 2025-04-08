@@ -23,20 +23,6 @@
             [wisen.frontend.or-error :refer [success? success-value]]
             [wisen.frontend.schema :as schema]))
 
-(defn- color-for-marked [marked]
-  (cond
-    (edit-tree/deleted? marked)
-    "red"
-
-    (edit-tree/added? marked)
-    "green"
-
-    (edit-tree/same? marked)
-    "gray"
-
-    (edit-tree/changed? marked)
-    "orange"))
-
 (defn- style-for-marked [marked]
   (cond
     (edit-tree/deleted? marked)
@@ -55,16 +41,12 @@
     {:border "1px solid orange"
      :color "orange"}))
 
-(def-record delete-property-action [])
-
 (defn pprint [x]
   (dom/pre
    (with-out-str
      (cljs.pprint/pprint x))))
 
 (declare edit-tree-component)
-
-(def-record delete-property [delete-property-property])
 
 (defn component-for-predicate [predicate schema editable? editing?]
   (case predicate
@@ -146,29 +128,13 @@
 
 (declare readonly-graph)
 
-(c/defn-item graph-resolver
-  "Take an ajax request that yields json-ld as response. Turn that
-  response into an rdf graph and set that as state."
-  [request]
-  (c/with-state-as [graph responses :local {}]
-    (when (nil? graph)
-      (c/fragment
-       (c/focus (lens/>> lens/second (lens/member request))
-                (ajax/fetch request))
-
-       (when-let [current-response (get responses request)]
-         (when (ajax/response-ok? current-response)
-           (c/focus lens/first
-                    (promise/call-with-promise-result
-                     (rdf/json-ld-string->graph-promise (ajax/response-value current-response))
-                     (comp c/once constantly)))))))))
-
 (c/defn-item osm-importer [schema osm-uri]
   (c/with-state-as graph
     (c/fragment
 
      (when (some? osm-uri)
-       (graph-resolver (osm/osm-lookup-request osm-uri)))
+       (util/load-json-ld-state
+        (osm/osm-lookup-request osm-uri)))
 
      (when graph (readonly-graph schema graph)))))
 
@@ -244,9 +210,9 @@
 
         (when commit-prompt
           (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                   (graph-resolver (llm-query (prepare-prompt (edit-tree/type-uri
-                                                               (edit-tree/node-type node))
-                                                              commit-prompt)))))
+                   (util/load-json-ld-state (llm-query (prepare-prompt (edit-tree/type-uri
+                                                                        (edit-tree/node-type node))
+                                                                       commit-prompt)))))
 
         (when current-graph
           #_(pr-str current-graph)
