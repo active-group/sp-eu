@@ -7,7 +7,6 @@
             [wisen.frontend.promise :as promise]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
-            #_[wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.tree :as tree]
             [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.change :as change]
@@ -513,15 +512,9 @@
                              (edit-tree-component schema [] editable? force-editing?)))
                   etrees))))
 
-(defn display-edits [edits]
-  "TODO")
-
 (c/defn-item edit-graph [schema editable? force-editing? graph]
   (c/isolate-state (edit-tree/graph->edit-trees graph)
-                   (dom/div
-                    (edit-trees-component schema editable? force-editing?)
-                    (c/with-state-as etrees
-                      (display-edits (apply concat (map edit-tree/edit-tree-changes etrees)))))))
+                   (edit-trees-component schema editable? force-editing?)))
 
 (c/defn-item readonly-graph [schema graph]
   (c/isolate-state (edit-tree/graph->edit-trees graph)

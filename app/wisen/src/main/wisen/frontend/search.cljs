@@ -6,6 +6,7 @@
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.promise :as promise]
+            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.editor :as editor]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
@@ -16,6 +17,7 @@
                                              success?
                                              success-value
                                              make-error]]
+            [wisen.frontend.commit :as commit]
             ["jsonld" :as jsonld]))
 
 (def-record focus-query-action
@@ -199,8 +201,12 @@
 
            ;; display when we have a graph
            (when-let [graph (:graph state)]
-             (ds/padded-2
-              (editor/edit-graph schema true false graph)))))
+             (c/isolate-state
+              (edit-tree/graph->edit-trees graph)
+              (dom/div
+               (ds/padded-2
+                (editor/edit-trees-component schema true false))
+               (commit/main schema))))))
 
          (c/handle-action
           (fn [st ac]

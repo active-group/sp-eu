@@ -251,6 +251,9 @@
 
        (edit-node-properties etree)))))
 
+(defn edit-trees-changes [etrees]
+  (mapcat edit-tree-changes etrees))
+
 (defn edit-tree-commit-changes
   [etree]
   (cond
@@ -289,6 +292,9 @@
                         ))
                {}
                (edit-node-properties etree))))))
+
+(defn edit-trees-commit-changes [etrees]
+  (map edit-tree-commit-changes etrees))
 
 (defn- edit-tree-handle [etree]
   (cond
