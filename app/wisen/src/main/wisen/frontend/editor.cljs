@@ -22,6 +22,10 @@
             [wisen.frontend.or-error :refer [success? success-value]]
             [wisen.frontend.schema :as schema]))
 
+(def-record discard-edit-action
+  [discard-edit-action-predicate
+   discard-edit-action-index])
+
 (defn- style-for-marked [marked]
   (cond
     (edit-tree/deleted? marked)
@@ -366,6 +370,22 @@
                                                                        :z-index 5}}
                                                               "×"))
 
+                                       (when (and force-editing?
+                                                  (edit-tree/can-discard-edit? marked-edit-tree))
+                                         (ds/button-secondary
+                                          {:onClick
+                                           #(c/return :action
+                                                      (discard-edit-action
+                                                       discard-edit-action-predicate
+                                                       predicate
+                                                       discard-edit-action-index
+                                                       idx))
+                                           :style {:font-size "25px"
+                                                   :font-weight "normal"
+                                                   :cursor "pointer"
+                                                   :z-index 5}}
+                                          "Discard"))
+
                                        (dom/div {:style {:width "100%"
                                                          :border-bottom "1px solid gray"
                                                          :position "absolute"
@@ -435,10 +455,10 @@
         (dom/span {:style {:margin-right "1em"}} uri)
 
         (when editing?
-                (c/fragment
-                 (c/focus lens/first
-                          (modal/modal-button "Set reference" set-reference))
-                 " | "))
+          (c/fragment
+           (c/focus lens/first
+                    (modal/modal-button "Set reference" set-reference))
+           " | "))
 
         (c/focus lens/first (refresh-button))
 
@@ -453,19 +473,26 @@
         lens/first
         (dom/div
 
-         (c/focus edit-tree/edit-node-properties
-                  (c/with-state-as eprops
-                    (when-not (empty? eprops)
-                      (dom/div
-                       {:style {:display "flex"
-                                :flex-direction "column"
-                                :gap "2ex"
-                                :margin-left "14px"
-                                :padding-top "12px"
-                                :border-left "1px solid gray"
-                                :padding-bottom "2ex"}}
+         (-> (c/focus edit-tree/edit-node-properties
+                      (c/with-state-as eprops
+                        (when-not (empty? eprops)
+                          (dom/div
+                           {:style {:display "flex"
+                                    :flex-direction "column"
+                                    :gap "2ex"
+                                    :margin-left "14px"
+                                    :padding-top "12px"
+                                    :border-left "1px solid gray"
+                                    :padding-bottom "2ex"}}
 
-                       (properties-component schema editable? (:editing? local-state))))))
+                           (properties-component schema editable? (:editing? local-state))))))
+             (c/handle-action
+              (fn [node action]
+                (if (is-a? discard-edit-action action)
+                  (edit-tree/discard-edit node
+                                          (discard-edit-action-predicate action)
+                                          (discard-edit-action-index action))
+                  (c/return :action action)))))
 
          (when editing?
            (set-properties schema))))))))
