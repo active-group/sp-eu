@@ -22,9 +22,9 @@
 (defn main [schema]
   (c/isolate-state
 
-   (edit-tree/make-added-edit-tree initial-organization)
+   [(edit-tree/make-added-edit-tree initial-organization)]
 
-   (c/with-state-as etree
+   (c/with-state-as etrees
      (dom/div
       {:style {:display "flex"
                :flex-direction "column"
@@ -34,6 +34,6 @@
        {:style {:overflow "auto"
                 :padding "3ex 2em"}}
 
-       (editor/edit-tree-component schema [organization-type event-type] true true))
+       (editor/edit-trees-component schema #_[organization-type event-type] true true))
 
       (commit/main schema)))))
