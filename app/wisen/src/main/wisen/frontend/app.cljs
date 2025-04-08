@@ -23,15 +23,15 @@
    (dom/path
     {:d "M7.2 12.8a5.6 5.6 0 1 0 0-11.2 5.6 5.6 0 0 0 0 11.2z"
      :stroke "currentColor"
-     :stroke-width "1.5"
-     :stroke-linecap "round"
-     :stroke-linejoin "round"})
+     :strokeWidth "1.5"
+     :strokeLinecap "round"
+     :strokeLinejoin "round"})
    (dom/path
     {:d "m14 14-3-3"
      :stroke "currentColor"
-     :stroke-width "1.5"
-     :stroke-linecap "round"
-     :stroke-linejoin "round"}))
+     :strokeWidth "1.5"
+     :strokeLinecap "round"
+     :strokeLinejoin "round"}))
   )
 
 (defn menu []

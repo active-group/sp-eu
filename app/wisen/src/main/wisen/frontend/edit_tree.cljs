@@ -317,6 +317,27 @@
     (is-a? edit-node etree)
     (edit-node-uri etree)))
 
+(defn can-discard-edit? [x]
+  (or (changed? x)
+      (is-a? deleted x)
+      (is-a? added x)))
+
+(defn discard-edit [node predicate idx]
+  (lens/overhaul node
+                 (lens/>> edit-node-properties
+                          (lens/member predicate))
+                 (fn [metrees]
+                   (let [metree (nth metrees idx)]
+                     (cond
+                       (is-a? maybe-changed x)
+                       (assoc metrees idx (make-same (maybe-changed-original-value x)))
+
+                       (is-a? deleted x)
+                       (assoc metrees idx (make-same (deleted-original-value x)))
+
+                       (is-a? added x)
+                       (dissoc metrees idx))))))
+
 ;; re-implementations of wisen.frontend.tree stuff
 
 #_(defn- lift-edit-tree [f]
