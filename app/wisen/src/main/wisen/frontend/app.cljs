@@ -10,6 +10,7 @@
             [wisen.frontend.edit :as edit]
             [reacl-c-basics.pages.core :as routing]
             [wisen.frontend.design-system :as ds]
+            [wisen.frontend.util :as util]
             ["jsonld" :as jsonld]))
 
 (def search-icon
@@ -65,22 +66,24 @@
                      "New resource")))))
 
 (defn toplevel []
-  (dom/div
-   {:style {:width "100%"
-            :height "100%"
-            :background "#eee"
-            :display "flex"
-            :flex-direction "column"
-            :overflow "hidden"}}
+  (util/with-schemaorg
+    (fn [schema]
+      (dom/div
+       {:style {:width "100%"
+                :height "100%"
+                :background "#eee"
+                :display "flex"
+                :flex-direction "column"
+                :overflow "hidden"}}
 
-   (menu)
+       (menu)
 
-   (routing/html5-history-router
-    {routes/home home/main
-     routes/search search/main
-     routes/create create/main
-     routes/nlp nlp/main
-     routes/edit edit/main})))
+       (routing/html5-history-router
+        {routes/home home/main
+         routes/search (partial search/main schema)
+         routes/create (partial create/main schema)
+         routes/nlp nlp/main
+         routes/edit edit/main})))))
 
 
 (defn ^:dev/after-load start []

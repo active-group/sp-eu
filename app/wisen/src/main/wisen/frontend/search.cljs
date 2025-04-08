@@ -10,7 +10,6 @@
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.leaflet :as leaflet]
-            [wisen.frontend.util :refer [with-schemaorg]]
             [wisen.frontend.spinner :as spinner]
             ["jsonld" :as jsonld]))
 
@@ -310,11 +309,11 @@
                                                (dissoc :last-focus-query)))
                                  (c/return :action ac))))))))))
 
-(c/defn-item main []
+(c/defn-item main [schema]
   (c/isolate-state
    {:last-focus-query nil
     :last-expand-by-query nil
     :graph nil}
    (c/with-state-as state
      (c/fragment
-      (with-schemaorg main*)))))
+      (main* schema)))))
