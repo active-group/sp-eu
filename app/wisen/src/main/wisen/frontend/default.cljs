@@ -55,7 +55,8 @@
    (property "description" (lit-s "Description"))
    (property "keywords" (lit-s "education, fun, games"))
    (property "location" default-place)
-   (property "url" (lit-s "https://..."))))
+   (property "url" (lit-s "https://..."))
+   (tree/make-property "https://wisen.active-group.de/target-group" (lit-s "elderly"))))
 
 (def default-event
   (make-node
