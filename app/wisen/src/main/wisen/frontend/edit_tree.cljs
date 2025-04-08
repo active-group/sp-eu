@@ -7,8 +7,10 @@
             [wisen.frontend.change :as change]))
 
 (def-record deleted
-  [deleted-original-value
-   deleted-result-value])
+  [deleted-original-value])
+
+(defn make-deleted [orig]
+  (deleted deleted-original-value orig))
 
 (defn deleted? [x]
   (is-a? deleted x))
@@ -25,6 +27,10 @@
 (def-record maybe-changed
   [maybe-changed-original-value
    maybe-changed-result-value])
+
+(defn make-maybe-changed [orig res]
+  (maybe-changed maybe-changed-original-value orig
+                 maybe-changed-result-value res))
 
 (defn maybe-changed? [x]
   (is-a? maybe-changed x))
@@ -52,9 +58,7 @@
   (assert (is-a? maybe-changed x) "Can only mark deleted maybe-changed")
   (deleted
    deleted-original-value
-   (maybe-changed-original-value x)
-   deleted-result-value
-   (maybe-changed-result-value x)))
+   (maybe-changed-original-value x)))
 
 (def marked (realm/union
              deleted
