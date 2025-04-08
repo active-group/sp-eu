@@ -10,6 +10,7 @@
             [wisen.frontend.util :as util]
             [wisen.frontend.change :as change]
             [wisen.frontend.default :as default]
+            [wisen.frontend.commit :as commit]
             [reacl-c-basics.ajax :as ajax]))
 
 (def organization-type (tree/make-node "http://schema.org/Organization"))
@@ -18,82 +19,21 @@
 (defonce ^:private initial-organization
   default/default-organization)
 
-(def-record idle [])
-
-(def-record committing [committing-changes])
-
-(def-record commit-successful [commit-successful-changes])
-
-(def-record commit-failed [commit-failed-error])
-
-(defn changes-component [schema changes]
+(defn main [schema]
   (c/isolate-state
-   (idle)
-   (c/with-state-as state
+
+   (edit-tree/make-added-edit-tree initial-organization)
+
+   (c/with-state-as etree
      (dom/div
       {:style {:display "flex"
-               :gap "1em"}}
+               :flex-direction "column"
+               :overflow "auto"}}
 
-      (change/changes-summary schema changes)
+      (dom/div
+       {:style {:overflow "auto"
+                :padding "3ex 2em"}}
 
-      (cond
-        (is-a? idle state)
-        (when-not (empty? changes)
-          (ds/button-primary {:onclick (fn [_]
-                                         (committing committing-changes changes))}
-                             "Commit changes"))
+       (editor/edit-tree-component schema [organization-type event-type] true true))
 
-        (is-a? committing state)
-        (dom/div
-         "Committing ..."
-         (wisen.frontend.spinner/main)
-         (c/handle-action
-          (ajax/execute (change/commit-changes-request (committing-changes state)))
-          (fn [st ac]
-            (if (and (ajax/response? ac)
-                     (ajax/response-ok? ac))
-              (c/return :state (commit-successful commit-successful-changes
-                                                  (committing-changes st))
-                        :action (commit-successful commit-successful-changes
-                                                   (committing-changes st)))
-              (commit-failed commit-failed-error
-                             (ajax/response-value ac))))))
-
-        (is-a? commit-successful state)
-        "Success!"
-
-        (is-a? commit-failed state)
-        (dom/div
-         "Commit failed!"
-         (dom/pre
-          (pr-str (commit-failed-error state)))))))))
-
-(defn main []
-  (util/with-schemaorg
-    (fn [schema]
-      (c/isolate-state
-
-       (edit-tree/make-added-edit-tree initial-organization)
-
-       (c/with-state-as etree
-         (dom/div
-          {:style {:display "flex"
-                   :flex-direction "column"
-                   :overflow "auto"}}
-
-          (dom/div
-           {:style {:overflow "auto"
-                    :padding "3ex 2em"}}
-           (editor/edit-tree-component schema [organization-type event-type] true true))
-
-          #_(dom/div
-           {:style {:border-top ds/border
-                    :padding "12px 24px"
-                    :display "flex"
-                    :justify-content "flex-end"}}
-           (c/handle-action
-            (changes-component schema (edit-tree/edit-tree-changes etree))
-            (fn [etree action]
-              (if (is-a? commit-successful action)
-                (c/return :state (edit-tree/edit-tree-commit-changes etree))
-                (c/return)))))))))))
+      (commit/main schema)))))
