@@ -49,6 +49,60 @@
    (with-out-str
      (cljs.pprint/pprint x))))
 
+(c/defn-item ^:private before-after [before-item after-item]
+  (c/with-state-as [state before-or-after :local ::after]
+    (dom/div
+     {:style {:display "flex"
+              :flex-direction "column"}}
+
+     (c/focus lens/second
+              (dom/div
+               {:style {:display "flex"}}
+               (dom/div {:style {:border-top "1px solid gray"
+                                 :border-left "1px solid gray"
+                                 :border-right "1px solid gray"
+                                 :border-bottom (if (= before-or-after ::before)
+                                                  "1px solid #eee"
+                                                  "1px solid gray")
+                                 :border-top-left-radius "4px"
+                                 :padding "0.5ex 0.5em"
+                                 :cursor "pointer"
+                                 :color "red"
+                                 :position "relative"
+                                 :top "1px"
+                                 :font-weight (if (= before-or-after ::before)
+                                                "bold"
+                                                "normal")}
+                         :onClick (constantly ::before)}
+                        "Before")
+               (dom/div {:style {:border-top "1px solid gray"
+                                 :border-right "1px solid gray"
+                                 :border-bottom (if (= before-or-after ::after)
+                                                  "1px solid #eee"
+                                                  "1px solid gray")
+                                 :border-top-right-radius "4px"
+                                 :padding "0.5ex 0.5em"
+                                 :cursor "pointer"
+                                 :color "green"
+                                 :position "relative"
+                                 :top "1px"
+                                 :font-weight (if (= before-or-after ::after)
+                                                "bold"
+                                                "normal")}
+                         :onClick (constantly ::after)}
+                        "After")))
+
+     (dom/div
+      {:style {:border "1px solid gray"
+               :padding "1ex 1em"}}
+      (c/focus lens/first
+               (case before-or-after
+                 ::before
+                 before-item
+
+                 ::after
+                 after-item))))))
+
 (declare edit-tree-component)
 
 (defn component-for-predicate [predicate schema editable? editing?]
@@ -59,13 +113,14 @@
 
     "http://schema.org/description"
     (c/focus edit-tree/literal-string-value
-             (if editing?
-               (ds/textarea {:style {:width "100%"
-                                     :min-height "6em"}})
-               (c/dynamic dom/div)))
+             (ds/textarea {:style {:width "100%"
+                                   :min-height "6em"}
+                           :disabled (when-not editable?
+                                       "disabled")}))
 
     "http://schema.org/dayOfWeek"
     (c/focus edit-tree/tree-uri (ds/select
+                                 {:disabled (when-not editable? "disabled")}
                                  (forms/option {:value "http://schema.org/Monday"} "Monday")
                                  (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
                                  (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
@@ -401,14 +456,16 @@
                                         (c/focus edit-tree/added-result-value
                                                  (component-for-predicate predicate schema editable? force-editing?))
 
-                                        (edit-tree/maybe-changed? marked-edit-tree)
-                                        (dom/div
-                                         (when (edit-tree/changed? marked-edit-tree)
-                                           (c/focus edit-tree/maybe-changed-original-value
-                                                    (dom/div
-                                                     {:style {:text-decoration "line-through"
-                                                              :color "red"}}
-                                                     (component-for-predicate predicate schema false false))))
+                                        (edit-tree/same? marked-edit-tree)
+                                        (c/focus edit-tree/maybe-changed-result-value
+                                                 (component-for-predicate predicate schema editable? force-editing?))
+
+                                        (edit-tree/changed? marked-edit-tree)
+                                        (before-after
+                                         ;; before
+                                         (c/focus edit-tree/maybe-changed-original-value
+                                                  (component-for-predicate predicate schema false false))
+                                         ;; after
                                          (c/focus edit-tree/maybe-changed-result-value
                                                   (component-for-predicate predicate schema editable? force-editing?))))))))
 
@@ -500,21 +557,20 @@
     (cond
       (edit-tree/literal-string? etree)
       (c/focus edit-tree/literal-string-value
-               (if force-editing?
-                 (ds/input)
-                 (c/dynamic str)))
+               (ds/input {:disabled (when-not editable?
+                                      "disabled")}))
 
       (edit-tree/literal-decimal? etree)
       (c/focus edit-tree/literal-decimal-value
-               (if force-editing?
-                 (ds/input {:type "decimal"})
-                 (c/dynamic str)))
+               (ds/input {:type "decimal"
+                          :disabled (when-not editable?
+                                      "disabled")}))
 
       (edit-tree/literal-boolean? etree)
       (c/focus edit-tree/literal-boolean-value
-               (if force-editing?
-                 (ds/input {:type "checkbox"})
-                 (c/dynamic str)))
+               (ds/input {:type "checkbox"
+                          :disabled (when-not editable?
+                                      "disabled")}))
 
       (edit-tree/ref? etree)
       (dom/div

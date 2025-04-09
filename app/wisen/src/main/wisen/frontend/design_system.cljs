@@ -70,25 +70,27 @@
          children))
 
 (dom/defn-dom input [attrs & children]
-  (apply forms/input
-         (dom/merge-attributes {:style
-                                {:background-color "#fefefe"
-                                 :border "1px solid #888"
-                                 :padding "4px 8px"
-                                 :font-size "14px"
-                                 :color "#333"
-                                 :border-radius "3px"}}
-                               attrs)
-         children))
+  (let [disabled? (get attrs :disabled)]
+    (apply forms/input
+           (dom/merge-attributes {:style
+                                  {:background-color (if disabled? "#eee" "#fefefe")
+                                   :border (if disabled? "1px solid #bbb" "1px solid #888")
+                                   :padding "4px 8px"
+                                   :font-size "14px"
+                                   :color "#333"
+                                   :border-radius "3px"}}
+                                 attrs)
+           children)))
 
 (dom/defn-dom textarea [attrs & children]
-  (apply forms/textarea
-         (dom/merge-attributes {:style
-                                {:background-color "#fefefe"
-                                 :border "1px solid #888"
-                                 :padding "4px 8px"
-                                 :font-size "14px"
-                                 :color "#333"
-                                 :border-radius "3px"}}
-                               attrs)
-         children))
+  (let [disabled? (get attrs :disabled)]
+    (apply forms/textarea
+           (dom/merge-attributes {:style
+                                  {:background-color (if disabled? "#eee" "#fefefe")
+                                   :border (if disabled? "1px solid #bbb" "1px solid #888")
+                                   :padding "4px 8px"
+                                   :font-size "14px"
+                                   :color "#333"
+                                   :border-radius "3px"}}
+                                 attrs)
+           children)))
