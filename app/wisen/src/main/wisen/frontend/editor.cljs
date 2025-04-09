@@ -30,8 +30,7 @@
   (cond
     (edit-tree/deleted? marked)
     {:border "1px solid red"
-     :color "red"
-     :text-decoration "line-through"}
+     :color "red"}
 
     (edit-tree/added? marked)
     {:border "1px solid green"
@@ -43,6 +42,69 @@
     (edit-tree/changed? marked)
     {:border "1px solid orange"
      :color "orange"}))
+
+(def ^:private plus-icon
+  (dom/svg
+   {:viewBox "0 0 16 16"
+    :width "16"
+    :height "16"
+    :fill "none"
+    :xmlns "http://www.w3.org/2000/svg"}
+   (dom/circle
+    {:cx "8"
+     :cy "8"
+     :r "6"
+     :fill "currentColor"})
+   (dom/path
+    {:d "M8 5V11M5 8H11"
+     :stroke "white"
+     :strokeWidth "2"
+     :strokeLinecap "round"
+     :strokeLinejoin "round"})))
+
+(def ^:private minus-icon
+  (dom/svg
+   {:viewBox "0 0 16 16"
+    :width "16"
+    :height "16"
+    :fill "none"
+    :xmlns "http://www.w3.org/2000/svg"}
+   (dom/circle
+    {:cx "8"
+     :cy "8"
+     :r "6"
+     :fill "currentColor"})
+   (dom/path
+    {:d "M5 8H11"
+     :stroke "white"
+     :strokeWidth "2"
+     :strokeLinecap "round"
+     :strokeLinejoin "round"})))
+
+(def ^:private dot-icon
+  (dom/svg
+   {:viewBox "0 0 16 16"
+    :width "16"
+    :height "16"
+    :fill "none"
+    :xmlns "http://www.w3.org/2000/svg"}
+   (dom/path
+    {:d "M8 4L14 14H2L8 4Z"
+     :fill "currentColor"})))
+
+(defn- icon-for-marked [marked]
+  (cond
+    (edit-tree/deleted? marked)
+    minus-icon
+
+    (edit-tree/added? marked)
+    plus-icon
+
+    (edit-tree/same? marked)
+    nil
+
+    (edit-tree/changed? marked)
+    dot-icon))
 
 (defn pprint [x]
   (dom/pre
@@ -409,12 +471,15 @@
                                        (dom/div
                                         {:style (merge {:background "white"
                                                         :display "inline-flex"
+                                                        :gap "0.3em"
+                                                        :align-items "center"
                                                         :border (str "1px solid gray")
                                                         :margin-left "10px"
                                                         :padding "4px 12px"
                                                         :position "relative"
                                                         :z-index "5"}
                                                        (style-for-marked marked-edit-tree))}
+                                        (icon-for-marked marked-edit-tree)
                                         (schema/label-for-predicate schema predicate))
 
                                        (when (and force-editing?
@@ -506,13 +571,10 @@
         (when editing?
           (c/fragment
            (c/focus lens/first
-                    (modal/modal-button "Set reference" set-reference))
-           " | "))
+                    (modal/modal-button "Set reference" set-reference))))
 
         (when (edit-tree/can-refresh? node)
           (c/focus lens/first (refresh-button)))
-
-        " | "
 
         (when editable?
           (c/focus lens/second
