@@ -373,18 +373,16 @@
                                        (when (and force-editing?
                                                   (edit-tree/can-discard-edit? marked-edit-tree))
                                          (ds/button-secondary
-                                          {:onClick
+                                          {:style
+                                           {:padding-right "1em"}
+                                           :onClick
                                            #(c/return :action
                                                       (discard-edit-action
                                                        discard-edit-action-predicate
                                                        predicate
                                                        discard-edit-action-index
-                                                       idx))
-                                           :style {:font-size "25px"
-                                                   :font-weight "normal"
-                                                   :cursor "pointer"
-                                                   :z-index 5}}
-                                          "Discard"))
+                                                       idx))}
+                                          "Discard edit"))
 
                                        (dom/div {:style {:width "100%"
                                                          :border-bottom "1px solid gray"
@@ -519,7 +517,13 @@
                  (c/dynamic str)))
 
       (edit-tree/ref? etree)
-      (dom/div "REF: " (edit-tree/ref-uri etree))
+      (dom/div
+       {:style {:display "flex"
+                :gap "1em"
+                :align-items "center"}}
+       (the-circle)
+       (dom/b "REF")
+       (edit-tree/ref-uri etree))
 
       (edit-tree/node? etree)
       (node-component schema editable? force-editing?)
