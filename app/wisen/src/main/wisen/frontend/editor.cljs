@@ -489,20 +489,14 @@
                     ks)))))
 
 (defn- node-component [schema editable? force-editing?]
-  (c/with-state-as [node local-state :local {:editing? force-editing?
-                                             :open? true}]
+  (c/with-state-as [node editing? :local force-editing?]
 
-    (let [editing? (:editing? local-state)
-          uri (edit-tree/node-uri node)]
+    (let [uri (edit-tree/node-uri node)]
 
-      (details/details
-       {:id uri}
+      (dom/div
 
-       (lens/>> lens/second :open?)
-
-       (details/summary
+       (dom/div
         {:style {:color "#555"
-                 :cursor "pointer"
                  :display "flex"
                  :align-items "center"
                  :gap "1em"}}
@@ -521,7 +515,7 @@
         " | "
 
         (when editable?
-          (c/focus (lens/>> lens/second :editing?)
+          (c/focus lens/second
                    (ds/button-primary {:onClick not}
                                       (if editing? "Done" "Edit")))))
 
@@ -541,7 +535,7 @@
                                     :border-left "1px solid gray"
                                     :padding-bottom "2ex"}}
 
-                           (properties-component schema editable? (:editing? local-state))))))
+                           (properties-component schema editable? editing?)))))
              (c/handle-action
               (fn [node action]
                 (if (is-a? discard-edit-action action)
