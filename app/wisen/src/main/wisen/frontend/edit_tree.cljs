@@ -350,6 +350,10 @@
                          (dissoc eprops predicate)
                          (assoc eprops predicate result-metrees)))))))
 
+(defn can-refresh? [etree]
+  (and (is-a? edit-node etree)
+       (empty? (edit-node-properties etree))))
+
 ;; re-implementations of wisen.frontend.tree stuff
 
 (def node? (partial is-a? edit-node))
