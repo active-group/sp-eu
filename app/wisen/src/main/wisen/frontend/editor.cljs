@@ -515,7 +515,8 @@
                     (modal/modal-button "Set reference" set-reference))
            " | "))
 
-        (c/focus lens/first (refresh-button))
+        (when (edit-tree/can-refresh? node)
+          (c/focus lens/first (refresh-button)))
 
         " | "
 
