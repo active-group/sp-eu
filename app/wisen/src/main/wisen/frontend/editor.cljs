@@ -133,6 +133,7 @@
     "https://wisen.active-group.de/target-group"
     (c/focus edit-tree/literal-string-value
              (ds/select
+              {:disabled (when-not editable? "disabled")}
               (forms/option {:value "elderly"} "Elderly")
               (forms/option {:value "queer"} "Queer")
               (forms/option {:value "immigrants"} "Immigrants")))
