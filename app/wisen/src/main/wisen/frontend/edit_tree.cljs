@@ -356,13 +356,22 @@
 
 (def node-uri edit-node-uri)
 
-(defn tree-uri [x]
-  (cond
-    (is-a? edit-node x)
-    (edit-node-uri x)
+(defn tree-uri
+  ([etree]
+   (cond
+     (is-a? edit-node etree)
+     (edit-node-uri etree)
 
-    (tree/ref? x)
-    (tree/ref-uri x)))
+     (tree/ref? etree)
+     (tree/ref-uri etree)))
+
+  ([etree uri]
+   (cond
+     (is-a? edit-node etree)
+     (edit-node-uri etree uri)
+
+     (tree/ref? etree)
+     (tree/ref-uri etree uri))))
 
 (defn node-type [enode]
   (tree/node-type (edit-tree-result-tree enode)))
