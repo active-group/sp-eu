@@ -55,7 +55,7 @@
   (case predicate
     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
     (c/with-state-as node
-      (schema/label-for-type schema (edit-tree/type-uri node)))
+      (schema/label-for-type schema (edit-tree/tree-uri node)))
 
     "http://schema.org/description"
     (c/focus edit-tree/literal-string-value
@@ -65,7 +65,7 @@
                (c/dynamic dom/div)))
 
     "http://schema.org/dayOfWeek"
-    (c/focus edit-tree/node-uri (ds/select
+    (c/focus edit-tree/tree-uri (ds/select
                                  (forms/option {:value "http://schema.org/Monday"} "Monday")
                                  (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
                                  (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
@@ -90,7 +90,7 @@
 
 (defn- node-organization? [node]
   (= "http://schema.org/Organization"
-     (edit-tree/type-uri (edit-tree/node-type node))))
+     (edit-tree/tree-uri (edit-tree/node-type node))))
 
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [node predicate :local schemaorg/default-predicate]
@@ -213,7 +213,7 @@
 
         (when commit-prompt
           (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                   (util/load-json-ld-state (llm-query (prepare-prompt (edit-tree/type-uri
+                   (util/load-json-ld-state (llm-query (prepare-prompt (edit-tree/tree-uri
                                                                         (edit-tree/node-type node))
                                                                        commit-prompt)))))
 
@@ -275,7 +275,7 @@
 (defn- set-reference [close-action]
   (c/with-state-as node
     (c/local-state
-     (edit-tree/node-uri node)
+     (edit-tree/tree-uri node)
      (dom/div
       (modal/padded
        (dom/h3 "Set as reference to another node")
@@ -305,7 +305,7 @@
               (ds/button-primary {:onClick #(c/return :state true)}
                                  "Refresh"))
      (when refresh?
-       (-> (refresh-node (edit-tree/node-uri node))
+       (-> (refresh-node (edit-tree/tree-uri node))
            (c/handle-action (fn [[enode _] ac]
                               (if (success? ac)
                                 (let [new-graph (success-value ac)
