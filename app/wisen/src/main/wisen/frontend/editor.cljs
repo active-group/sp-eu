@@ -426,8 +426,7 @@
                                                                        :z-index 5}}
                                                               "×"))
 
-                                       (when (and force-editing?
-                                                  (edit-tree/can-discard-edit? marked-edit-tree))
+                                       (when (edit-tree/can-discard-edit? marked-edit-tree)
                                          (ds/button-secondary
                                           {:style
                                            {:padding-right "1em"}
