@@ -143,17 +143,8 @@
       (-> (tree/make-node)
           (tree/node-type type)))))
 
-(defn default-sort-for-predicate [pred]
+(defn default-type-for-predicate [pred]
   (case pred
-    "http://schema.org/name"
-    tree/literal-string
-
-    "http://schema.org/email"
-    tree/literal-string
-
-    "http://schema.org/description"
-    tree/literal-string
-
     "http://schema.org/location"
     (tree/make-node (schema "Place"))
 
@@ -166,7 +157,7 @@
     "http://schema.org/geo"
     (tree/make-node (schema "GeoCoordinates"))
 
-    tree/literal-string))
+    (tree/make-node (schema "Thing"))))
 
 (defn default-tree-for-predicate [schema predicate]
   (case predicate
@@ -176,3 +167,47 @@
     (default-tree-for-sort
      (first
       (schema/sorts-for-predicate schema predicate)))))
+
+(defn default-node-for-type [type]
+  (case (tree/node-uri type)
+    "http://schema.org/GeoCoordinates"
+    default-geo-coordinates
+
+    "http://schema.org/Organization"
+    default-organization
+
+    "http://schema.org/Place"
+    default-place
+
+    "http://schema.org/PostalAddress"
+    default-postal-address
+
+    "http://schema.org/OpeningHoursSpecification"
+    default-opening-hours-specification
+
+    "http://schema.org/Event"
+    default-event
+
+    "http://schema.org/Person"
+    default-person
+
+    (-> (tree/make-node)
+        (tree/node-type type))))
+
+(defn default-tree-for-predicate-and-kind [predicate kind]
+  (cond
+    (= kind tree/literal-string)
+    (lit-s "...")
+
+    (= kind tree/literal-decimal)
+    (lit-d "1.0")
+
+    (= kind tree/literal-boolean)
+    (lit-b "true")
+
+    (= kind tree/ref)
+    (tree/make-ref "https://wisen.active-group.de/")
+
+    (= kind tree/node)
+    (default-node-for-type
+     (default-type-for-predicate predicate))))

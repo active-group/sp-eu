@@ -87,6 +87,9 @@
                                           ;; payload: edit-tree
                                           marked))])
 
+(defn edit-node? [x]
+  (is-a? edit-node x))
+
 (def edit-tree (realm/union
                 tree/ref
                 tree/literal-string
@@ -124,10 +127,10 @@
                                   {}
                                   (tree/node-properties tree)))))
 
-(defn- make-added-edit-tree [tree]
+(defn make-added-edit-tree [tree]
   (make-edit-tree tree make-added))
 
-(defn- make-same-edit-tree [tree]
+(defn make-same-edit-tree [tree]
   (make-edit-tree tree make-same))
 
 (declare edit-tree-result-tree)
@@ -406,10 +409,8 @@
   (map make-same-edit-tree (tree/graph->trees graph)))
 
 (defn node-object-for-predicate [pred enode]
-  (some (map (fn [[pred* metrees]]
-               (when (= pred pred*)
-                 (marked-current (first metrees)))))
-        (edit-node-properties enode)))
+  (let [metrees (get (edit-node-properties enode) pred)]
+    (marked-current (first metrees))))
 
 (defn node-assoc-replace [enode pred etree]
   (-> enode

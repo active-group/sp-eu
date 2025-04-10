@@ -116,46 +116,106 @@
                  ::after
                  after-item))))))
 
+(defn- make-edit-tree-kind-lens [schema predicate]
+  (fn
+    ([etree]
+     (cond
+       (edit-tree/literal-string? etree)
+       tree/literal-string
+
+       (edit-tree/literal-decimal? etree)
+       tree/literal-decimal
+
+       (edit-tree/literal-boolean? etree)
+       tree/literal-boolean
+
+       (edit-tree/ref? etree)
+       tree/ref
+
+       (edit-tree/edit-node? etree)
+       tree/node))
+    ([etree kind]
+     (if (= kind ((make-edit-tree-kind-lens schema predicate) etree))
+       etree
+       (edit-tree/make-added-edit-tree
+        (default/default-tree-for-predicate-and-kind predicate kind))))))
+
+(defn- label-for-kind [kind]
+  (cond
+    (= kind tree/literal-string)
+    "String"
+
+    (= kind tree/literal-decimal)
+    "Decimal"
+
+    (= kind tree/literal-boolean)
+    "Boolean"
+
+    (= kind tree/ref)
+    "Node"
+
+    (= kind tree/node)
+    "Node"))
+
+(defn- edit-node-type
+  ([enode]
+   (edit-tree/edit-tree-result-tree
+    (edit-tree/node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" enode)))
+  ([enode type]
+   (if (= type (edit-node-type enode))
+     enode
+     (edit-tree/edit-node-properties
+      enode
+      (edit-tree/edit-node-properties
+       (edit-tree/make-added-edit-tree (default/default-node-for-type type)))))))
+
 (declare edit-tree-component)
 
 (defn component-for-predicate [predicate schema editable? editing?]
-  (case predicate
-    "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-    (c/with-state-as node
-      (schema/label-for-type schema (edit-tree/tree-uri node)))
+  (dom/div
+   (c/focus (make-edit-tree-kind-lens schema predicate)
+            (apply
+             ds/select
+             (map (fn [kind]
+                    (forms/option {:value kind} (label-for-kind kind)))
+                  (schema/kinds-for-predicate schema predicate))))
+   (case predicate
+     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+     (c/with-state-as node
+       (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
-    "http://schema.org/description"
-    (c/focus edit-tree/literal-string-value
-             (ds/textarea {:style {:width "100%"
-                                   :min-height "6em"}
-                           :disabled (when-not editable?
-                                       "disabled")}))
+     "http://schema.org/description"
+     (c/focus edit-tree/literal-string-value
+              (ds/textarea {:style {:width "100%"
+                                    :min-height "6em"}
+                            :disabled (when-not editable?
+                                        "disabled")}))
 
-    "http://schema.org/dayOfWeek"
-    (c/focus edit-tree/tree-uri (ds/select
-                                 {:disabled (when-not editable? "disabled")}
-                                 (forms/option {:value "http://schema.org/Monday"} "Monday")
-                                 (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
-                                 (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
-                                 (forms/option {:value "http://schema.org/Thursday"} "Thursday")
-                                 (forms/option {:value "http://schema.org/Friday"} "Friday")
-                                 (forms/option {:value "http://schema.org/Saturday"} "Saturday")
-                                 (forms/option {:value "http://schema.org/Sunday"} "Sunday")
-                                 ))
+     "http://schema.org/dayOfWeek"
+     (c/focus edit-tree/tree-uri (ds/select
+                                  {:disabled (when-not editable? "disabled")}
+                                  (forms/option {:value "http://schema.org/Monday"} "Monday")
+                                  (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
+                                  (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
+                                  (forms/option {:value "http://schema.org/Thursday"} "Thursday")
+                                  (forms/option {:value "http://schema.org/Friday"} "Friday")
+                                  (forms/option {:value "http://schema.org/Saturday"} "Saturday")
+                                  (forms/option {:value "http://schema.org/Sunday"} "Sunday")
+                                  ))
 
-    "https://wisen.active-group.de/target-group"
-    (c/focus edit-tree/literal-string-value
-             (ds/select
-              {:disabled (when-not editable? "disabled")}
-              (forms/option {:value "elderly"} "Elderly")
-              (forms/option {:value "queer"} "Queer")
-              (forms/option {:value "immigrants"} "Immigrants")))
+     "https://wisen.active-group.de/target-group"
+     (c/focus edit-tree/literal-string-value
+              (ds/select
+               {:disabled (when-not editable? "disabled")}
+               (forms/option {:value "elderly"} "Elderly")
+               (forms/option {:value "queer"} "Queer")
+               (forms/option {:value "immigrants"} "Immigrants")))
 
-    (edit-tree-component
-     schema
-     (schema/sorts-for-predicate schema predicate)
-     editable?
-     editing?)))
+     (edit-tree-component
+      schema
+      (schema/types-for-predicate schema predicate)
+      editable?
+      editing?))))
 
 (defn- node-organization? [node]
   (= "http://schema.org/Organization"
@@ -560,7 +620,7 @@
          (when editing?
            (set-properties schema))))))))
 
-(defn edit-tree-component [schema sorts editable? force-editing?]
+(defn edit-tree-component [schema types editable? force-editing?]
   (c/with-state-as etree
     (cond
       (edit-tree/literal-string? etree)
@@ -590,7 +650,14 @@
        (edit-tree/ref-uri etree))
 
       (edit-tree/node? etree)
-      (node-component schema editable? force-editing?)
+      (dom/div
+       (c/focus edit-node-type
+                (apply
+                 ds/select
+                 (map (fn [type]
+                        (forms/option {:value type} (schema/label-for-type schema type)))
+                      types)))
+       (node-component schema editable? force-editing?))
       )))
 
 ;; The editor handles rooted graphs with edits
@@ -602,9 +669,9 @@
      {:style {:display "flex"
               :flex-direction "column"
               :gap "2ex"}}
-     (map-indexed (fn [idx _]
+     (map-indexed (fn [idx etree]
                     (c/focus (lens/at-index idx)
-                             (edit-tree-component schema [] editable? force-editing?)))
+                             (edit-tree-component schema [(edit-node-type etree)] editable? force-editing?)))
                   etrees))))
 
 (c/defn-item edit-graph [schema editable? force-editing? graph]
