@@ -20,6 +20,7 @@
             [wisen.frontend.schemaorg :as schemaorg]
             [wisen.frontend.util :as util]
             [wisen.frontend.or-error :refer [success? success-value]]
+            [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.schema :as schema]))
 
 (def-record discard-edit-action
@@ -212,6 +213,11 @@
 
 (declare edit-tree-component)
 
+(let [d 0.001]
+  (defn- view-box-around [[lat long]]
+    [[(- lat d) (+ lat d)]
+     [(- long d) (+ long d)]]))
+
 (defn component-for-predicate [predicate schema editable? editing?]
   (dom/div
    (c/focus (make-edit-tree-kind-lens schema predicate)
@@ -252,6 +258,41 @@
                (forms/option {:value "elderly"} "Elderly")
                (forms/option {:value "queer"} "Queer")
                (forms/option {:value "immigrants"} "Immigrants")))
+
+     "http://schema.org/geo"
+     (c/with-state-as node
+       (let [pure-lens (edit-tree/make-pure-lens "geo" "http://schema.org/latitude" "http://schema.org/longitude")
+             lat (js/parseFloat
+                  (edit-tree/literal-decimal-value
+                   (edit-tree/node-object-for-predicate "http://schema.org/latitude" node)))
+             long (js/parseFloat
+                   (edit-tree/literal-decimal-value
+                    (edit-tree/node-object-for-predicate "http://schema.org/longitude" node)))
+             coords [lat long]]
+         (dom/div
+          {:style {:border "1px solid gray"
+                   :border-radius "3px"
+                   :display "flex"
+                   :flex-direction "column"}}
+          (c/isolate-state
+           (view-box-around coords)
+           (leaflet/main {:style {:height 200
+                                  :min-width 400}}
+                         [(leaflet/make-pin
+                           "X"
+                           "green"
+                           coords)]))
+          (c/focus pure-lens
+                   (dom/div
+                    "Latitude:"
+                    (c/focus (lens/>>
+                              (edit-tree/at-predicate "http://schema.org/latitude")
+                              edit-tree/literal-decimal-value)
+                             (ds/input {:disabled (when-not editable? "disabled")}))
+                    "Longitude:"
+                    (c/focus (lens/>> (edit-tree/at-predicate "http://schema.org/longitude")
+                                      edit-tree/literal-decimal-value)
+                             (ds/input {:disabled (when-not editable? "disabled")})))))))
 
      (edit-tree-component
       schema

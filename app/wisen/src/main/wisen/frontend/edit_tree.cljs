@@ -439,3 +439,18 @@
                               (lens/member pred))
                      conj
                      (added added-result-value etree))))
+
+(defn at-predicate [pred]
+  (lens/lens
+   (fn [enode]
+     (node-object-for-predicate pred enode))
+   (fn [enode etree]
+     (node-assoc-replace enode pred etree))))
+
+(defn make-pure-lens [name & predicates]
+  (lens/lens
+   (fn [enode]
+     enode)
+   (fn [enode enode*]
+     (let [vals (map #(node-object-for-predicate % enode*) predicates)]
+       (edit-node-uri enode* (str "http://sp-eu.ci.active-group.de/" name "/" (hash vals)))))))
