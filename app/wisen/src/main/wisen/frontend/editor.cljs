@@ -518,22 +518,43 @@
                                        {:style {:min-width "10em"
                                                 :position "relative"
                                                 :display "flex"
-                                                :gap "1em"
+                                                #_#_:gap "1em"
                                                 :align-items "flex-start"}}
 
                                        (dom/div
-                                        {:style (merge {:background "white"
-                                                        :display "inline-flex"
-                                                        :gap "0.3em"
-                                                        :align-items "center"
-                                                        :border (str "1px solid gray")
-                                                        :margin-left "10px"
-                                                        :padding "4px 12px"
-                                                        :position "relative"
-                                                        :z-index "5"}
-                                                       (style-for-marked marked-edit-tree))}
-                                        (icon-for-marked marked-edit-tree)
-                                        (schema/label-for-predicate schema predicate))
+                                        {:style {:display "flex"
+                                                 :margin "0 24px"}}
+                                        (dom/div
+                                         {:style (merge {:background "white"
+                                                         :display "inline-flex"
+                                                         :gap "0.3em"
+                                                         :align-items "center"
+                                                         :border (str "1px solid gray")
+                                                         :padding "4px 12px"
+                                                         :position "relative"
+                                                         :z-index "5"}
+                                                        (style-for-marked marked-edit-tree))}
+                                         (icon-for-marked marked-edit-tree)
+                                         (schema/label-for-predicate schema predicate))
+
+                                        (when (edit-tree/can-discard-edit? marked-edit-tree)
+                                          (ds/button-secondary
+                                           {:style
+                                            {:border-color "gray"
+                                             :border-style "solid"
+                                             :border-width "1px 1px 1px 0"
+                                             :background "#ddd"
+                                             :padding "4px 12px"
+                                             :position "relative"
+                                             :z-index "5"}
+                                            :onClick
+                                            #(c/return :action
+                                                       (discard-edit-action
+                                                        discard-edit-action-predicate
+                                                        predicate
+                                                        discard-edit-action-index
+                                                        idx))}
+                                           ds/x-icon)))
 
                                        (when (and force-editing?
                                                   (edit-tree/can-delete? marked-edit-tree))
@@ -542,28 +563,7 @@
                                                                        :font-weight "normal"
                                                                        :cursor "pointer"
                                                                        :z-index 5}}
-                                                              "×"))
-
-                                       (when (edit-tree/can-discard-edit? marked-edit-tree)
-                                         (ds/button-secondary
-                                          {:style
-                                           {:padding-right "1em"}
-                                           :onClick
-                                           #(c/return :action
-                                                      (discard-edit-action
-                                                       discard-edit-action-predicate
-                                                       predicate
-                                                       discard-edit-action-index
-                                                       idx))}
-                                          "Discard edit"))
-
-                                       (dom/div {:style {:width "100%"
-                                                         :border-bottom "1px solid gray"
-                                                         :position "absolute"
-                                                         :top "14px"
-                                                         :z-index "4"}})
-
-                                       )
+                                                              "×")))
 
                                       (cond
                                         (edit-tree/deleted? marked-edit-tree)
