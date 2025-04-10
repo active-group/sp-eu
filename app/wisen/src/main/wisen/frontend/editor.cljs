@@ -217,6 +217,7 @@
    (c/focus (make-edit-tree-kind-lens schema predicate)
             (apply
              ds/select
+             {:disabled (when-not editable? "disabled")}
              (map (fn [kind]
                     (forms/option {:value kind} (label-for-kind kind)))
                   (schema/kinds-for-predicate schema predicate))))
@@ -695,6 +696,7 @@
        (c/focus edit-node-type
                 (apply
                  ds/select
+                 {:disabled (when-not editable? "disabled")}
                  (map (fn [type]
                         (forms/option {:value type} (schema/label-for-type schema type)))
                       types)))
