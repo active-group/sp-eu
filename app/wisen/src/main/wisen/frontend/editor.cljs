@@ -43,68 +43,19 @@
     {:border "1px solid orange"
      :color "orange"}))
 
-(def ^:private plus-icon
-  (dom/svg
-   {:viewBox "0 0 16 16"
-    :width "16"
-    :height "16"
-    :fill "none"
-    :xmlns "http://www.w3.org/2000/svg"}
-   (dom/circle
-    {:cx "8"
-     :cy "8"
-     :r "6"
-     :fill "currentColor"})
-   (dom/path
-    {:d "M8 5V11M5 8H11"
-     :stroke "white"
-     :strokeWidth "2"
-     :strokeLinecap "round"
-     :strokeLinejoin "round"})))
-
-(def ^:private minus-icon
-  (dom/svg
-   {:viewBox "0 0 16 16"
-    :width "16"
-    :height "16"
-    :fill "none"
-    :xmlns "http://www.w3.org/2000/svg"}
-   (dom/circle
-    {:cx "8"
-     :cy "8"
-     :r "6"
-     :fill "currentColor"})
-   (dom/path
-    {:d "M5 8H11"
-     :stroke "white"
-     :strokeWidth "2"
-     :strokeLinecap "round"
-     :strokeLinejoin "round"})))
-
-(def ^:private dot-icon
-  (dom/svg
-   {:viewBox "0 0 16 16"
-    :width "16"
-    :height "16"
-    :fill "none"
-    :xmlns "http://www.w3.org/2000/svg"}
-   (dom/path
-    {:d "M8 4L14 14H2L8 4Z"
-     :fill "currentColor"})))
-
 (defn- icon-for-marked [marked]
   (cond
     (edit-tree/deleted? marked)
-    minus-icon
+    ds/minus-icon
 
     (edit-tree/added? marked)
-    plus-icon
+    ds/plus-icon
 
     (edit-tree/same? marked)
     nil
 
     (edit-tree/changed? marked)
-    dot-icon))
+    ds/dot-icon))
 
 (defn pprint [x]
   (dom/pre
