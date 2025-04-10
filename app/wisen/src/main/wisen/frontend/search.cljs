@@ -26,6 +26,12 @@
 (defn make-focus-query-action [q]
   (focus-query-action focus-query-action-query q))
 
+(def-record area-search-action
+  [area-search-action-params])
+
+(defn make-area-search-action [x]
+  (area-search-action area-search-action-params x))
+
 (defn sparql-request [query]
   (-> (ajax/POST "/api/search"
                  {:body (js/JSON.stringify (clj->js {:query query}))
@@ -71,6 +77,11 @@
                   FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
                   }")))
 
+(defn area-search! [params]
+  (ajax/POST "/osm/search-area"
+             {:body (.stringify js/JSON (clj->js params))
+              :headers {:content-type "application/json"}}))
+
 (c/defn-item quick-search [loading?]
   (dom/div
    {:style {:padding "8px"
@@ -80,7 +91,8 @@
     {:onSubmit (fn [state event]
                  (.preventDefault event)
                  (c/return :action (make-focus-query-action
-                                    (quick-search->sparql state))))
+                                    (quick-search->sparql state))
+                           :action (make-area-search-action (:location state))))
      :style {:display "flex"
              :align-items "baseline"
              :gap "16px"
@@ -211,7 +223,13 @@
             ;; display when we have a graph
             (when (:graph state)
               (ds/padded-2
-               (editor/edit-trees-component schema true false))))
+               (editor/edit-trees-component schema true false)))
+
+            (when-let [sugg-graph (:sugg-graph state)]
+              (dom/div {:style {:display "flex"
+                                :flex-direction "column"
+                                :overflow "auto"}}
+                       (editor/readonly-graph schema sugg-graph))))
 
            (c/with-state-as etrees
              (when-not (empty? (edit-tree/edit-trees-changes etrees))
@@ -219,8 +237,15 @@
 
          (c/handle-action
           (fn [st ac]
-            (if (record/is-a? focus-query-action ac)
+            (cond
+              (record/is-a? focus-query-action ac)
               (assoc st :last-focus-query (focus-query-action-query ac))
+
+              (record/is-a? area-search-action ac)
+              (assoc st :area-search-params (area-search-action-params ac)
+                     :area-search-response nil)
+
+              :else
               (c/return :action ac)))))
 
      ;; perform focus query
@@ -235,13 +260,28 @@
                                            (-> st
                                                (assoc :graph (success-value ac))
                                                (dissoc :last-focus-query)))
-                                 (c/return :action ac))))))))))
+                                 (c/return :action ac)))))))
+
+     (when-let [area-search-params (:area-search-params state)]
+       (c/handle-action
+        (util/load-json-ld (area-search! area-search-params))
+        (fn [st ac]
+          (println (pr-str ac))
+          ;; TODO: error handling
+          (if (success? ac)
+            (c/return :state
+                      (-> st
+                          (assoc :sugg-graph (success-value ac))
+                          (dissoc :area-search-params)))
+            (c/return :action ac))))))))
 
 (c/defn-item main [schema]
   (c/isolate-state
    {:last-focus-query nil
     :last-expand-by-query nil
-    :graph nil}
+    :graph nil
+    :area-search-params nil
+    :area-search-response nil}
    (c/with-state-as state
      (c/fragment
       (main* schema)))))
