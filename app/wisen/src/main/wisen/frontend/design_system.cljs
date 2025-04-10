@@ -94,3 +94,72 @@
                                    :border-radius "3px"}}
                                  attrs)
            children)))
+
+(def plus-icon
+  (dom/svg
+   {:viewBox "0 0 16 16"
+    :width "16"
+    :height "16"
+    :fill "none"
+    :xmlns "http://www.w3.org/2000/svg"}
+   (dom/circle
+    {:cx "8"
+     :cy "8"
+     :r "6"
+     :fill "currentColor"})
+   (dom/path
+    {:d "M8 5V11M5 8H11"
+     :stroke "white"
+     :strokeWidth "2"
+     :strokeLinecap "round"
+     :strokeLinejoin "round"})))
+
+(def minus-icon
+  (dom/svg
+   {:viewBox "0 0 16 16"
+    :width "16"
+    :height "16"
+    :fill "none"
+    :xmlns "http://www.w3.org/2000/svg"}
+   (dom/circle
+    {:cx "8"
+     :cy "8"
+     :r "6"
+     :fill "currentColor"})
+   (dom/path
+    {:d "M5 8H11"
+     :stroke "white"
+     :strokeWidth "2"
+     :strokeLinecap "round"
+     :strokeLinejoin "round"})))
+
+(def dot-icon
+  (dom/svg
+   {:viewBox "0 0 16 16"
+    :width "16"
+    :height "16"
+    :fill "none"
+    :xmlns "http://www.w3.org/2000/svg"}
+   (dom/path
+    {:d "M8 4L14 14H2L8 4Z"
+     :fill "currentColor"})))
+
+(def search-icon
+  (dom/svg
+   {:viewBox "0 0 16 16"
+    :width "16"
+    :height "16"
+    :fill "none"
+    :xmlns "http://www.w3.org/2000/svg"}
+   (dom/path
+    {:d "M7.2 12.8a5.6 5.6 0 1 0 0-11.2 5.6 5.6 0 0 0 0 11.2z"
+     :stroke "currentColor"
+     :strokeWidth "1.5"
+     :strokeLinecap "round"
+     :strokeLinejoin "round"})
+   (dom/path
+    {:d "m14 14-3-3"
+     :stroke "currentColor"
+     :strokeWidth "1.5"
+     :strokeLinecap "round"
+     :strokeLinejoin "round"})))
