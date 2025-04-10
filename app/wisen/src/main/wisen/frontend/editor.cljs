@@ -563,7 +563,14 @@
                                                                        :font-weight "normal"
                                                                        :cursor "pointer"
                                                                        :z-index 5}}
-                                                              "×")))
+                                                              "×"))
+
+
+                                       (dom/div {:style {:width "100%"
+                                                         :border-bottom "1px solid gray"
+                                                         :position "absolute"
+                                                         :top "14px"
+                                                         :z-index "4"}}))
 
                                       (cond
                                         (edit-tree/deleted? marked-edit-tree)
