@@ -200,7 +200,7 @@
                       (edit-tree/added-result-value new-metree))]
 
                     (edit-tree/added? old-metree)
-                    [old-metree new-metree]
+                    [new-metree]
 
                     (edit-tree/maybe-changed? old-metree)
                     [(edit-tree/maybe-changed-result-value old-metree
