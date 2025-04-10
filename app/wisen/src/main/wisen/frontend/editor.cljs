@@ -157,17 +157,58 @@
     (= kind tree/node)
     "Node"))
 
+(defn- map-values [f m]
+  (reduce (fn [acc [k v]]
+            (assoc acc k (f v)))
+          {}
+          m))
+
 (defn- edit-node-type
+  "TODO: This must be developed closer to a spec."
   ([enode]
    (edit-tree/edit-tree-result-tree
     (edit-tree/node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" enode)))
   ([enode type]
    (if (= type (edit-node-type enode))
      enode
-     (edit-tree/edit-node-properties
+     (lens/overhaul
       enode
-      (edit-tree/edit-node-properties
-       (edit-tree/make-added-edit-tree (default/default-node-for-type type)))))))
+      edit-tree/edit-node-properties
+      (fn [old-eprops]
+        (let [old-eprops* (map-values (fn [metrees]
+                                        (map (fn [metree]
+                                               (if (edit-tree/can-delete? metree)
+                                                 (edit-tree/mark-deleted metree)
+                                                 metree))
+                                             metrees))
+                                      old-eprops)
+              new-eprops (edit-tree/edit-node-properties
+                          (edit-tree/make-added-edit-tree (default/default-node-for-type type)))]
+          (merge-with
+           (fn [old-metrees new-metrees]
+             ;; set new for now (TODO)
+             (distinct
+              (if (= 1
+                     (count old-metrees)
+                     (count new-metrees))
+                (let [old-metree (first old-metrees)
+                      new-metree (first new-metrees)]
+                  (cond
+                    (edit-tree/deleted? old-metree)
+                    [(edit-tree/make-maybe-changed
+                      (edit-tree/deleted-original-value old-metree)
+                      (edit-tree/added-result-value new-metree))]
+
+                    (edit-tree/added? old-metree)
+                    [old-metree new-metree]
+
+                    (edit-tree/maybe-changed? old-metree)
+                    [(edit-tree/maybe-changed-result-value old-metree
+                                                           (edit-tree/added-result-value new-metree))]))
+                ;; else choose new metrees (TODO
+                new-metrees)))
+           old-eprops*
+           new-eprops)))))))
 
 (declare edit-tree-component)
 
