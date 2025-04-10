@@ -262,6 +262,12 @@
      "http://schema.org/geo"
      (c/with-state-as node
        (let [pure-lens (edit-tree/make-pure-lens "geo" "http://schema.org/latitude" "http://schema.org/longitude")
+             latitude-lens (lens/>>
+                            (edit-tree/at-predicate "http://schema.org/latitude")
+                            edit-tree/literal-decimal-value)
+             longitude-lens (lens/>>
+                             (edit-tree/at-predicate "http://schema.org/longitude")
+                             edit-tree/literal-decimal-value)
              lat (js/parseFloat
                   (edit-tree/literal-decimal-value
                    (edit-tree/node-object-for-predicate "http://schema.org/latitude" node)))
@@ -269,29 +275,34 @@
                    (edit-tree/literal-decimal-value
                     (edit-tree/node-object-for-predicate "http://schema.org/longitude" node)))
              coords [lat long]]
-         (dom/div
-          {:style {:border "1px solid gray"
-                   :border-radius "3px"
-                   :display "flex"
-                   :flex-direction "column"}}
-          (c/isolate-state
-           (view-box-around coords)
-           (leaflet/main {:style {:height 200
-                                  :min-width 400}}
-                         [(leaflet/make-pin
-                           "X"
-                           "green"
-                           coords)]))
-          (c/focus pure-lens
+         (c/focus pure-lens
+                  (dom/div
+                   {:style {:border "1px solid gray"
+                            :border-radius "3px"
+                            :display "flex"
+                            :flex-direction "column"}}
+                   (-> (c/isolate-state
+                        (view-box-around coords)
+                        (leaflet/main {:style {:height 200
+                                               :min-width 400}}
+                                      [(leaflet/make-pin
+                                        "X"
+                                        "green"
+                                        coords)]))
+                       (c/handle-action (fn [node ac]
+                                          (println (pr-str ac))
+                                          (if (is-a? leaflet/click-action ac)
+                                            (let [[lat lng] (leaflet/click-action-coordinates ac)]
+                                              (-> node
+                                                  (latitude-lens lat)
+                                                  (longitude-lens lng)))
+                                            (c/return :action ac)))))
                    (dom/div
                     "Latitude:"
-                    (c/focus (lens/>>
-                              (edit-tree/at-predicate "http://schema.org/latitude")
-                              edit-tree/literal-decimal-value)
+                    (c/focus latitude-lens
                              (ds/input {:disabled (when-not editable? "disabled")}))
                     "Longitude:"
-                    (c/focus (lens/>> (edit-tree/at-predicate "http://schema.org/longitude")
-                                      edit-tree/literal-decimal-value)
+                    (c/focus longitude-lens
                              (ds/input {:disabled (when-not editable? "disabled")})))))))
 
      (edit-tree-component
