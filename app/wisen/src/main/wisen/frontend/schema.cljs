@@ -12,33 +12,12 @@
   (if-let [res (first
                 (rdf/subject-predicate-objects
                  schema
-                 (rdf/make-symbol type)
+                 (rdf/make-symbol (tree/type-uri type))
                  (rdf/make-symbol "http://www.w3.org/2000/01/rdf-schema#label")))]
     (if (rdf/literal-string? res)
       (rdf/literal-string-value res)
       "Unknown type")
     "Unknown type"))
-
-(defn label-for-sort [schema sort]
-  (if-not sort
-    "Unknown"
-    (cond
-      (= tree/literal-string sort)
-      "String"
-
-      (= tree/literal-decimal sort)
-      "Decimal"
-
-      (= tree/literal-boolean sort)
-      "Boolean"
-
-      (= tree/ref sort)
-      "Reference"
-
-      :else
-      (label-for-type schema sort))))
-
-;;
 
 (defn nice-name [x]
   (case x
@@ -196,5 +175,19 @@
                           direct-datatypes
                           direct-nodekinds)))
     ;; else: TODO
-    tree/literal-string
+    [tree/node]
     ))
+
+(defn kinds-for-predicate [schema predicate]
+  (distinct
+   (map (fn [sort]
+          (if (tree/node? sort)
+            tree/node
+            sort))
+        (sorts-for-predicate schema predicate))))
+
+(defn types-for-predicate [schema predicate]
+  (mapcat (fn [sort]
+            (when (tree/node? sort)
+              [sort]))
+          (sorts-for-predicate schema predicate)))
