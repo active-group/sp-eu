@@ -5,6 +5,12 @@
             [active.data.realm :as realm]
             [active.data.record :refer [is-a?] :refer-macros [def-record]]))
 
+(def-record bounding-box-change-action
+  [bounding-box-change-action-value])
+
+(def-record click-action
+  [click-action-coordinates])
+
 (def leaflet js/L)
 
 (defn bounding-box->LatLngBounds [[[min-lat max-lat] [min-long max-long]]]
@@ -17,6 +23,11 @@
         ^leaflet/LatLng bottom-right (.getSouthEast latLngBounds)]
     [[(.-lat bottom-right) (.-lat top-left)]
      [(.-lng top-left) (.-lng bottom-right)]]))
+
+(defn LatLng->coordinates [^leaflet/LatLng latLng]
+  (println (pr-str latLng))
+  [(.-lat latLng)
+   (.-lng latLng)])
 
 (defn- pin-element [label color]
   (let [elem (js/document.createElement "div")]
@@ -70,9 +81,17 @@
           pins))
 
     (.addEventListener mp "moveend" (fn [e]
-                                      (deliver! (LatLngBounds->bounding-box
-                                                 (.getBounds mp)))
+                                      (deliver! (bounding-box-change-action
+                                                 bounding-box-change-action-value
+                                                 (LatLngBounds->bounding-box
+                                                  (.getBounds mp))))
                                       ))
+
+    (.addEventListener mp "click" (fn [^leaflet/MouseEvent e]
+                                    (deliver! (click-action
+                                               click-action-coordinates
+                                               (LatLng->coordinates (.-latlng e))))
+                                    ))
 
     (fn [_]
       (.remove mp))))
@@ -87,6 +106,11 @@
                    {:ref ref
                     :style {:min-height 240}}))
          (c/handle-action (setup-leaflet-2 ref view-box pins)
-                          (fn [_ new-view-box]
-                            new-view-box
-                            )))))))
+                          (fn [_ action]
+                            (cond
+                              (is-a? bounding-box-change-action action)
+                              (c/return :state (bounding-box-change-action-value action))
+
+                              :else
+                              (c/return :action action)
+                              ))))))))
