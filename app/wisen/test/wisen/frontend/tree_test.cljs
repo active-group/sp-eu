@@ -21,3 +21,30 @@
                       (tree/graph->trees g))))
 
              (done)))))
+
+(deftest node-properties-derived-uri
+  (let [props-1 [(tree/make-property "http://schema.org/longitude"
+                                     (tree/make-literal-decimal "1.0"))
+                 (tree/make-property "http://schema.org/latitude"
+                                     (tree/make-literal-decimal "1.0"))
+                 (tree/make-property "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                                     (tree/make-node "http://schema.org/GeoCoordinates"
+                                                     []))]
+
+        props-2 [(tree/make-property "http://schema.org/longitude"
+                                     (tree/make-literal-decimal "20.0"))
+                 (tree/make-property "http://schema.org/latitude"
+                                     (tree/make-literal-decimal "1.0"))
+                 (tree/make-property "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                                     (tree/make-node "http://schema.org/GeoCoordinates"
+                                                     []))]]
+
+    (is (= (tree/node-properties-derived-uri
+            (tree/make-node "http://example.org/foobar" props-1))
+           props-1))
+
+    ;; URI is made the same
+    (is (= (tree/node-properties-derived-uri (tree/make-node "http://example.org/foobar" props-1)
+                                             props-2)
+           (tree/node-properties-derived-uri (tree/make-node "http://example.org/bla" props-1)
+                                             props-2)))))
