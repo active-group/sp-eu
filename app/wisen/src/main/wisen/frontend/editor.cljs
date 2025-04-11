@@ -260,22 +260,22 @@
                (forms/option {:value "immigrants"} "Immigrants")))
 
      "http://schema.org/geo"
-     (c/with-state-as node
-       (let [pure-lens (edit-tree/make-pure-lens "geo" "http://schema.org/latitude" "http://schema.org/longitude")
-             latitude-lens (lens/>>
-                            (edit-tree/at-predicate "http://schema.org/latitude")
-                            edit-tree/literal-decimal-value)
-             longitude-lens (lens/>>
-                             (edit-tree/at-predicate "http://schema.org/longitude")
-                             edit-tree/literal-decimal-value)
-             lat (js/parseFloat
-                  (edit-tree/literal-decimal-value
-                   (edit-tree/node-object-for-predicate "http://schema.org/latitude" node)))
-             long (js/parseFloat
-                   (edit-tree/literal-decimal-value
-                    (edit-tree/node-object-for-predicate "http://schema.org/longitude" node)))
-             coords [lat long]]
-         (c/focus pure-lens
+     (c/focus edit-tree/edit-node-properties-derived-uri
+              (c/with-state-as eprops
+                (let [latitude-lens (lens/>>
+                                     (lens/member "http://schema.org/latitude")
+                                     lens/first
+                                     edit-tree/marked-result-value
+                                     edit-tree/literal-decimal-value)
+                      longitude-lens (lens/>>
+                                      (lens/member "http://schema.org/longitude")
+                                      lens/first
+                                      edit-tree/marked-result-value
+                                      edit-tree/literal-decimal-value)
+                      lat (js/parseFloat (latitude-lens eprops))
+                      long (js/parseFloat (longitude-lens eprops))
+                      coords [lat long]]
+
                   (dom/div
                    {:style {:border "1px solid gray"
                             :border-radius "3px"
@@ -289,11 +289,10 @@
                                         "X"
                                         "green"
                                         coords)]))
-                       (c/handle-action (fn [node ac]
-                                          (println (pr-str ac))
+                       (c/handle-action (fn [eprops ac]
                                           (if (is-a? leaflet/click-action ac)
                                             (let [[lat lng] (leaflet/click-action-coordinates ac)]
-                                              (-> node
+                                              (-> eprops
                                                   (latitude-lens lat)
                                                   (longitude-lens lng)))
                                             (c/return :action ac)))))

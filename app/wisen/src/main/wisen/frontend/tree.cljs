@@ -273,6 +273,20 @@
   (lens/xmap graph->trees
              trees->graph))
 
+(letfn [(derive-uri [props]
+          (str "https://sp-eu.active-group.de/pure/"
+               (hash props)))]
+
+  (def node-properties-derived-uri
+    (lens/lens
+     (fn [node]
+       (node-properties node))
+
+     (fn [node props*]
+       (-> node
+           (node-properties props*)
+           (node-uri (derive-uri props*)))))))
+
 ;; schema.org specific
 
 (def node-type

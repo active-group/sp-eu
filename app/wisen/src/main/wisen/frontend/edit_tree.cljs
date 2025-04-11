@@ -76,6 +76,28 @@
     (is-a? added m)
     (added-result-value m)))
 
+(defn marked-result-value
+  ([m]
+   (cond
+     (is-a? maybe-changed m)
+     (maybe-changed-result-value m)
+
+     (is-a? deleted m)
+     nil
+
+     (is-a? added m)
+     (added-result-value m)))
+  ([m v]
+   (cond
+     (is-a? maybe-changed m)
+     (maybe-changed-result-value m v)
+
+     (is-a? deleted m)
+     m
+
+     (is-a? added m)
+     (added-result-value m v))))
+
 ;; ---
 
 (declare edit-tree)
@@ -440,17 +462,18 @@
                      conj
                      (added added-result-value etree))))
 
-(defn at-predicate [pred]
+(def edit-node-properties-derived-uri
   (lens/lens
    (fn [enode]
-     (node-object-for-predicate pred enode))
-   (fn [enode etree]
-     (node-assoc-replace enode pred etree))))
+     (edit-node-properties enode))
 
-(defn make-pure-lens [name & predicates]
-  (lens/lens
-   (fn [enode]
-     enode)
-   (fn [enode enode*]
-     (let [vals (map #(node-object-for-predicate % enode*) predicates)]
-       (edit-node-uri enode* (str "http://sp-eu.ci.active-group.de/" name "/" (hash vals)))))))
+   (fn [enode eprops*]
+     (let [res-tree (edit-node-result-node enode)
+           enode* (edit-node-properties enode eprops*)
+           res-tree* (edit-node-result-node enode*)
+           props* (tree/node-properties res-tree*)
+           res-tree** (tree/node-properties-derived-uri res-tree props*)
+           uri* (tree/node-uri res-tree**)]
+       (-> enode
+           (edit-node-properties eprops*)
+           (edit-node-uri uri*))))))
