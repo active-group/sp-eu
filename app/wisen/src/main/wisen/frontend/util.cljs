@@ -57,3 +57,16 @@
                       "Loading schema")
         (c/focus lens/second (load-schemaorg)))
        (c/focus lens/first (k graph))))))
+
+(defn inspect-lens [label]
+  (fn
+    ([x]
+     (println (str label " – YANK"))
+     (println (pr-str x))
+     x)
+    ([x y]
+     (println (str label " – SHOVE"))
+     (println (pr-str x))
+     (println (pr-str y))
+     y
+     )))
