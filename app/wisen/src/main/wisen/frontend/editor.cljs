@@ -218,97 +218,56 @@
     [[(- lat d) (+ lat d)]
      [(- long d) (+ long d)]]))
 
-(defn component-for-predicate [predicate schema editable? editing?]
-  (dom/div
-   (c/focus (make-edit-tree-kind-lens schema predicate)
-            (apply
-             ds/select
-             {:disabled (when-not editable? "disabled")}
-             (map (fn [kind]
-                    (forms/option {:value kind} (label-for-kind kind)))
-                  (schema/kinds-for-predicate schema predicate))))
-   (case predicate
-     "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-     (c/with-state-as node
-       (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
-     "http://schema.org/description"
-     (c/focus edit-tree/literal-string-value
-              (ds/textarea {:style {:width "100%"
-                                    :min-height "6em"}
-                            :disabled (when-not editable?
-                                        "disabled")}))
 
-     "http://schema.org/dayOfWeek"
-     (c/focus edit-tree/tree-uri (ds/select
-                                  {:disabled (when-not editable? "disabled")}
-                                  (forms/option {:value "http://schema.org/Monday"} "Monday")
-                                  (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
-                                  (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
-                                  (forms/option {:value "http://schema.org/Thursday"} "Thursday")
-                                  (forms/option {:value "http://schema.org/Friday"} "Friday")
-                                  (forms/option {:value "http://schema.org/Saturday"} "Saturday")
-                                  (forms/option {:value "http://schema.org/Sunday"} "Sunday")
-                                  ))
-
-     "https://wisen.active-group.de/target-group"
-     (c/focus edit-tree/literal-string-value
-              (ds/select
+(c/defn-item ^:private component-for-predicate [predicate schema editable? editing?]
+  (c/with-state-as etree
+    (dom/div
+     (c/focus (make-edit-tree-kind-lens schema predicate)
+              (apply
+               ds/select
                {:disabled (when-not editable? "disabled")}
-               (forms/option {:value "elderly"} "Elderly")
-               (forms/option {:value "queer"} "Queer")
-               (forms/option {:value "immigrants"} "Immigrants")))
+               (map (fn [kind]
+                      (forms/option {:value kind} (label-for-kind kind)))
+                    (schema/kinds-for-predicate schema predicate))))
+     (cond
+       (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+       (c/with-state-as node
+         (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
-     "http://schema.org/geo"
-     (c/focus edit-tree/edit-node-properties-derived-uri
-              (c/with-state-as eprops
-                (let [latitude-lens (lens/>>
-                                     (lens/member "http://schema.org/latitude")
-                                     lens/first
-                                     edit-tree/marked-result-value
-                                     edit-tree/literal-decimal-value)
-                      longitude-lens (lens/>>
-                                      (lens/member "http://schema.org/longitude")
-                                      lens/first
-                                      edit-tree/marked-result-value
-                                      edit-tree/literal-decimal-value)
-                      lat (js/parseFloat (latitude-lens eprops))
-                      long (js/parseFloat (longitude-lens eprops))
-                      coords [lat long]]
+       (= predicate "http://schema.org/description")
+       (c/focus edit-tree/literal-string-value
+                (ds/textarea {:style {:width "100%"
+                                      :min-height "6em"}
+                              :disabled (when-not editable?
+                                          "disabled")}))
 
-                  (dom/div
-                   {:style {:border "1px solid gray"
-                            :border-radius "3px"
-                            :display "flex"
-                            :flex-direction "column"}}
-                   (-> (c/isolate-state
-                        (view-box-around coords)
-                        (leaflet/main {:style {:height 200
-                                               :min-width 400}}
-                                      [(leaflet/make-pin
-                                        "X"
-                                        "green"
-                                        coords)]))
-                       (c/handle-action (fn [eprops ac]
-                                          (if (is-a? leaflet/click-action ac)
-                                            (let [[lat lng] (leaflet/click-action-coordinates ac)]
-                                              (-> eprops
-                                                  (latitude-lens lat)
-                                                  (longitude-lens lng)))
-                                            (c/return :action ac)))))
-                   (dom/div
-                    "Latitude:"
-                    (c/focus latitude-lens
-                             (ds/input {:disabled (when-not editable? "disabled")}))
-                    "Longitude:"
-                    (c/focus longitude-lens
-                             (ds/input {:disabled (when-not editable? "disabled")})))))))
+       (= predicate "http://schema.org/dayOfWeek")
+       (c/focus edit-tree/tree-uri (ds/select
+                                    {:disabled (when-not editable? "disabled")}
+                                    (forms/option {:value "http://schema.org/Monday"} "Monday")
+                                    (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
+                                    (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
+                                    (forms/option {:value "http://schema.org/Thursday"} "Thursday")
+                                    (forms/option {:value "http://schema.org/Friday"} "Friday")
+                                    (forms/option {:value "http://schema.org/Saturday"} "Saturday")
+                                    (forms/option {:value "http://schema.org/Sunday"} "Sunday")
+                                    ))
 
-     (edit-tree-component
-      schema
-      (schema/types-for-predicate schema predicate)
-      editable?
-      editing?))))
+       (= predicate "https://wisen.active-group.de/target-group")
+       (c/focus edit-tree/literal-string-value
+                (ds/select
+                 {:disabled (when-not editable? "disabled")}
+                 (forms/option {:value "elderly"} "Elderly")
+                 (forms/option {:value "queer"} "Queer")
+                 (forms/option {:value "immigrants"} "Immigrants")))
+
+       :else
+       (edit-tree-component
+        schema
+        (schema/types-for-predicate schema predicate)
+        editable?
+        editing?)))))
 
 (defn- node-organization? [node]
   (= "http://schema.org/Organization"
@@ -720,6 +679,77 @@
          (when editing?
            (set-properties schema))))))))
 
+(letfn [(check-prop [pred matches? etree]
+          (let [eprops (edit-tree/edit-node-properties etree)]
+            (let [marked (lens/yank eprops (lens/>> (lens/member pred) lens/first))]
+              (and (or (edit-tree/added? marked)
+                       (edit-tree/maybe-changed? marked))
+                   (matches? (edit-tree/marked-result-value marked))))))]
+
+  (defn- edit-node-is-geo-coordinates-value? [etree]
+    (and
+     (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                 (fn [x]
+                   (and (edit-tree/edit-node? x)
+                        (= "http://schema.org/GeoCoordinates"
+                           (edit-tree/edit-node-uri x))))
+                 etree)
+     (check-prop "http://schema.org/latitude" edit-tree/literal-decimal? etree)
+     (check-prop "http://schema.org/longitude" edit-tree/literal-decimal? etree))))
+
+(c/defn-item ^:private node-component-for-type [type schema editable? force-editing?]
+  (c/with-state-as enode
+    (let [type-uri (tree/type-uri type)]
+      (cond
+        (and (= type-uri "http://schema.org/GeoCoordinates")
+             (edit-node-is-geo-coordinates-value? enode))
+        (c/focus edit-tree/edit-node-properties-derived-uri
+                 (c/with-state-as eprops
+                   (let [latitude-lens (lens/>>
+                                        (lens/member "http://schema.org/latitude")
+                                        lens/first
+                                        edit-tree/marked-result-value
+                                        edit-tree/literal-decimal-value)
+                         longitude-lens (lens/>>
+                                         (lens/member "http://schema.org/longitude")
+                                         lens/first
+                                         edit-tree/marked-result-value
+                                         edit-tree/literal-decimal-value)
+                         lat (js/parseFloat (latitude-lens eprops))
+                         long (js/parseFloat (longitude-lens eprops))
+                         coords [lat long]]
+
+                     (dom/div
+                      {:style {:border "1px solid gray"
+                               :border-radius "3px"
+                               :display "flex"
+                               :flex-direction "column"}}
+                      (-> (c/isolate-state
+                           (view-box-around coords)
+                           (leaflet/main {:style {:height 200
+                                                  :min-width 400}}
+                                         [(leaflet/make-pin
+                                           "X"
+                                           "green"
+                                           coords)]))
+                          (c/handle-action (fn [eprops ac]
+                                             (if (is-a? leaflet/click-action ac)
+                                               (let [[lat lng] (leaflet/click-action-coordinates ac)]
+                                                 (-> eprops
+                                                     (latitude-lens lat)
+                                                     (longitude-lens lng)))
+                                               (c/return :action ac)))))
+                      (dom/div
+                       "Latitude:"
+                       (c/focus latitude-lens
+                                (ds/input {:disabled (when-not editable? "disabled")}))
+                       "Longitude:"
+                       (c/focus longitude-lens
+                                (ds/input {:disabled (when-not editable? "disabled")})))))))
+
+        :else
+        (node-component schema editable? force-editing?)))))
+
 (defn edit-tree-component [schema types editable? force-editing?]
   (c/with-state-as etree
     (cond
@@ -758,8 +788,7 @@
                  (map (fn [type]
                         (forms/option {:value type} (schema/label-for-type schema type)))
                       types)))
-       (node-component schema editable? force-editing?))
-      )))
+       (node-component-for-type (edit-node-type etree) schema editable? force-editing?)))))
 
 ;; The editor handles rooted graphs with edits
 
