@@ -659,7 +659,9 @@
                  :align-items "center"
                  :gap "1em"}}
         (the-circle)
-        (dom/span {:style {:margin-right "1em"}} uri)
+        (dom/span {:style {:margin-right "1em"}
+                   :id uri}
+                  uri)
 
         (when editing?
           (c/fragment
@@ -941,13 +943,14 @@
                                       "disabled")}))
 
       (edit-tree/ref? etree)
-      (dom/div
-       {:style {:display "flex"
-                :gap "1em"
-                :align-items "center"}}
-       (the-circle)
-       (dom/b "REF")
-       (edit-tree/ref-uri etree))
+      (let [uri (edit-tree/ref-uri etree)]
+        (dom/div
+         {:style {:display "flex"
+                  :gap "1em"
+                  :align-items "center"}}
+         (the-circle)
+         (dom/b "REF")
+         (dom/a {:href (str "#" uri)} uri)))
 
       (edit-tree/node? etree)
       (dom/div
