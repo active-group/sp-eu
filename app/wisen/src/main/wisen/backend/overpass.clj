@@ -1,33 +1,59 @@
 (ns wisen.backend.overpass
-  (:require [active.data.record :refer [def-record]]
-            [active.data.realm :as realm]
-            [clj-http.client :as http]
+  (:require [clj-http.client :as http]
             [cheshire.core :as cheshire]
             [ring.util.codec :as codec]))
 
-(defn- parse-overpass-response-item [item]
-  (let [lon (bigdec (get item "lon"))
-        lat (bigdec (get item "lat"))
-        #_#_#_#_#_#_#_#_#_#_#_#_address (get entry "address")
-        country-code (get address "country_code")
-        town (get address "town")
-        postcode (get address "postcode")
-        road (get address "road")
-        number (get address "house_number")]
+(defn assoc-some-from [m1 m2 m1-key m2-key]
+  (when-let [v (get m2 m2-key)]
+    (assoc m1 m1-key v)))
 
-    {"@id" (str "http://overpass-items24.de/vu/" (get item "id"))
-     "@type" "http://schema.org/Place"
-     "http://schema.org/geo" {"@id" (str "http://overpass-items24.de/vu/geo" (str lon lat))
-                              "@type" "http://schema.org/GeoCoordinates"
-                              "http://schema.org/longitude" lon
-                              "http://schema.org/latitude" lat}
-     #_#_"http://schema.org/address" {"@id" (osm-id->address-uri osm-id)
-                                  "@type" "http://schema.org/PostalAddress"
-                                  "http://schema.org/addressCountry" country-code
-                                  "http://schema.org/addressLocality" town
-                                  "http://schema.org/postalCode" postcode
-                                  "http://schema.org/streetAddress" (str road " " number)}
-     }))
+(defn assoc-some [m k v]
+  (if v
+    (assoc m k v)
+    m))
+
+(defn assoc-some-street-address [m tags]
+  (let [street (get tags "addr:street")
+        housenumber (get tags "addr:housenumber")
+        street-address (if (and street housenumber)
+                         (str street " " housenumber)
+                         street)]
+    (assoc-some m "http://schema.org/streetAddress" street-address)))
+
+(defn assoc-some-address-map [m address-map*]
+  (let [address-map (when address-map*
+                                 (merge {"@id" (str "https://www.openstreetmap.org/TODO:use_proper_id/" (str (random-uuid)))
+                                         "@type" "http://schema.org/PostalAddress"}
+                                        address-map*))]
+    (assoc-some m "http://schema.org/address" address-map)))
+
+(defn parse-address [tags]
+  (-> {}
+      (assoc-some-from tags "http://schema.org/addressCountry" "addr:country")
+      (assoc-some-from tags "http://schema.org/addressLocality" "addr:city")
+      (assoc-some-from tags "http://schema.org/postalCode" "addr:postcode")
+      (assoc-some-street-address tags)))
+
+(defn- parse-overpass-response-item [item]
+  (let [lon* (get item "lon")
+        lat* (get item "lat")
+        id (get item "id")
+        tags (get item "tags")
+        address-map (parse-address tags)]
+    (when (and lon* lat* id)
+      (let [lon (bigdec lon*)
+            lat (bigdec lat*)]
+        (-> {}
+            (assoc "@id" (str "http://overpass-items24.de/vu/" id))
+            ;; TODO: use more specific type
+            (assoc "@type"  "http://schema.org/Place")
+            (assoc "http://schema.org/geo" {"@id" (str "http://overpass-items24.de/vu/geo" lon lat)
+                                            "@type" "http://schema.org/GeoCoordinates"
+                                            "http://schema.org/longitude" lon
+                                            "http://schema.org/latitude" lat})
+            (assoc-some-address-map address-map)
+            (assoc-some "http://schema.org/url" (get tags "website"))
+            (assoc-some "http://schema.org/name" (get tags "name")))))))
 
 (defn make-search-query-component
   [type tag-key tag-value [[min-lat max-lat] [min-long max-long]]]
@@ -55,10 +81,9 @@
                        :as :json-string-keys})
         status (:status res)
         body (:body res)
-        _ (println (str "body: \n\n" (pr-str (get body "elements")) "\n\n"))
-        response (map parse-overpass-response-item
-                   (get body "elements"))
-        _ (println (str "response: \n\n" (pr-str response) "\n\n"))]
+        response (remove nil?
+                         (map parse-overpass-response-item
+                              (take 2 (get body "elements"))))]
     (cond
       (= 200 status)
       {:status 200
@@ -66,7 +91,4 @@
        :body (cheshire/generate-string response)}
 
       :else
-      (do
-        (println (str "error trying to search an area:\n\tstatus: " (pr-str status) "\n\tbody: " (pr-str body)))
-        {:status status}))))
-
+      {:status status})))
