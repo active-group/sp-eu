@@ -66,7 +66,9 @@
    (property "eventSchedule"
              (make-node "Schedule"
                         (property "byDay"
-                                  (tree/make-node (schema "Tuesday")))
+                                  (-> (tree/make-node (schema "Tuesday"))
+                                      (tree/node-type (tree/make-node
+                                                       (schema "DayOfWeek")))))
                         (property "startTime"
                                   (lit-s "16:30:00"))))
    (property "eventAttendanceMode" (tree/make-node (schema "OfflineEventAttendanceMode")))
