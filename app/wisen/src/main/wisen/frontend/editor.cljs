@@ -219,7 +219,9 @@
      [(- long d) (+ long d)]]))
 
 (declare day-of-week-component
-         opening-hours-specification-component)
+         opening-hours-specification-component
+         postal-address-component
+         edit-node-is-postal-address-value?)
 
 (c/defn-item ^:private component-for-predicate [predicate schema editable? editing?]
   (c/with-state-as etree
@@ -255,6 +257,13 @@
                (ds/input {:type "url"
                           :placeholder "https://example.com"
                           :disabled (when-not editable? "disabled")}))
+
+      (and
+       (= predicate "http://schema.org/address")
+       (= (tree/type-uri (edit-node-type etree)) "http://schema.org/PostalAddress")
+       (edit-node-is-postal-address-value? etree))
+      (c/focus edit-tree/edit-node-properties-derived-uri
+               (postal-address-component schema editable? editing?))
 
       (= predicate "https://wisen.active-group.de/target-group")
       (c/focus edit-tree/literal-string-value
