@@ -525,7 +525,7 @@
                                                           :background "#eee"}}))
 
                                       (dom/div
-                                       {:style {:min-width "10em"
+                                       {:style {:min-width "15em"
                                                 :position "relative"
                                                 :display "flex"
                                                 #_#_:gap "1em"
