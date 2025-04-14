@@ -221,7 +221,8 @@
 (declare day-of-week-component
          opening-hours-specification-component
          postal-address-component
-         edit-node-is-postal-address-value?)
+         edit-node-is-postal-address-value?
+         edit-node-is-opening-hours-specification-value?)
 
 (c/defn-item ^:private component-for-predicate [predicate schema editable? editing?]
   (c/with-state-as etree
@@ -248,7 +249,10 @@
       (= predicate "http://schema.org/byDay")
       (day-of-week-component schema editable? editing?)
 
-      (= predicate "http://schema.org/openingHoursSpecification")
+      (and
+       (= predicate "http://schema.org/openingHoursSpecification")
+       (= (tree/type-uri (edit-node-type etree)) "http://schema.org/OpeningHoursSpecification")
+       (edit-node-is-opening-hours-specification-value? etree))
       (c/focus edit-tree/edit-node-properties-derived-uri
                (opening-hours-specification-component schema editable? editing?))
 
