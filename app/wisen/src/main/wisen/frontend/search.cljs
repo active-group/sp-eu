@@ -225,11 +225,11 @@
               (ds/padded-2
                (editor/edit-trees-component schema true false)))
 
-            (when-let [sugg-graph (:sugg-graph state)]
-              (dom/div {:style {:display "flex"
-                                :flex-direction "column"
-                                :overflow "auto"}}
-                       (editor/readonly-graph schema sugg-graph))))
+            (when-let [sugg-graphs (:sugg-graphs state)]
+              (apply dom/div {:style {:display "flex"
+                                      :flex-direction "column"
+                                      :overflow "auto"}}
+                     (map (partial editor/readonly-graph schema) sugg-graphs))))
 
            (c/with-state-as etrees
              (when-not (empty? (edit-tree/edit-trees-changes etrees))
@@ -266,13 +266,14 @@
        (c/handle-action
         (util/load-json-ld (area-search! area-search-params))
         (fn [st ac]
-          (println (pr-str ac))
           ;; TODO: error handling
           (if (success? ac)
-            (c/return :state
-                      (-> st
-                          (assoc :sugg-graph (success-value ac))
-                          (dissoc :area-search-params)))
+            (let [full-graph (success-value ac)
+                  components (rdf/get-subcomponents full-graph)
+              (c/return :state
+                        (-> st
+                            (assoc :sugg-graphs components)
+                            (dissoc :area-search-params))))
             (c/return :action ac))))))))
 
 (c/defn-item main [schema]
