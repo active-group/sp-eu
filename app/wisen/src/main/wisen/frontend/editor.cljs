@@ -953,27 +953,33 @@
                  {:disabled (when-not editable? "disabled")}
                  (map (fn [type]
                         (forms/option {:value type} (schema/label-for-type schema type)))
-                      types)))
+                      (or types
+                          [(edit-node-type etree)]))))
        (node-component-for-type (edit-node-type etree) schema editable? force-editing?)))))
 
 ;; The editor handles rooted graphs with edits
 
-(c/defn-item edit-trees-component [schema types editable? force-editing?]
-  (c/with-state-as etrees
-    (apply
-     dom/div
-     {:style {:display "flex"
-              :flex-direction "column"
-              :gap "2ex"}}
-     (map-indexed (fn [idx etree]
-                    (c/focus (lens/at-index idx)
-                             (edit-tree-component schema types editable? force-editing?)))
-                  etrees))))
+(defn edit-trees-component
+
+  ([schema editable? force-editing?]
+   (edit-trees-component schema nil editable? force-editing?))
+
+  ([schema types editable? force-editing?]
+   (c/with-state-as etrees
+     (apply
+      dom/div
+      {:style {:display "flex"
+               :flex-direction "column"
+               :gap "2ex"}}
+      (map-indexed (fn [idx etree]
+                     (c/focus (lens/at-index idx)
+                              (edit-tree-component schema types editable? force-editing?)))
+                   etrees)))))
 
 (c/defn-item edit-graph [schema editable? force-editing? graph]
   (c/isolate-state (edit-tree/graph->edit-trees graph)
-                   (edit-trees-component schema editable? force-editing?)))
+                   (edit-trees-component schema nil editable? force-editing?)))
 
 (c/defn-item readonly-graph [schema graph]
   (c/isolate-state (edit-tree/graph->edit-trees graph)
-                   (edit-trees-component schema false false)))
+                   (edit-trees-component schema nil false false)))
