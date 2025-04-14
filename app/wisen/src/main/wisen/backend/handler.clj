@@ -127,9 +127,8 @@
                            address-search-result))})))
 
 (defn osm-search-area [request]
-  (let [bbox (:body-params request)
-        res (overpass/search-area! bbox "amenity" "restaurant")]
-    res))
+  (let [bbox (:body-params request)]
+    (overpass/search-area! bbox "amenity" "restaurant")))
 
 (defn ollama-handler [request]
   (let [body (slurp (get request :body))]
