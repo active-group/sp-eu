@@ -271,7 +271,7 @@
 
 (defn- node-organization? [node]
   (= "http://schema.org/Organization"
-     (edit-tree/tree-uri (edit-tree/node-type node))))
+     (tree/node-uri (edit-tree/node-type node))))
 
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [node predicate :local schemaorg/default-predicate]
@@ -394,7 +394,7 @@
 
         (when commit-prompt
           (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                   (util/load-json-ld-state (llm-query (prepare-prompt (edit-tree/tree-uri
+                   (util/load-json-ld-state (llm-query (prepare-prompt (tree/node-uri
                                                                         (edit-tree/node-type node))
                                                                        commit-prompt)))))
 
