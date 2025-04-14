@@ -218,7 +218,8 @@
     [[(- lat d) (+ lat d)]
      [(- long d) (+ long d)]]))
 
-(declare day-of-week-component)
+(declare day-of-week-component
+         opening-hours-specification-component)
 
 (c/defn-item ^:private component-for-predicate [predicate schema editable? editing?]
   (c/with-state-as etree
@@ -244,6 +245,10 @@
 
       (= predicate "http://schema.org/byDay")
       (day-of-week-component schema editable? editing?)
+
+      (= predicate "http://schema.org/openingHoursSpecification")
+      (c/focus edit-tree/edit-node-properties-derived-uri
+               (opening-hours-specification-component schema editable? editing?))
 
       (= predicate "https://wisen.active-group.de/target-group")
       (c/focus edit-tree/literal-string-value
