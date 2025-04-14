@@ -279,13 +279,14 @@
 
       :else
       (dom/div
-       (c/focus (make-edit-tree-kind-lens schema predicate)
-                (apply
-                 ds/select
-                 {:disabled (when-not editable? "disabled")}
-                 (map (fn [kind]
-                        (forms/option {:value kind} (label-for-kind kind)))
-                      (schema/kinds-for-predicate schema predicate))))
+       (when editing?
+         (c/focus (make-edit-tree-kind-lens schema predicate)
+                  (apply
+                   ds/select
+                   {:disabled (when-not editable? "disabled")}
+                   (map (fn [kind]
+                          (forms/option {:value kind} (label-for-kind kind)))
+                        (schema/kinds-for-predicate schema predicate)))))
        (edit-tree-component
         schema
         (schema/types-for-predicate schema predicate)
@@ -954,14 +955,15 @@
 
       (edit-tree/node? etree)
       (dom/div
-       (c/focus edit-node-type
-                (apply
-                 ds/select
-                 {:disabled (when-not editable? "disabled")}
-                 (map (fn [type]
-                        (forms/option {:value type} (schema/label-for-type schema type)))
-                      (or types
-                          [(edit-node-type etree)]))))
+       (when force-editing?
+         (c/focus edit-node-type
+                  (apply
+                   ds/select
+                   {:disabled (when-not editable? "disabled")}
+                   (map (fn [type]
+                          (forms/option {:value type} (schema/label-for-type schema type)))
+                        (or types
+                            [(edit-node-type etree)])))))
        (node-component-for-type (edit-node-type etree) schema editable? force-editing?)))))
 
 ;; The editor handles rooted graphs with edits
