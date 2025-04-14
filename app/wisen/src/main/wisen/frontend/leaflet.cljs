@@ -11,6 +11,9 @@
 (def-record click-action
   [click-action-coordinates])
 
+(def-record setup-action
+  [setup-action-map-instance])
+
 (def leaflet js/L)
 
 (defn- leaflet-dom-event-stop-propagation [e]
@@ -28,7 +31,6 @@
      [(.-lng top-left) (.-lng bottom-right)]]))
 
 (defn LatLng->coordinates [^leaflet/LatLng latLng]
-  (println (pr-str latLng))
   [(.-lat latLng)
    (.-lng latLng)])
 
@@ -61,17 +63,13 @@
 (defn pin? [this]
   (is-a? pin this))
 
-(c/defn-subscription setup-leaflet-2 deliver! [ref view-box pins]
-  (let [mp (.map leaflet (c/deref ref))
-        tile-layer (.tileLayer
-                    leaflet
-                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    #js {:maxZoom 19,
-                         :attribution
-                         "&copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a>"})]
-    (.fitBounds mp (bounding-box->LatLngBounds view-box))
-    (.addTo tile-layer mp)
+(c/defn-subscription setup-leaflet-bounds-and-pins deliver! [^leaflet/Map map-instance view-box pins]
+  (let [markers (.addTo (.layerGroup leaflet) map-instance)]
 
+    ;; view bounds
+    (.fitBounds map-instance (bounding-box->LatLngBounds view-box))
+
+    ;; pins
     (doall
      (map (fn [pin]
             (let [html (pin-element (pin-label pin)
@@ -80,41 +78,79 @@
                                   (clj->js (pin-coordinates pin))
                                   #js {:riseOnHover true :title "Schmeitel"
                                        :icon (.divIcon leaflet #js {:html html})})]
-              (.addTo marker mp)))
+              (.addLayer markers marker)))
           pins))
 
-    (.addEventListener mp "moveend" (fn [e]
-                                      (leaflet-dom-event-stop-propagation e)
-                                      (deliver! (bounding-box-change-action
-                                                 bounding-box-change-action-value
-                                                 (LatLngBounds->bounding-box
-                                                  (.getBounds mp))))
-                                      ))
+    (fn []
+      (.removeLayer map-instance markers))))
 
-    (.addEventListener mp "dblclick" (fn [^leaflet/MouseEvent e]
-                                       (leaflet-dom-event-stop-propagation e)
-                                       (deliver! (click-action
-                                                  click-action-coordinates
-                                                  (LatLng->coordinates (.-latlng e))))
-                                       ))
+(letfn [(setup! [deliver! elem]
+          (let [mp (.map leaflet elem)
+                tile-layer (.tileLayer
+                            leaflet
+                            "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            #js {:maxZoom 19,
+                                 :attribution
+                                 "&copy; <a href=\"http://www.openstreetmap.org/copyright\">OpenStreetMap</a>"})]
+            (.addTo tile-layer mp)
 
-    (fn [_]
-      (.remove mp))))
+            (.addEventListener mp "moveend" (fn [e]
+                                              (leaflet-dom-event-stop-propagation e)
+                                              (deliver! (bounding-box-change-action
+                                                         bounding-box-change-action-value
+                                                         (LatLngBounds->bounding-box
+                                                          (.getBounds mp))))))
+
+            (.addEventListener mp "dblclick" (fn [^leaflet/MouseEvent e]
+                                               (leaflet-dom-event-stop-propagation e)
+                                               (deliver! (click-action
+                                                          click-action-coordinates
+                                                          (LatLng->coordinates (.-latlng e))))))
+
+            (.setTimeout js/window
+                         #(deliver! (setup-action setup-action-map-instance mp))))
+          )]
+
+  (c/defn-subscription setup-leaflet deliver! [ref ^leaflet/Map map-instance]
+    (let [elem (c/deref ref)]
+      (cond
+        (nil? map-instance)
+        (setup! deliver! elem)
+
+        (not= (c/deref ref)
+              (.getContainer map-instance))
+        (do
+          (.remove map-instance)
+          (setup! deliver! elem))))
+
+    #()))
 
 (c/defn-item main [& [attrs pins]]
-  (c/with-state-as view-box
+  (c/with-state-as [view-box map-instance :local nil]
     (c/with-ref
       (fn [ref]
         (c/fragment
+
          (dom/div (dom/merge-attributes
                    attrs
                    {:ref ref
                     :style {:min-height 240}}))
-         (c/handle-action (setup-leaflet-2 ref view-box pins)
-                          (fn [_ action]
+         
+         (c/cleanup (fn [_]
+                      (when map-instance
+                        (.remove map-instance))
+                      (c/return)))
+         
+         (c/handle-action (c/fragment (setup-leaflet ref map-instance)
+                                      (when map-instance
+                                        (setup-leaflet-bounds-and-pins map-instance view-box pins)))
+                          (fn [[st ls] action]
                             (cond
                               (is-a? bounding-box-change-action action)
-                              (c/return :state (bounding-box-change-action-value action))
+                              (c/return :state [(bounding-box-change-action-value action) ls])
+
+                              (is-a? setup-action action)
+                              (c/return :state [st (setup-action-map-instance action)])
 
                               :else
                               (c/return :action action)
