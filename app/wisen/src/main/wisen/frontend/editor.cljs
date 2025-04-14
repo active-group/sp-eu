@@ -218,51 +218,50 @@
     [[(- lat d) (+ lat d)]
      [(- long d) (+ long d)]]))
 
-
+(declare day-of-week-component)
 
 (c/defn-item ^:private component-for-predicate [predicate schema editable? editing?]
   (c/with-state-as etree
-    (dom/div
-     (c/focus (make-edit-tree-kind-lens schema predicate)
-              (apply
-               ds/select
-               {:disabled (when-not editable? "disabled")}
-               (map (fn [kind]
-                      (forms/option {:value kind} (label-for-kind kind)))
-                    (schema/kinds-for-predicate schema predicate))))
-     (cond
-       (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-       (c/with-state-as node
-         (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
+    (cond
+      (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+      (c/with-state-as node
+        (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
-       (= predicate "http://schema.org/description")
-       (c/focus edit-tree/literal-string-value
-                (ds/textarea {:style {:width "100%"
-                                      :min-height "6em"}
-                              :disabled (when-not editable?
-                                          "disabled")}))
+      (= predicate "http://schema.org/name")
+      (c/focus edit-tree/literal-string-value
+               (ds/input {:disabled (when-not editable? "disabled")}))
 
-       (= predicate "http://schema.org/dayOfWeek")
-       (c/focus edit-tree/tree-uri (ds/select
-                                    {:disabled (when-not editable? "disabled")}
-                                    (forms/option {:value "http://schema.org/Monday"} "Monday")
-                                    (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
-                                    (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
-                                    (forms/option {:value "http://schema.org/Thursday"} "Thursday")
-                                    (forms/option {:value "http://schema.org/Friday"} "Friday")
-                                    (forms/option {:value "http://schema.org/Saturday"} "Saturday")
-                                    (forms/option {:value "http://schema.org/Sunday"} "Sunday")
-                                    ))
+      (= predicate "http://schema.org/description")
+      (c/focus edit-tree/literal-string-value
+               (ds/textarea {:style {:width "100%"
+                                     :min-height "6em"}
+                             :disabled (when-not editable?
+                                         "disabled")}))
 
-       (= predicate "https://wisen.active-group.de/target-group")
-       (c/focus edit-tree/literal-string-value
-                (ds/select
+      (= predicate "http://schema.org/keywords")
+      (c/focus edit-tree/literal-string-value
+               (ds/input {:disabled (when-not editable? "disabled")}))
+
+      (= predicate "http://schema.org/byDay")
+      (day-of-week-component schema editable? editing?)
+
+      (= predicate "https://wisen.active-group.de/target-group")
+      (c/focus edit-tree/literal-string-value
+               (ds/select
+                {:disabled (when-not editable? "disabled")}
+                (forms/option {:value "elderly"} "Elderly")
+                (forms/option {:value "queer"} "Queer")
+                (forms/option {:value "immigrants"} "Immigrants")))
+
+      :else
+      (dom/div
+       (c/focus (make-edit-tree-kind-lens schema predicate)
+                (apply
+                 ds/select
                  {:disabled (when-not editable? "disabled")}
-                 (forms/option {:value "elderly"} "Elderly")
-                 (forms/option {:value "queer"} "Queer")
-                 (forms/option {:value "immigrants"} "Immigrants")))
-
-       :else
+                 (map (fn [kind]
+                        (forms/option {:value kind} (label-for-kind kind)))
+                      (schema/kinds-for-predicate schema predicate))))
        (edit-tree-component
         schema
         (schema/types-for-predicate schema predicate)
@@ -818,6 +817,8 @@
                             (ds/input
                              {:disabled (when-not editable? "disabled")}))))))))
 
+(declare day-of-week-component)
+
 (c/defn-item ^:private opening-hours-specification-component [schema editable? force-editing?]
   (c/with-state-as eprops
     (let [unpack (lens/>> lens/first
@@ -826,8 +827,7 @@
           day-of-week-lens (lens/>>
                             (lens/member "http://schema.org/dayOfWeek")
                             lens/first
-                            edit-tree/marked-result-value
-                            edit-tree/tree-uri)
+                            edit-tree/marked-result-value)
           opens-lens (lens/>>
                       (lens/member "http://schema.org/opens")
                       unpack)
@@ -840,21 +840,11 @@
                 :border "1px solid gray"
                 :border-radius "3px"
                 :padding "1ex 1em"}}
-       #_(pr-str eprops)
        (dom/div
         (dom/label "Day"
                    (dom/br)
                    (c/focus day-of-week-lens
-                            (ds/select
-                             {:disabled (when-not editable? "disabled")
-                              :style {:padding "7px 8px"}}
-                             (forms/option {:value "http://schema.org/Monday"} "Monday")
-                             (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
-                             (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
-                             (forms/option {:value "http://schema.org/Thursday"} "Thursday")
-                             (forms/option {:value "http://schema.org/Friday"} "Friday")
-                             (forms/option {:value "http://schema.org/Saturday"} "Saturday")
-                             (forms/option {:value "http://schema.org/Sunday"} "Sunday")))))
+                            (day-of-week-component schema editable? force-editing?))))
 
        (dom/div
         (dom/label "Opens"
@@ -871,6 +861,18 @@
                             (ds/input
                              {:type "time"
                               :disabled (when-not editable? "disabled")}))))))))
+
+(c/defn-item ^:private day-of-week-component [schema editable? force-editing?]
+  (c/focus edit-tree/tree-uri (ds/select
+                               {:disabled (when-not editable? "disabled")
+                                :style {:padding "7px 8px"}}
+                               (forms/option {:value "http://schema.org/Monday"} "Monday")
+                               (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
+                               (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
+                               (forms/option {:value "http://schema.org/Thursday"} "Thursday")
+                               (forms/option {:value "http://schema.org/Friday"} "Friday")
+                               (forms/option {:value "http://schema.org/Saturday"} "Saturday")
+                               (forms/option {:value "http://schema.org/Sunday"} "Sunday"))))
 
 (c/defn-item ^:private node-component-for-type [type schema editable? force-editing?]
   (c/with-state-as enode
