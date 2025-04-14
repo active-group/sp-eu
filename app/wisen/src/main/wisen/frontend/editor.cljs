@@ -250,6 +250,12 @@
       (c/focus edit-tree/edit-node-properties-derived-uri
                (opening-hours-specification-component schema editable? editing?))
 
+      (= predicate "http://schema.org/url")
+      (c/focus edit-tree/literal-string-value
+               (ds/input {:type "url"
+                          :placeholder "https://example.com"
+                          :disabled (when-not editable? "disabled")}))
+
       (= predicate "https://wisen.active-group.de/target-group")
       (c/focus edit-tree/literal-string-value
                (ds/select
