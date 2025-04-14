@@ -63,48 +63,49 @@
    (with-out-str
      (cljs.pprint/pprint x))))
 
-(c/defn-item ^:private before-after [before-item after-item]
+(c/defn-item ^:private before-after [show? before-item after-item]
   (c/with-state-as [state before-or-after :local ::after]
     (dom/div
      {:style {:display "flex"
               :flex-direction "column"}}
 
-     (c/focus lens/second
-              (dom/div
-               {:style {:display "flex"}}
-               (dom/div {:style {:border-top "1px solid gray"
-                                 :border-left "1px solid gray"
-                                 :border-right "1px solid gray"
-                                 :border-bottom (if (= before-or-after ::before)
-                                                  "1px solid #eee"
-                                                  "1px solid gray")
-                                 :border-top-left-radius "4px"
-                                 :padding "0.5ex 0.5em"
-                                 :cursor "pointer"
-                                 :color "red"
-                                 :position "relative"
-                                 :top "1px"
-                                 :font-weight (if (= before-or-after ::before)
-                                                "bold"
-                                                "normal")}
-                         :onClick (constantly ::before)}
-                        "Before")
-               (dom/div {:style {:border-top "1px solid gray"
-                                 :border-right "1px solid gray"
-                                 :border-bottom (if (= before-or-after ::after)
-                                                  "1px solid #eee"
-                                                  "1px solid gray")
-                                 :border-top-right-radius "4px"
-                                 :padding "0.5ex 0.5em"
-                                 :cursor "pointer"
-                                 :color "green"
-                                 :position "relative"
-                                 :top "1px"
-                                 :font-weight (if (= before-or-after ::after)
-                                                "bold"
-                                                "normal")}
-                         :onClick (constantly ::after)}
-                        "After")))
+     (when show?
+       (c/focus lens/second
+                (dom/div
+                 {:style {:display "flex"}}
+                 (dom/div {:style {:border-top "1px solid gray"
+                                   :border-left "1px solid gray"
+                                   :border-right "1px solid gray"
+                                   :border-bottom (if (= before-or-after ::before)
+                                                    "1px solid #eee"
+                                                    "1px solid gray")
+                                   :border-top-left-radius "4px"
+                                   :padding "0.5ex 0.5em"
+                                   :cursor "pointer"
+                                   :color "red"
+                                   :position "relative"
+                                   :top "1px"
+                                   :font-weight (if (= before-or-after ::before)
+                                                  "bold"
+                                                  "normal")}
+                           :onClick (constantly ::before)}
+                          "Before")
+                 (dom/div {:style {:border-top "1px solid gray"
+                                   :border-right "1px solid gray"
+                                   :border-bottom (if (= before-or-after ::after)
+                                                    "1px solid #eee"
+                                                    "1px solid gray")
+                                   :border-top-right-radius "4px"
+                                   :padding "0.5ex 0.5em"
+                                   :cursor "pointer"
+                                   :color "green"
+                                   :position "relative"
+                                   :top "1px"
+                                   :font-weight (if (= before-or-after ::after)
+                                                  "bold"
+                                                  "normal")}
+                           :onClick (constantly ::after)}
+                          "After"))))
 
      (dom/div
       {:style {:border "1px solid gray"
@@ -615,12 +616,12 @@
                                         (c/focus edit-tree/added-result-value
                                                  (component-for-predicate predicate schema editable? force-editing?))
 
-                                        (edit-tree/same? marked-edit-tree)
-                                        (c/focus edit-tree/maybe-changed-result-value
-                                                 (component-for-predicate predicate schema editable? force-editing?))
-
-                                        (edit-tree/changed? marked-edit-tree)
+                                        (edit-tree/maybe-changed? marked-edit-tree)
+                                        ;; We need to wrap `maybe-changed` inside `before-after` so that
+                                        ;; we do not lose focus in input fields when the user transitions
+                                        ;; from `same?` to `changed?`
                                         (before-after
+                                         (edit-tree/changed? marked-edit-tree)
                                          ;; before
                                          (c/focus edit-tree/maybe-changed-original-value
                                                   (component-for-predicate predicate schema false false))
