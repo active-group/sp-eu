@@ -91,12 +91,12 @@
                                                   (.getBounds mp))))
                                       ))
 
-    (.addEventListener mp "click" (fn [^leaflet/MouseEvent e]
-                                    (leaflet-dom-event-stop-propagation e)
-                                    (deliver! (click-action
-                                               click-action-coordinates
-                                               (LatLng->coordinates (.-latlng e))))
-                                    ))
+    (.addEventListener mp "dblclick" (fn [^leaflet/MouseEvent e]
+                                       (leaflet-dom-event-stop-propagation e)
+                                       (deliver! (click-action
+                                                  click-action-coordinates
+                                                  (LatLng->coordinates (.-latlng e))))
+                                       ))
 
     (fn [_]
       (.remove mp))))
