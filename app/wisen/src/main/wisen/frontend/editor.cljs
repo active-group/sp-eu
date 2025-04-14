@@ -695,7 +695,116 @@
                            (edit-tree/edit-node-uri x))))
                  etree)
      (check-prop "http://schema.org/latitude" edit-tree/literal-decimal? etree)
-     (check-prop "http://schema.org/longitude" edit-tree/literal-decimal? etree))))
+     (check-prop "http://schema.org/longitude" edit-tree/literal-decimal? etree)))
+
+  (defn- edit-node-is-postal-address-value? [etree]
+    (and
+     (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                 (fn [x]
+                   (and (edit-tree/edit-node? x)
+                        (= "http://schema.org/PostalAddress"
+                           (edit-tree/edit-node-uri x))))
+                 etree)
+     (check-prop "http://schema.org/streetAddress" edit-tree/literal-string? etree)
+     (check-prop "http://schema.org/postalCode" edit-tree/literal-string? etree)
+     (check-prop "http://schema.org/addressLocality" edit-tree/literal-string? etree)
+     (check-prop "http://schema.org/addressCountry" edit-tree/literal-string? etree))))
+
+(c/defn-item ^:private geo-coordinates-component [schema editable? force-editing?]
+  (c/with-state-as eprops
+    (let [latitude-lens (lens/>>
+                         (lens/member "http://schema.org/latitude")
+                         lens/first
+                         edit-tree/marked-result-value
+                         edit-tree/literal-decimal-value)
+          longitude-lens (lens/>>
+                          (lens/member "http://schema.org/longitude")
+                          lens/first
+                          edit-tree/marked-result-value
+                          edit-tree/literal-decimal-value)
+          lat (js/parseFloat (latitude-lens eprops))
+          long (js/parseFloat (longitude-lens eprops))
+          coords [lat long]]
+
+      (dom/div
+       {:style {:border "1px solid gray"
+                :border-radius "3px"
+                :display "flex"
+                :flex-direction "column"}}
+       (-> (c/isolate-state
+            (view-box-around coords)
+            (leaflet/main {:style {:height 200
+                                   :min-width 400}}
+                          [(leaflet/make-pin
+                            "X"
+                            "green"
+                            coords)]))
+           (c/handle-action (fn [eprops ac]
+                              (if (is-a? leaflet/click-action ac)
+                                (let [[lat lng] (leaflet/click-action-coordinates ac)]
+                                  (-> eprops
+                                      (latitude-lens lat)
+                                      (longitude-lens lng)))
+                                (c/return :action ac)))))
+       (dom/div
+        "Latitude:"
+        (c/focus latitude-lens
+                 (ds/input {:disabled (when-not editable? "disabled")}))
+        "Longitude:"
+        (c/focus longitude-lens
+                 (ds/input {:disabled (when-not editable? "disabled")})))))))
+
+(c/defn-item ^:private postal-address-component [schema editable? force-editing?]
+  (c/with-state-as eprops
+    (let [unpack (lens/>> lens/first
+                          edit-tree/marked-result-value
+                          edit-tree/literal-string-value)
+          street-address-lens (lens/>>
+                               (lens/member "http://schema.org/streetAddress")
+                               unpack)
+          postal-code-lens (lens/>>
+                            (lens/member "http://schema.org/postalCode")
+                            unpack)
+          address-locality-lens (lens/>>
+                                 (lens/member "http://schema.org/addressLocality")
+                                 unpack)
+          address-country-lens (lens/>>
+                                (lens/member "http://schema.org/addressCountry")
+                                unpack)]
+      (dom/div
+       {:style {:display "flex"
+                :flex-direction "column"
+                :gap "1ex"
+                :border "1px solid gray"
+                :border-radius "3px"
+                :padding "1ex 1em"}}
+       (dom/div
+        (dom/label "Street address"
+                   (dom/br)
+                   (c/focus street-address-lens
+                            (ds/input
+                             {:disabled (when-not editable? "disabled")}))))
+
+       (dom/div
+        (dom/label "Postal code"
+                   (dom/br)
+                   (c/focus postal-code-lens
+                            (ds/input
+                             {:disabled (when-not editable? "disabled")}))))
+
+       (dom/div
+        (dom/label "Locality (Town)"
+                   (dom/br)
+                   (c/focus address-locality-lens
+                            (ds/input
+                             {:disabled (when-not editable? "disabled")}))))
+
+       (dom/div
+        (dom/label "Country"
+                   (dom/br)
+                   (c/focus address-country-lens
+                            (ds/input
+                             {:disabled (when-not editable? "disabled")}))))))))
 
 (c/defn-item ^:private node-component-for-type [type schema editable? force-editing?]
   (c/with-state-as enode
@@ -704,48 +813,12 @@
         (and (= type-uri "http://schema.org/GeoCoordinates")
              (edit-node-is-geo-coordinates-value? enode))
         (c/focus edit-tree/edit-node-properties-derived-uri
-                 (c/with-state-as eprops
-                   (let [latitude-lens (lens/>>
-                                        (lens/member "http://schema.org/latitude")
-                                        lens/first
-                                        edit-tree/marked-result-value
-                                        edit-tree/literal-decimal-value)
-                         longitude-lens (lens/>>
-                                         (lens/member "http://schema.org/longitude")
-                                         lens/first
-                                         edit-tree/marked-result-value
-                                         edit-tree/literal-decimal-value)
-                         lat (js/parseFloat (latitude-lens eprops))
-                         long (js/parseFloat (longitude-lens eprops))
-                         coords [lat long]]
+                 (geo-coordinates-component schema editable? force-editing?))
 
-                     (dom/div
-                      {:style {:border "1px solid gray"
-                               :border-radius "3px"
-                               :display "flex"
-                               :flex-direction "column"}}
-                      (-> (c/isolate-state
-                           (view-box-around coords)
-                           (leaflet/main {:style {:height 200
-                                                  :min-width 400}}
-                                         [(leaflet/make-pin
-                                           "X"
-                                           "green"
-                                           coords)]))
-                          (c/handle-action (fn [eprops ac]
-                                             (if (is-a? leaflet/click-action ac)
-                                               (let [[lat lng] (leaflet/click-action-coordinates ac)]
-                                                 (-> eprops
-                                                     (latitude-lens lat)
-                                                     (longitude-lens lng)))
-                                               (c/return :action ac)))))
-                      (dom/div
-                       "Latitude:"
-                       (c/focus latitude-lens
-                                (ds/input {:disabled (when-not editable? "disabled")}))
-                       "Longitude:"
-                       (c/focus longitude-lens
-                                (ds/input {:disabled (when-not editable? "disabled")})))))))
+        (and (= type-uri "http://schema.org/PostalAddress")
+             (edit-node-is-postal-address-value? enode))
+        (c/focus edit-tree/edit-node-properties-derived-uri
+                 (postal-address-component schema editable? force-editing?))
 
         :else
         (node-component schema editable? force-editing?)))))
