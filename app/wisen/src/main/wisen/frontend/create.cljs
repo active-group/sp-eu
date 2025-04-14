@@ -34,6 +34,6 @@
        {:style {:overflow "auto"
                 :padding "3ex 2em"}}
 
-       (editor/edit-trees-component schema #_[organization-type event-type] true true))
+       (editor/edit-trees-component schema [organization-type event-type] true true))
 
       (commit/main schema)))))

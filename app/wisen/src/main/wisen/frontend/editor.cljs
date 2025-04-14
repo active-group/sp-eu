@@ -936,7 +936,7 @@
 
 ;; The editor handles rooted graphs with edits
 
-(c/defn-item edit-trees-component [schema editable? force-editing?]
+(c/defn-item edit-trees-component [schema types editable? force-editing?]
   (c/with-state-as etrees
     (apply
      dom/div
@@ -945,7 +945,7 @@
               :gap "2ex"}}
      (map-indexed (fn [idx etree]
                     (c/focus (lens/at-index idx)
-                             (edit-tree-component schema [(edit-node-type etree)] editable? force-editing?)))
+                             (edit-tree-component schema types editable? force-editing?)))
                   etrees))))
 
 (c/defn-item edit-graph [schema editable? force-editing? graph]
