@@ -13,6 +13,9 @@
 
 (def leaflet js/L)
 
+(defn- leaflet-dom-event-stop-propagation [e]
+  (.stopPropagation (.-DomEvent leaflet) e))
+
 (defn bounding-box->LatLngBounds [[[min-lat max-lat] [min-long max-long]]]
   (let [top-left (.latLng leaflet min-lat max-long)
         bottom-right (.latLng leaflet max-lat min-long)]
@@ -81,6 +84,7 @@
           pins))
 
     (.addEventListener mp "moveend" (fn [e]
+                                      (leaflet-dom-event-stop-propagation e)
                                       (deliver! (bounding-box-change-action
                                                  bounding-box-change-action-value
                                                  (LatLngBounds->bounding-box
@@ -88,6 +92,7 @@
                                       ))
 
     (.addEventListener mp "click" (fn [^leaflet/MouseEvent e]
+                                    (leaflet-dom-event-stop-propagation e)
                                     (deliver! (click-action
                                                click-action-coordinates
                                                (LatLng->coordinates (.-latlng e))))
