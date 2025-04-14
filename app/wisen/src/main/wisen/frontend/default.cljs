@@ -61,29 +61,21 @@
 (def default-event
   (make-node
    "Event"
-   (property "name" (lit-s "Annual Company Picnic"))
-   (property "description" (lit-s "Join us for our annual company picnic with food, games, and fun for the whole family."))
-   (property "startDate" (lit-s "2023-06-15T12:00:00-04:00"))
-   (property "endDate" (lit-s "2023-06-15T17:00:00-04:00"))
-   (property "location" (make-node
-                         "Place"
-                         (property "name" (lit-s "Company Park"))
-                         (property "address" (make-node
-                                              "PostalAddress"
-                                              (property "streetAddress" (lit-s "123 Main St"))
-                                              (property "addressLocality" (lit-s "Anytown"))
-                                              (property "addressRegion" (lit-s "CA"))
-                                              (property "postalCode" (lit-s "12345"))
-                                              (property "addressCountry" (lit-s "USA"))))))
-   (property "organizer" (make-node
-                          "Organization"
-                          (property "name" (lit-s "Acme Corporation"))))
+   (property "name" (lit-s "Literary Circle"))
+   (property "description" (lit-s "We read and discuss various sorts of books together."))
+   (property "eventSchedule"
+             (make-node "Schedule"
+                        (property "byDay"
+                                  (tree/make-node (schema "Tuesday")))
+                        (property "startTime"
+                                  (lit-s "16:30:00"))))
+   (property "eventAttendanceMode" (tree/make-node (schema "OfflineEventAttendanceMode")))
+   (property "location" default-place)
+   #_(property "organizer" default-organization)
    (property "offers" (make-node
                        "Offer"
-                       (property "url" (lit-s "https://example.com/picnic-tickets"))
-                       (property "price" (lit-d 25.00))
-                       (property "priceCurrency" (lit-s "USD"))
-                       (property "availability" (lit-s "https://schema.org/InStock"))))))
+                       (property "price" (lit-s "7.50"))
+                       (property "priceCurrency" (lit-s "EUR"))))))
 
 (def default-person
   (def person
