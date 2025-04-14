@@ -708,7 +708,19 @@
      (check-prop "http://schema.org/streetAddress" edit-tree/literal-string? etree)
      (check-prop "http://schema.org/postalCode" edit-tree/literal-string? etree)
      (check-prop "http://schema.org/addressLocality" edit-tree/literal-string? etree)
-     (check-prop "http://schema.org/addressCountry" edit-tree/literal-string? etree))))
+     (check-prop "http://schema.org/addressCountry" edit-tree/literal-string? etree)))
+
+  (defn- edit-node-is-opening-hours-specification-value? [etree]
+    (and
+     (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+                 (fn [x]
+                   (and (edit-tree/edit-node? x)
+                        (= "http://schema.org/OpeningHoursSpecification"
+                           (edit-tree/edit-node-uri x))))
+                 etree)
+     (check-prop "http://schema.org/dayOfWeek" edit-tree/edit-node? etree)
+     (check-prop "http://schema.org/opens" edit-tree/literal-string? etree)
+     (check-prop "http://schema.org/closes" edit-tree/literal-string? etree))))
 
 (c/defn-item ^:private geo-coordinates-component [schema editable? force-editing?]
   (c/with-state-as eprops
@@ -806,6 +818,60 @@
                             (ds/input
                              {:disabled (when-not editable? "disabled")}))))))))
 
+(c/defn-item ^:private opening-hours-specification-component [schema editable? force-editing?]
+  (c/with-state-as eprops
+    (let [unpack (lens/>> lens/first
+                          edit-tree/marked-result-value
+                          edit-tree/literal-string-value)
+          day-of-week-lens (lens/>>
+                            (lens/member "http://schema.org/dayOfWeek")
+                            lens/first
+                            edit-tree/marked-result-value
+                            edit-tree/tree-uri)
+          opens-lens (lens/>>
+                      (lens/member "http://schema.org/opens")
+                      unpack)
+          closes-lens (lens/>>
+                       (lens/member "http://schema.org/closes")
+                       unpack)]
+      (dom/div
+       {:style {:display "flex"
+                :gap "1ex"
+                :border "1px solid gray"
+                :border-radius "3px"
+                :padding "1ex 1em"}}
+       #_(pr-str eprops)
+       (dom/div
+        (dom/label "Day"
+                   (dom/br)
+                   (c/focus day-of-week-lens
+                            (ds/select
+                             {:disabled (when-not editable? "disabled")
+                              :style {:padding "7px 8px"}}
+                             (forms/option {:value "http://schema.org/Monday"} "Monday")
+                             (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
+                             (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
+                             (forms/option {:value "http://schema.org/Thursday"} "Thursday")
+                             (forms/option {:value "http://schema.org/Friday"} "Friday")
+                             (forms/option {:value "http://schema.org/Saturday"} "Saturday")
+                             (forms/option {:value "http://schema.org/Sunday"} "Sunday")))))
+
+       (dom/div
+        (dom/label "Opens"
+                   (dom/br)
+                   (c/focus opens-lens
+                            (ds/input
+                             {:type "time"
+                              :disabled (when-not editable? "disabled")}))))
+
+       (dom/div
+        (dom/label "Closes"
+                   (dom/br)
+                   (c/focus closes-lens
+                            (ds/input
+                             {:type "time"
+                              :disabled (when-not editable? "disabled")}))))))))
+
 (c/defn-item ^:private node-component-for-type [type schema editable? force-editing?]
   (c/with-state-as enode
     (let [type-uri (tree/type-uri type)]
@@ -819,6 +885,11 @@
              (edit-node-is-postal-address-value? enode))
         (c/focus edit-tree/edit-node-properties-derived-uri
                  (postal-address-component schema editable? force-editing?))
+
+        (and (= type-uri "http://schema.org/OpeningHoursSpecification")
+             (edit-node-is-opening-hours-specification-value? enode))
+        (c/focus edit-tree/edit-node-properties-derived-uri
+                 (opening-hours-specification-component schema editable? force-editing?))
 
         :else
         (node-component schema editable? force-editing?)))))
