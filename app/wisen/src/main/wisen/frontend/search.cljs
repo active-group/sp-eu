@@ -307,7 +307,8 @@
            (dom/div
             {:class "map-and-search-results"
              :style {:overflow "auto"
-                     :flex 1}}
+                     :flex 1
+                     :scroll-behavior "smooth"}}
 
             (map-search schema
                         (some? (:last-focus-query state))
