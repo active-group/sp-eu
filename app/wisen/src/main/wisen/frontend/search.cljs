@@ -283,7 +283,7 @@
           ;; TODO: error handling
           (if (success? ac)
             (let [full-graph (success-value ac)
-                  components (rdf/get-subcomponents full-graph)
+                  components (rdf/get-subcomponents full-graph)]
               (c/return :state
                         (-> st
                             (assoc :sugg-graphs components)
