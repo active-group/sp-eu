@@ -47,15 +47,10 @@
        (fn [body]
          (js/JSON.parse body)))))
 
-(defn quick-search->sparql [m]
-  (let [ty (case (:type m)
-             :organization "<http://schema.org/Organization>"
-             :place "<http://schema.org/Place>"
-             :offer "<http://schema.org/Offer>"
-             :event "<http://schema.org/Event>")
-        [[min-lat max-lat] [min-long max-long]] (:location m)]
+(defn- organization->sparql [m]
+  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
     (str "CONSTRUCT { ?s ?p ?o .
-                      ?s a " ty ".
+                      ?s a <http://schema.org/Organization> .
                       ?s <https://wisen.active-group.de/target-group> ?target .
                       ?s <http://schema.org/keywords> ?keywords .
                       ?s <http://schema.org/location> ?location .
@@ -64,9 +59,9 @@
                       ?coords <http://schema.org/latitude> ?lat .
                       ?coords <http://schema.org/longitude> ?long .
                       ?location ?locationp ?locationo .
- }
+                    }
           WHERE { ?s ?p ?o .
-                  ?s a " ty ".
+                  ?s a <http://schema.org/Organization> .
                   ?s <https://wisen.active-group.de/target-group> ?target .
                   ?s <http://schema.org/keywords> ?keywords .
                   ?s <http://schema.org/location> ?location .
@@ -82,6 +77,105 @@
                   FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
                   FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
                   }")))
+
+(defn- place->sparql [m]
+  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
+    (str "CONSTRUCT { ?s ?p ?o .
+                      ?s a <http://schema.org/Place> .
+                      ?s <https://wisen.active-group.de/target-group> ?target .
+                      ?s <http://schema.org/keywords> ?keywords .
+                      ?s <http://schema.org/geo> ?coords .
+                      ?coords <http://schema.org/latitude> ?lat .
+                      ?coords <http://schema.org/longitude> ?long .
+                    }
+          WHERE { ?s ?p ?o .
+                  ?s a <http://schema.org/Place> .
+                  ?s <https://wisen.active-group.de/target-group> ?target .
+                  ?s <http://schema.org/keywords> ?keywords .
+                  ?s a <http://schema.org/Place> .
+                  ?s <http://schema.org/geo> ?coords .
+                  ?coords <http://schema.org/latitude> ?lat .
+                  ?coords <http://schema.org/longitude> ?long .
+                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
+                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
+                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
+                  }")))
+
+(defn- offer->sparql [m]
+  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
+    (str "CONSTRUCT { ?s ?p ?o .
+                      ?s a <http://schema.org/Offer> .
+                      ?s <https://wisen.active-group.de/target-group> ?target .
+                      ?s <http://schema.org/keywords> ?keywords .
+                      ?s <http://schema.org/location> ?location .
+                      ?location a <http://schema.org/Place> .
+                      ?location <http://schema.org/geo> ?coords .
+                      ?coords <http://schema.org/latitude> ?lat .
+                      ?coords <http://schema.org/longitude> ?long .
+                      ?location ?locationp ?locationo .
+                    }
+          WHERE { ?s ?p ?o .
+                  ?s a <http://schema.org/Offer> .
+                  ?s <https://wisen.active-group.de/target-group> ?target .
+                  ?s <http://schema.org/keywords> ?keywords .
+                  ?s <http://schema.org/availableAtOrFrom> ?location .
+                  ?location a <http://schema.org/Place> .
+                  ?location <http://schema.org/geo> ?coords .
+                  ?coords <http://schema.org/latitude> ?lat .
+                  ?coords <http://schema.org/longitude> ?long .
+
+                      OPTIONAL {
+                        ?location ?locationp ?locationo .
+                      }
+                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
+                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
+                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
+                  }")))
+
+(defn- event->sparql [m]
+  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
+    (str "CONSTRUCT { ?s ?p ?o .
+                      ?s a <http://schema.org/Event> .
+                      ?s <https://wisen.active-group.de/target-group> ?target .
+                      ?s <http://schema.org/keywords> ?keywords .
+                      ?s <http://schema.org/location> ?location .
+                      ?location a <http://schema.org/Place> .
+                      ?location <http://schema.org/geo> ?coords .
+                      ?coords <http://schema.org/latitude> ?lat .
+                      ?coords <http://schema.org/longitude> ?long .
+                      ?location ?locationp ?locationo .
+                    }
+          WHERE { ?s ?p ?o .
+                  ?s a <http://schema.org/Event> .
+                  ?s <https://wisen.active-group.de/target-group> ?target .
+                  ?s <http://schema.org/keywords> ?keywords .
+                  ?s <http://schema.org/location> ?location .
+                  ?location a <http://schema.org/Place> .
+                  ?location <http://schema.org/geo> ?coords .
+                  ?coords <http://schema.org/latitude> ?lat .
+                  ?coords <http://schema.org/longitude> ?long .
+
+                      OPTIONAL {
+                        ?location ?locationp ?locationo .
+                      }
+                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
+                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
+                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
+                  }")))
+
+(defn- quick-search->sparql [m]
+  (case (:type m)
+    :organization
+    (organization->sparql m)
+
+    :place
+    (place->sparql m)
+
+    :offer
+    (offer->sparql m)
+
+    :event
+    (event->sparql m)))
 
 (defn area-search! [params]
   (ajax/POST "/osm/search-area"
