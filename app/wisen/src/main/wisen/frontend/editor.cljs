@@ -576,6 +576,9 @@
 (c/defn-item property-object-component [schema predicate editable? force-editing? last?]
   (c/with-state-as marked-edit-trees
     (apply dom/div
+           {:style {:display "flex"
+                    :flex-direction "column"
+                    :gap "2ex"}}
            (map-indexed (fn [idx _]
                           (c/focus (lens/at-index idx)
                                    (c/with-state-as marked-edit-tree
