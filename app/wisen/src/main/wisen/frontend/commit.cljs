@@ -58,16 +58,20 @@
          (dom/pre
           (pr-str (commit-failed-error state)))))))))
 
-(defn main [schema]
+(defn main [schema & additional-items]
   (c/with-state-as etrees
     (dom/div
      {:style {:border-top ds/border
               :padding "12px 24px"
-              :display "flex"
-              :justify-content "flex-end"}}
+              :display "flex"}}
      (c/handle-action
-      (changes-component schema (edit-tree/edit-trees-changes etrees))
+      (dom/div
+       {:style {:display "flex"
+                :flex 1
+                :justify-content "space-between"}}
+       (apply dom/div additional-items)
+       (changes-component schema (edit-tree/edit-trees-changes etrees)))
       (fn [etree action]
         (if (is-a? commit-successful action)
           (c/return :state (edit-tree/edit-trees-commit-changes etrees))
-          (c/return)))))))
+          (c/return :action action)))))))

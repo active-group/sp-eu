@@ -20,8 +20,11 @@
   default/default-organization)
 
 (defn main
-  ([schema] (main schema initial-organization))
-  ([schema initial-tree]
+
+  ([schema]
+   (main schema initial-organization))
+
+  ([schema initial-tree & additional-items]
    (c/isolate-state
 
     [(edit-tree/make-added-edit-tree initial-tree)]
@@ -38,4 +41,6 @@
 
         (editor/edit-trees-component schema [organization-type event-type] true true))
 
-       (commit/main schema))))))
+       (apply commit/main
+              schema
+              additional-items))))))

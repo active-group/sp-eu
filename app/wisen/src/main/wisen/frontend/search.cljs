@@ -334,14 +334,16 @@
                              (editor/readonly-graph schema graph)
                              (modal/modal-button "open editor" (fn [close-action]
                                                                  (let [trees (tree/graph->trees graph)]
-                                                                   (dom/div
-                                                                    (create/main schema (first trees))
-                                                                    (dom/button {:onClick (fn [_] (c/return :action close-action))}
-                                                                                "close"))))))) sugg-graphs))))
+                                                                   (create/main schema
+                                                                                (first trees)
+                                                                                (ds/button-secondary
+                                                                                 {:onClick (fn [_] (c/return :action close-action))}
+                                                                                 "Close")))))))
+                          sugg-graphs))))
 
            (c/with-state-as etrees
              (when-not (empty? (edit-tree/edit-trees-changes etrees))
-                       (commit/main schema)))))
+               (commit/main schema)))))
 
          (c/handle-action
           (fn [st ac]
