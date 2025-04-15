@@ -42,7 +42,8 @@
                                         :appearance "none"
                                         :border "none"
                                         :font-size "1em"
-                                        :padding 0}}
+                                        :padding 0
+                                        :cursor "pointer"}}
                                attrs)
          children))
 
@@ -53,7 +54,8 @@
                                         :appearance "none"
                                         :border "none"
                                         :font-size "1em"
-                                        :padding 0}}
+                                        :padding 0
+                                        :cursor "pointer"}}
                                attrs)
          children))
 
