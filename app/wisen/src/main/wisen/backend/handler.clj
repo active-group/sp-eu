@@ -19,6 +19,7 @@
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
+            [wisen.backend.overpass :as overpass]
             [wisen.backend.sparql :as sparql]
             [wisen.common.routes :as routes]
             [clojure.edn :as edn]
@@ -125,6 +126,10 @@
                           (osm/search-failure-error
                            address-search-result))})))
 
+(defn osm-search-area [request]
+  (let [bbox (:body-params request)]
+    (overpass/search-area! bbox "amenity" "restaurant")))
+
 (defn ollama-handler [request]
   (let [body (slurp (get request :body))]
     (llm/ollama-request! body)))
@@ -147,7 +152,8 @@
 
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
-      ["/search" {:post {:handler osm-search}}]]
+      ["/search" {:post {:handler osm-search}}]
+      ["/search-area" {:post {:handler osm-search-area}}]]
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303
