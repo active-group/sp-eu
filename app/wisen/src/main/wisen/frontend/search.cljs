@@ -5,11 +5,15 @@
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
+            [reacl-c-basics.pages.core :as routing]
             [wisen.frontend.promise :as promise]
             [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.editor :as editor]
             [wisen.frontend.design-system :as ds]
+            [wisen.frontend.modal :as modal]
             [wisen.frontend.rdf :as rdf]
+            [wisen.frontend.tree :as tree]
+            [wisen.common.routes :as routes]
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.spinner :as spinner]
             [wisen.frontend.util :as util]
@@ -18,13 +22,21 @@
                                              success-value
                                              make-error]]
             [wisen.frontend.commit :as commit]
-            ["jsonld" :as jsonld]))
+            ["jsonld" :as jsonld]
+            [wisen.frontend.create :as create]
+            [wisen.frontend.schema :as schema]))
 
 (def-record focus-query-action
   [focus-query-action-query])
 
 (defn make-focus-query-action [q]
   (focus-query-action focus-query-action-query q))
+
+(def-record area-search-action
+  [area-search-action-params])
+
+(defn make-area-search-action [x]
+  (area-search-action area-search-action-params x))
 
 (defn sparql-request [query]
   (-> (ajax/POST "/api/search"
@@ -71,6 +83,11 @@
                   FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
                   }")))
 
+(defn area-search! [params]
+  (ajax/POST "/osm/search-area"
+             {:body (.stringify js/JSON (clj->js params))
+              :headers {:content-type "application/json"}}))
+
 (c/defn-item quick-search [loading?]
   (dom/div
    {:style {:padding "8px"
@@ -80,7 +97,8 @@
     {:onSubmit (fn [state event]
                  (.preventDefault event)
                  (c/return :action (make-focus-query-action
-                                    (quick-search->sparql state))))
+                                    (quick-search->sparql state))
+                           :action (make-area-search-action (:location state))))
      :style {:display "flex"
              :align-items "baseline"
              :gap "16px"
@@ -211,7 +229,21 @@
             ;; display when we have a graph
             (when (:graph state)
               (ds/padded-2
-               (editor/edit-trees-component schema true false))))
+               (editor/edit-trees-component schema true false)))
+
+            (when-let [sugg-graphs (:sugg-graphs state)]
+              (apply dom/div {:style {:display "flex"
+                                      :flex-direction "column"
+                                      :overflow "auto"}}
+                     (map (fn [graph]
+                            (dom/div
+                             (editor/readonly-graph schema graph)
+                             (modal/modal-button "open editor" (fn [close-action]
+                                                                 (let [trees (tree/graph->trees graph)]
+                                                                   (dom/div
+                                                                    (create/main schema (first trees))
+                                                                    (dom/button {:onClick (fn [_] (c/return :action close-action))}
+                                                                                "close"))))))) sugg-graphs))))
 
            (c/with-state-as etrees
              (when-not (empty? (edit-tree/edit-trees-changes etrees))
@@ -219,8 +251,15 @@
 
          (c/handle-action
           (fn [st ac]
-            (if (record/is-a? focus-query-action ac)
+            (cond
+              (record/is-a? focus-query-action ac)
               (assoc st :last-focus-query (focus-query-action-query ac))
+
+              (record/is-a? area-search-action ac)
+              (assoc st :area-search-params (area-search-action-params ac)
+                     :area-search-response nil)
+
+              :else
               (c/return :action ac)))))
 
      ;; perform focus query
@@ -235,13 +274,29 @@
                                            (-> st
                                                (assoc :graph (success-value ac))
                                                (dissoc :last-focus-query)))
-                                 (c/return :action ac))))))))))
+                                 (c/return :action ac)))))))
+
+     (when-let [area-search-params (:area-search-params state)]
+       (c/handle-action
+        (util/load-json-ld (area-search! area-search-params))
+        (fn [st ac]
+          ;; TODO: error handling
+          (if (success? ac)
+            (let [full-graph (success-value ac)
+                  components (rdf/get-subcomponents full-graph)]
+              (c/return :state
+                        (-> st
+                            (assoc :sugg-graphs components)
+                            (dissoc :area-search-params))))
+            (c/return :action ac))))))))
 
 (c/defn-item main [schema]
   (c/isolate-state
    {:last-focus-query nil
     :last-expand-by-query nil
-    :graph nil}
+    :graph nil
+    :area-search-params nil
+    :area-search-response nil}
    (c/with-state-as state
      (c/fragment
       (main* schema)))))
