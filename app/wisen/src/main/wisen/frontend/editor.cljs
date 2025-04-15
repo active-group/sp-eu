@@ -434,7 +434,8 @@
                  (ds/lightbulb-icon "64"))
 
         (dom/div
-         {:style {:display "flex"
+         {:style {:flex 1
+                  :display "flex"
                   :flex-direction "column"
                   :gap "2ex"}}
 
