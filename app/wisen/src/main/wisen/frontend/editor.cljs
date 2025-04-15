@@ -427,35 +427,43 @@
 
        (modal/padded
         {:style {:display "flex"
-                 :flex-direction "column"
-                 :gap "2ex"}}
+                 :gap "1em"}}
 
-        (dom/h3 "Ask an AI to fill out this form")
+        (dom/div {:style {:padding "24px"
+                          :color "#444"}}
+                 (ds/lightbulb-icon "64"))
 
         (dom/div
          {:style {:display "flex"
                   :flex-direction "column"
-                  :gap "1ex"}}
-         (dom/div (prompt-prefix (tree/node-uri
-                                  (edit-tree/node-type node))))
+                  :gap "2ex"}}
 
-         (c/focus (lens/>> lens/second :prompt)
-                  (ds/textarea)))
+         (dom/h3 "Ask an AI to fill out this form")
 
-        (when commit-prompt
-          (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                   (util/load-json-ld-state (llm-query (prepare-prompt (tree/node-uri
-                                                                        (edit-tree/node-type node))
-                                                                       commit-prompt)))))
+         (dom/div
+          {:style {:display "flex"
+                   :flex-direction "column"
+                   :gap "1ex"}}
+          (dom/div (prompt-prefix (tree/node-uri
+                                   (edit-tree/node-type node))))
 
-        (when current-graph
-          (dom/div
-           {:style {:padding "1ex 1em"
-                    :background "#eee"
-                    :border "1px solid gray"
-                    :border-radius "8px"}}
-           (dom/h3 "Result")
-           (readonly-graph schema current-graph))))
+          (c/focus (lens/>> lens/second :prompt)
+                   (ds/textarea)))
+
+         (when commit-prompt
+           (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
+                    (util/load-json-ld-state (llm-query (prepare-prompt (tree/node-uri
+                                                                         (edit-tree/node-type node))
+                                                                        commit-prompt)))))
+
+         (when current-graph
+           (dom/div
+            {:style {:padding "1ex 1em"
+                     :background "#eee"
+                     :border "1px solid gray"
+                     :border-radius "8px"}}
+            (dom/h3 "Result")
+            (readonly-graph schema current-graph)))))
 
        (modal/toolbar
 
@@ -506,7 +514,7 @@
                    (modal/modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
                   (modal/modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
 
-              (modal/modal-button "Set properties with AI" (partial ask-ai schema))))))
+              (modal/modal-button (ds/lightbulb-icon "21") (partial ask-ai schema))))))
 
 (defn- set-reference [close-action]
   (c/with-state-as node
