@@ -257,6 +257,15 @@
       (c/focus edit-tree/edit-node-properties-derived-uri
                (opening-hours-specification-component schema editable? editing?))
 
+      (= predicate "http://schema.org/eventAttendanceMode")
+      (c/focus edit-tree/tree-uri
+               (ds/select
+                {:disabled (when-not editable? "disabled")
+                 :style {:padding "7px 8px"}}
+                (forms/option {:value "http://schema.org/OfflineEventAttendanceMode"} "Offline")
+                (forms/option {:value "http://schema.org/OnlineEventAttendanceMode"} "Online")
+                (forms/option {:value "http://schema.org/MixedEventAttendanceMode"} "Mixed")))
+
       (= predicate "http://schema.org/url")
       (c/focus edit-tree/literal-string-value
                (ds/input {:type "url"
