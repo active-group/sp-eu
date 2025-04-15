@@ -5,11 +5,15 @@
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
+            [reacl-c-basics.pages.core :as routing]
             [wisen.frontend.promise :as promise]
             [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.editor :as editor]
             [wisen.frontend.design-system :as ds]
+            [wisen.frontend.modal :as modal]
             [wisen.frontend.rdf :as rdf]
+            [wisen.frontend.tree :as tree]
+            [wisen.common.routes :as routes]
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.spinner :as spinner]
             [wisen.frontend.util :as util]
@@ -18,7 +22,9 @@
                                              success-value
                                              make-error]]
             [wisen.frontend.commit :as commit]
-            ["jsonld" :as jsonld]))
+            ["jsonld" :as jsonld]
+            [wisen.frontend.create :as create]
+            [wisen.frontend.schema :as schema]))
 
 (def-record focus-query-action
   [focus-query-action-query])
@@ -229,7 +235,15 @@
               (apply dom/div {:style {:display "flex"
                                       :flex-direction "column"
                                       :overflow "auto"}}
-                     (map (partial editor/readonly-graph schema) sugg-graphs))))
+                     (map (fn [graph]
+                            (dom/div
+                             (editor/readonly-graph schema graph)
+                             (modal/modal-button "open editor" (fn [close-action]
+                                                                 (let [trees (tree/graph->trees graph)]
+                                                                   (dom/div
+                                                                    (create/main schema (first trees))
+                                                                    (dom/button {:onClick (fn [_] (c/return :action close-action))}
+                                                                                "close"))))))) sugg-graphs))))
 
            (c/with-state-as etrees
              (when-not (empty? (edit-tree/edit-trees-changes etrees))
