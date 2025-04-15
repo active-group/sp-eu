@@ -19,7 +19,7 @@
 (dom/defn-dom padded [attrs & items]
   (apply dom/div
          (dom/merge-attributes
-          {:style {:padding "8px 24px"}}
+          {:style {:padding "2ex 2em"}}
           attrs)
          items))
 
@@ -28,7 +28,8 @@
          (dom/merge-attributes
           {:style {:border-top "1px solid #888"
                    :display "flex"
-                   :justify-content "space-between"}}
+                   :justify-content "space-between"
+                   :background "#ecf0fa"}}
           attrs)
          items))
 
