@@ -58,6 +58,12 @@
    (property "url" (lit-s "https://..."))
    (tree/make-property "https://wisen.active-group.de/target-group" (lit-s "elderly"))))
 
+(def default-offer
+  (make-node
+   "Offer"
+   (property "price" (lit-s "7.50"))
+   (property "priceCurrency" (lit-s "EUR"))))
+
 (def default-event
   (make-node
    "Event"
@@ -74,10 +80,7 @@
    (property "eventAttendanceMode" (tree/make-node (schema "OfflineEventAttendanceMode")))
    (property "location" default-place)
    #_(property "organizer" default-organization)
-   (property "offers" (make-node
-                       "Offer"
-                       (property "price" (lit-s "7.50"))
-                       (property "priceCurrency" (lit-s "EUR"))))))
+   (property "offers" default-offer)))
 
 (def default-person
   (def person
