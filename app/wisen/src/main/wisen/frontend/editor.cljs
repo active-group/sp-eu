@@ -109,8 +109,8 @@
                           "After"))))
 
      (dom/div
-      {:style {:border "1px solid gray"
-               :padding "1ex 1em"}}
+      {:style (when show? {:border "1px solid gray"
+                           :padding "1ex 1em"})}
       (c/focus lens/first
                (case before-or-after
                  ::before
