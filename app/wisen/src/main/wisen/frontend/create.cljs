@@ -19,21 +19,23 @@
 (defonce ^:private initial-organization
   default/default-organization)
 
-(defn main [schema]
-  (c/isolate-state
+(defn main
+  ([schema] (main schema initial-organization))
+  ([schema initial-tree]
+   (c/isolate-state
 
-   [(edit-tree/make-added-edit-tree initial-organization)]
+    [(edit-tree/make-added-edit-tree initial-tree)]
 
-   (c/with-state-as etrees
-     (dom/div
-      {:style {:display "flex"
-               :flex-direction "column"
-               :overflow "auto"}}
-
+    (c/with-state-as etrees
       (dom/div
-       {:style {:overflow "auto"
-                :padding "3ex 2em"}}
+       {:style {:display "flex"
+                :flex-direction "column"
+                :overflow "auto"}}
 
-       (editor/edit-trees-component schema [organization-type event-type] true true))
+       (dom/div
+        {:style {:overflow "auto"
+                 :padding "3ex 2em"}}
 
-      (commit/main schema)))))
+        (editor/edit-trees-component schema [organization-type event-type] true true))
+
+       (commit/main schema))))))
