@@ -158,6 +158,9 @@
     "https://wisen.active-group.de/target-group"
     (lit-s "elderly")
 
+    "http://schema.org/keywords"
+    (lit-s "")
+
     (default-tree-for-sort
      (first
       (schema/sorts-for-predicate schema predicate)))))
