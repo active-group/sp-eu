@@ -400,11 +400,17 @@
 
 (defn llm-query [prompt]
   (ajax/map-ok-response
-   (ajax/POST "/describe" {:body prompt})
+   (ajax/POST "/describe" {:body prompt
+                           :headers {:content-type "text/plain"}})
    :json-ld-string))
 
+(defn- prompt-prefix [type]
+  (str "The type is <" type ">."))
+
 (defn- prepare-prompt [schema-type prompt]
-  (str "I need a <" schema-type ">, " prompt))
+  (str (prompt-prefix schema-type)
+       " "
+       prompt))
 
 (c/defn-item ask-ai [schema close-action]
   (c/with-state-as [node local-state :local {:graphs nil ;; prompt -> graph
@@ -420,11 +426,21 @@
                 :gap "2ex"}}
 
        (modal/padded
+        {:style {:display "flex"
+                 :flex-direction "column"
+                 :gap "2ex"}}
 
         (dom/h3 "Ask an AI to fill out this form")
 
-        (c/focus (lens/>> lens/second :prompt)
-                 (ds/textarea))
+        (dom/div
+         {:style {:display "flex"
+                  :flex-direction "column"
+                  :gap "1ex"}}
+         (dom/div (prompt-prefix (tree/node-uri
+                                  (edit-tree/node-type node))))
+
+         (c/focus (lens/>> lens/second :prompt)
+                  (ds/textarea)))
 
         (when commit-prompt
           (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
@@ -433,8 +449,13 @@
                                                                        commit-prompt)))))
 
         (when current-graph
-          #_(pr-str current-graph)
-          (readonly-graph schema current-graph)))
+          (dom/div
+           {:style {:padding "1ex 1em"
+                    :background "#eee"
+                    :border "1px solid gray"
+                    :border-radius "8px"}}
+           (dom/h3 "Result")
+           (readonly-graph schema current-graph))))
 
        (modal/toolbar
 
