@@ -19,7 +19,7 @@
 (dom/defn-dom padded [attrs & items]
   (apply dom/div
          (dom/merge-attributes
-          {:style {:padding "8px 16px"}}
+          {:style {:padding "8px 24px"}}
           attrs)
          items))
 
