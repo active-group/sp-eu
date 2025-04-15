@@ -423,11 +423,12 @@
       (dom/div
        {:style {:display "flex"
                 :flex-direction "column"
-                :gap "2ex"}}
+                :overflow "auto"}}
 
        (modal/padded
         {:style {:display "flex"
-                 :gap "1em"}}
+                 :gap "1em"
+                 :overflow "auto"}}
 
         (dom/div {:style {:padding "24px"
                           :color "#444"}}

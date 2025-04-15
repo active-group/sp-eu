@@ -50,6 +50,8 @@
                                        :box-shadow "0 2px 16px rgba(0,0,0,0.4)"
                                        :border-bottom-right-radius "5px"
                                        :border-bottom-left-radius "5px"
+                                       :display "flex"
+                                       :flex-direction "column"
                                        }}
                               attrs)
         items)
