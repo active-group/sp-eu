@@ -21,7 +21,8 @@
             [wisen.frontend.util :as util]
             [wisen.frontend.or-error :refer [success? success-value]]
             [wisen.frontend.leaflet :as leaflet]
-            [wisen.frontend.schema :as schema]))
+            [wisen.frontend.schema :as schema]
+            [wisen.frontend.spinner :as spinner]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -418,7 +419,9 @@
                                              :prompt "Just come up with something!"}]
     (let [prompt (:prompt local-state)
           commit-prompt (:commit-prompt local-state)
-          current-graph (get (:graphs local-state) prompt)]
+          current-graph (get (:graphs local-state) prompt)
+          loading? (and (some? commit-prompt)
+                        (nil? current-graph))]
 
       (dom/div
        {:style {:display "flex"
@@ -472,10 +475,14 @@
         (ds/button-secondary {:onClick #(c/return :action close-action)}
                              "Cancel")
 
-        (c/focus lens/second
-                 (ds/button-primary {:onClick (fn [ls]
-                                                (assoc ls :commit-prompt (:prompt ls)))}
-                                    "Ask AI!"))
+        (when-not commit-prompt
+          (c/focus lens/second
+                   (ds/button-primary {:onClick (fn [ls]
+                                                  (assoc ls :commit-prompt (:prompt ls)))}
+                                      "Ask AI!")))
+
+        (when loading?
+          (spinner/main))
 
         (when (:graphs local-state)
           (ds/button-primary
