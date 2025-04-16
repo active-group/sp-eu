@@ -84,6 +84,30 @@
                                  attrs)
            children)))
 
+(c/defn-effect focus! [ref]
+  (when-let [elem (c/deref ref)]
+    (.focus elem)))
+
+(dom/defn-dom input+focus [attrs & children]
+  (c/with-ref
+    (fn [ref]
+      (c/fragment
+       (-> (c/focus lens/first
+                    (input (dom/merge-attributes
+                            attrs
+                            {:ref ref
+                             :onBlur (constantly (c/return :action false))
+                             :onFocus (constantly (c/return :action true))})))
+           (c/handle-action (fn [[st _] ac]
+                              (println (pr-str ac))
+                              [st ac])))
+       (c/focus lens/second
+                (c/once (fn [should-focus?]
+                          (if should-focus?
+                            (c/return :action (focus! ref))
+                            (c/return))
+                          )))))))
+
 (dom/defn-dom textarea [attrs & children]
   (let [disabled? (get attrs :disabled)]
     (apply forms/textarea
