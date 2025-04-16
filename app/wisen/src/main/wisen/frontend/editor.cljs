@@ -256,6 +256,7 @@
 
       (and
        (= predicate "http://schema.org/openingHoursSpecification")
+       (edit-tree/edit-node? etree)
        (= (tree/type-uri (edit-node-type etree)) "http://schema.org/OpeningHoursSpecification")
        (edit-node-is-opening-hours-specification-value? etree))
       (c/focus edit-tree/edit-node-properties-derived-uri
@@ -278,6 +279,7 @@
 
       (and
        (= predicate "http://schema.org/address")
+       (edit-tree/edit-node? etree)
        (= (tree/type-uri (edit-node-type etree)) "http://schema.org/PostalAddress")
        (edit-node-is-postal-address-value? etree))
       (c/focus edit-tree/edit-node-properties-derived-uri
