@@ -56,8 +56,7 @@
 
 (defn get-resource [request]
   (try
-    (let [id (java.util.UUID/fromString
-              (get-in request [:path-params :id]))]
+    (let [id (get-in request [:path-params :id])]
       {:status 303
        :headers {"Location" (r/description-url-for-resource-id id)}})
     (catch Exception _e

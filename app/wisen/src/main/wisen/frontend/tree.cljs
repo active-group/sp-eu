@@ -274,7 +274,7 @@
              trees->graph))
 
 (letfn [(derive-uri [props]
-          (str "https://sp-eu.active-group.de/pure/"
+          (str "http://localhost:4321/resource/"
                (hash props)))]
 
   (def node-properties-derived-uri
