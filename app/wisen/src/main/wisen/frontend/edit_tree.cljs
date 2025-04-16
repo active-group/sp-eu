@@ -197,8 +197,56 @@
    [literal-boolean literal-boolean-focused?]
    [edit-node edit-node-focused?]))
 
-(defn focus [etree]
-  (edit-tree-focused? etree true))
+(defn focus
+  "Heuristics to focus on an edit tree."
+  [etree]
+  (cond
+    (ref? etree)
+    (edit-tree-focused? etree true)
+
+    (literal-string? etree)
+    (edit-tree-focused? etree true)
+
+    (literal-decimal? etree)
+    (edit-tree-focused? etree true)
+
+    (literal-boolean? etree)
+    (edit-tree-focused? etree true)
+
+    (is-a? edit-node etree)
+    ;; focus the left-most neighbour
+    (let [eprops (edit-node-properties etree)
+          [eprops* focused?]
+          (reduce (fn [[props* focused?] [pred metrees]]
+                    (if focused?
+                      [(assoc props* pred metrees) true]
+                      (let [[metrees* focused?]
+                            (reduce (fn [[metrees* focused?] metree]
+                                      (if focused?
+                                        [(conj metrees* metree) true]
+                                        (cond
+                                          (is-a? maybe-changed metree)
+                                          [(conj metrees*
+                                                 (lens/overhaul metree maybe-changed-result-value focus))
+                                           true]
+
+                                          (is-a? deleted metree)
+                                          [(conj metrees* metree) false]
+
+                                          (is-a? added metree)
+                                          [(conj metrees*
+                                                 (lens/overhaul metree added-result-value focus))
+                                           true]))
+                                      )
+                                    []
+                                    metrees)]
+                        [(assoc props* pred metrees*) focused?])))
+                  [{} false]
+                  eprops)]
+      (if focused?
+        (edit-node-properties etree eprops*)
+        ;; else focus on uri
+        (edit-node-focused? etree true)))))
 
 (declare edit-tree-original)
 
