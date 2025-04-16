@@ -770,9 +770,7 @@
                    (matches? (edit-tree/marked-result-value marked))))))
         (check-derived-id [enode]
           (= (edit-tree/edit-node-uri enode)
-             (edit-tree/edit-node-uri (edit-tree/edit-node-properties-derived-uri
-                                       enode
-                                       (edit-tree/edit-node-properties enode)))))]
+             (edit-tree/derive-uri (edit-tree/edit-node-properties enode))))]
 
   (defn- edit-node-is-geo-coordinates-value? [etree]
     (and

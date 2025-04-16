@@ -273,19 +273,19 @@
   (lens/xmap graph->trees
              trees->graph))
 
-(letfn [(derive-uri [props]
-          (str "http://localhost:4321/resource/"
-               (hash props)))]
+(defn derive-uri [props]
+  (str "http://localhost:4321/resource/"
+       (hash (set props))))
 
-  (def node-properties-derived-uri
-    (lens/lens
-     (fn [node]
-       (node-properties node))
+(def node-properties-derived-uri
+  (lens/lens
+   (fn [node]
+     (node-properties node))
 
-     (fn [node props*]
-       (-> node
-           (node-properties props*)
-           (node-uri (derive-uri props*)))))))
+   (fn [node props*]
+     (-> node
+         (node-properties props*)
+         (node-uri (derive-uri props*))))))
 
 ;; schema.org specific
 
