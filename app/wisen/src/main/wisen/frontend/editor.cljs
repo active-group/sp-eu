@@ -848,9 +848,14 @@
 
 (c/defn-item ^:private postal-address-component [schema editable? force-editing?]
   (c/with-state-as eprops
-    (let [unpack (lens/>> lens/first
-                          edit-tree/marked-result-value
-                          edit-tree/literal-string-value)
+    (let [unpack-value (lens/>> lens/first
+                                edit-tree/marked-result-value
+                                edit-tree/literal-string-value)
+          unpack-focus (lens/>> lens/first
+                                edit-tree/marked-result-value
+                                edit-tree/edit-tree-focused?)
+          unpack (lens/pattern [unpack-value unpack-focus])
+
           street-address-lens (lens/>>
                                (lens/member "http://schema.org/streetAddress")
                                unpack)
@@ -874,28 +879,28 @@
         (dom/label "Street address"
                    (dom/br)
                    (c/focus street-address-lens
-                            (ds/input
+                            (ds/input+focus
                              {:disabled (when-not editable? "disabled")}))))
 
        (dom/div
         (dom/label "Postal code"
                    (dom/br)
                    (c/focus postal-code-lens
-                            (ds/input
+                            (ds/input+focus
                              {:disabled (when-not editable? "disabled")}))))
 
        (dom/div
         (dom/label "Locality (Town)"
                    (dom/br)
                    (c/focus address-locality-lens
-                            (ds/input
+                            (ds/input+focus
                              {:disabled (when-not editable? "disabled")}))))
 
        (dom/div
         (dom/label "Country"
                    (dom/br)
                    (c/focus address-country-lens
-                            (ds/input
+                            (ds/input+focus
                              {:disabled (when-not editable? "disabled")}))))))))
 
 (declare day-of-week-component)
