@@ -805,17 +805,23 @@
 (c/defn-item ^:private geo-coordinates-component [schema editable? force-editing?]
   (c/with-state-as eprops
     (let [latitude-lens (lens/>>
-                         (lens/member "http://schema.org/latitude")
-                         lens/first
-                         edit-tree/marked-result-value
-                         edit-tree/literal-decimal-value)
-          longitude-lens (lens/>>
-                          (lens/member "http://schema.org/longitude")
+                         (lens/>>
+                          (lens/member "http://schema.org/latitude")
                           lens/first
-                          edit-tree/marked-result-value
-                          edit-tree/literal-decimal-value)
-          lat (js/parseFloat (latitude-lens eprops))
-          long (js/parseFloat (longitude-lens eprops))
+                          edit-tree/marked-result-value)
+                         (lens/pattern [edit-tree/literal-decimal-value
+                                        edit-tree/edit-tree-focused?]))
+          latitude-value-lens (lens/>> latitude-lens lens/first)
+          longitude-lens (lens/>>
+                          (lens/>>
+                           (lens/member "http://schema.org/longitude")
+                           lens/first
+                           edit-tree/marked-result-value)
+                          (lens/pattern [edit-tree/literal-decimal-value
+                                         edit-tree/edit-tree-focused?]))
+          longitude-value-lens (lens/>> longitude-lens lens/first)
+          lat (js/parseFloat (latitude-value-lens eprops))
+          long (js/parseFloat (longitude-value-lens eprops))
           coords [lat long]]
 
       (dom/div
@@ -841,10 +847,10 @@
        (dom/div
         "Latitude:"
         (c/focus latitude-lens
-                 (ds/input {:disabled (when-not editable? "disabled")}))
+                 (ds/input+focus {:disabled (when-not editable? "disabled")}))
         "Longitude:"
         (c/focus longitude-lens
-                 (ds/input {:disabled (when-not editable? "disabled")})))))))
+                 (ds/input+focus {:disabled (when-not editable? "disabled")})))))))
 
 (c/defn-item ^:private postal-address-component [schema editable? force-editing?]
   (c/with-state-as eprops
