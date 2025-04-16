@@ -247,8 +247,9 @@
                                                "disabled")}))
 
       (= predicate "http://schema.org/keywords")
-      (c/focus edit-tree/literal-string-value
-               (ds/input {:disabled (when-not editable? "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/edit-tree-focused?])
+               (ds/input+focus {:disabled (when-not editable? "disabled")}))
 
       (= predicate "http://schema.org/byDay")
       (day-of-week-component schema editable? editing?)
