@@ -78,29 +78,6 @@
                   FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
                   }")))
 
-(defn- place->sparql [m]
-  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
-    (str "CONSTRUCT { ?s ?p ?o .
-                      ?s a <http://schema.org/Place> .
-                      ?s <https://wisen.active-group.de/target-group> ?target .
-                      ?s <http://schema.org/keywords> ?keywords .
-                      ?s <http://schema.org/geo> ?coords .
-                      ?coords <http://schema.org/latitude> ?lat .
-                      ?coords <http://schema.org/longitude> ?long .
-                    }
-          WHERE { ?s ?p ?o .
-                  ?s a <http://schema.org/Place> .
-                  ?s <https://wisen.active-group.de/target-group> ?target .
-                  ?s <http://schema.org/keywords> ?keywords .
-                  ?s a <http://schema.org/Place> .
-                  ?s <http://schema.org/geo> ?coords .
-                  ?coords <http://schema.org/latitude> ?lat .
-                  ?coords <http://schema.org/longitude> ?long .
-                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
-                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
-                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
-                  }")))
-
 (defn- offer->sparql [m]
   (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
     (str "CONSTRUCT { ?s ?p ?o .
@@ -168,9 +145,6 @@
     :organization
     (organization->sparql m)
 
-    :place
-    (place->sparql m)
-
     :offer
     (offer->sparql m)
 
@@ -208,8 +182,6 @@
              (ds/select
               (forms/option {:value :organization}
                             "organizations")
-              (forms/option {:value :place}
-                            "places")
               (forms/option {:value :offer}
                             "offers")
               (forms/option {:value :event}

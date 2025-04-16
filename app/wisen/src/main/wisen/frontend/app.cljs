@@ -49,7 +49,6 @@
                         :gap "2em"}}
 
                (new-* "Organization" default/default-organization)
-               (new-* "Place" default/default-place)
                (new-* "Event" default/default-event)
                (new-* "Offer" default/default-offer)))))
 
