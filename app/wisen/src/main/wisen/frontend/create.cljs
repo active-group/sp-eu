@@ -37,7 +37,8 @@
 
        (dom/div
         {:style {:overflow "auto"
-                 :padding "3ex 2em"}}
+                 :padding "3ex 2em"
+                 :scroll-behavior "smooth"}}
 
         (editor/edit-trees-component schema [organization-type event-type] true true))
 
