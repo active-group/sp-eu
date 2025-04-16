@@ -45,15 +45,17 @@
             lat (bigdec lat*)]
         (-> {}
             (assoc "@id" (str "http://overpass-items24.de/vu/" id))
-            ;; TODO: use more specific type
-            (assoc "@type"  "http://schema.org/Place")
-            (assoc "http://schema.org/geo" {"@id" (str "http://overpass-items24.de/vu/geo" lon lat)
-                                            "@type" "http://schema.org/GeoCoordinates"
-                                            "http://schema.org/longitude" lon
-                                            "http://schema.org/latitude" lat})
-            (assoc-some-address-map address-map)
+            (assoc "@type"  "http://schema.org/Organization")
+            (assoc-some "http://schema.org/name" (get tags "name"))
             (assoc-some "http://schema.org/url" (get tags "website"))
-            (assoc-some "http://schema.org/name" (get tags "name")))))))
+            (assoc "http://schema.org/location"
+                   (-> {}
+                       (assoc "@id" (str "http://localhost:4321/resource/" (random-uuid)))
+                       (assoc "http://schema.org/geo" {"@id" (str "http://overpass-items24.de/vu/geo" lon lat)
+                                                       "@type" "http://schema.org/GeoCoordinates"
+                                                       "http://schema.org/longitude" lon
+                                                       "http://schema.org/latitude" lat})
+                       (assoc-some-address-map address-map))))))))
 
 (defn make-search-query-component
   [type tag-key tag-value [[min-lat max-lat] [min-long max-long]]]
