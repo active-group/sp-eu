@@ -239,11 +239,12 @@
                (ds/input+focus {:disabled (when-not editable? "disabled")}))
 
       (= predicate "http://schema.org/description")
-      (c/focus edit-tree/literal-string-value
-               (ds/textarea {:style {:width "100%"
-                                     :min-height "6em"}
-                             :disabled (when-not editable?
-                                         "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/edit-tree-focused?])
+               (ds/textarea+focus {:style {:width "100%"
+                                           :min-height "6em"}
+                                   :disabled (when-not editable?
+                                               "disabled")}))
 
       (= predicate "http://schema.org/keywords")
       (c/focus edit-tree/literal-string-value
