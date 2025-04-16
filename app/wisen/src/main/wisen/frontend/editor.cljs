@@ -943,16 +943,18 @@
                               :disabled (when-not editable? "disabled")}))))))))
 
 (c/defn-item ^:private day-of-week-component [schema editable? force-editing?]
-  (c/focus edit-tree/tree-uri (ds/select
-                               {:disabled (when-not editable? "disabled")
-                                :style {:padding "7px 8px"}}
-                               (forms/option {:value "http://schema.org/Monday"} "Monday")
-                               (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
-                               (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
-                               (forms/option {:value "http://schema.org/Thursday"} "Thursday")
-                               (forms/option {:value "http://schema.org/Friday"} "Friday")
-                               (forms/option {:value "http://schema.org/Saturday"} "Saturday")
-                               (forms/option {:value "http://schema.org/Sunday"} "Sunday"))))
+  (c/focus (lens/pattern [edit-tree/tree-uri
+                          edit-tree/edit-tree-focused?])
+           (ds/select+focus
+            {:disabled (when-not editable? "disabled")
+             :style {:padding "7px 8px"}}
+            (forms/option {:value "http://schema.org/Monday"} "Monday")
+            (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
+            (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
+            (forms/option {:value "http://schema.org/Thursday"} "Thursday")
+            (forms/option {:value "http://schema.org/Friday"} "Friday")
+            (forms/option {:value "http://schema.org/Saturday"} "Saturday")
+            (forms/option {:value "http://schema.org/Sunday"} "Sunday"))))
 
 (c/defn-item ^:private node-component-for-type [type schema editable? force-editing?]
   (c/with-state-as enode

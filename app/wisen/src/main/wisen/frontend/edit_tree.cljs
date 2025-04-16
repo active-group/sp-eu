@@ -109,7 +109,7 @@
                                          (realm/sequence-of
                                           ;; payload: edit-tree
                                           marked))
-   edit-node-focused? :- realm/boolean])
+   edit-node-focused? :- (realm/optional realm/boolean)])
 
 (defn edit-node? [x]
   (is-a? edit-node x))

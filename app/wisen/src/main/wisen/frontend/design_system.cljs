@@ -59,6 +59,34 @@
                                attrs)
          children))
 
+;;
+
+(c/defn-effect focus! [ref]
+  (when-let [elem (c/deref ref)]
+    (.focus elem)))
+
+(defn- x+focus [x attrs children]
+  (c/with-ref
+    (fn [ref]
+      (c/fragment
+       (-> (c/focus lens/first
+                    (apply
+                     x
+                     (dom/merge-attributes
+                      attrs
+                      {:ref ref
+                       :onBlur (constantly (c/return :action false))
+                       :onFocus (constantly (c/return :action true))})
+                     children))
+           (c/handle-action (fn [[st _] ac]
+                              [st ac])))
+       (c/focus lens/second
+                (c/once (fn [should-focus?]
+                          (if should-focus?
+                            (c/return :action (focus! ref))
+                            (c/return))
+                          )))))))
+
 (dom/defn-dom select [attrs & children]
   (apply forms/select
          (dom/merge-attributes
@@ -70,6 +98,9 @@
                    :border-radius "3px"}}
           attrs)
          children))
+
+(dom/defn-dom select+focus [attrs & children]
+  (x+focus select attrs children))
 
 (dom/defn-dom input [attrs & children]
   (let [disabled? (get attrs :disabled)]
@@ -83,29 +114,6 @@
                                    :border-radius "3px"}}
                                  attrs)
            children)))
-
-(c/defn-effect focus! [ref]
-  (when-let [elem (c/deref ref)]
-    (.focus elem)))
-
-(defn- x+focus [x attrs children]
-  (c/with-ref
-    (fn [ref]
-      (c/fragment
-       (-> (c/focus lens/first
-                    (x (dom/merge-attributes
-                        attrs
-                        {:ref ref
-                         :onBlur (constantly (c/return :action false))
-                         :onFocus (constantly (c/return :action true))})))
-           (c/handle-action (fn [[st _] ac]
-                              [st ac])))
-       (c/focus lens/second
-                (c/once (fn [should-focus?]
-                          (if should-focus?
-                            (c/return :action (focus! ref))
-                            (c/return))
-                          )))))))
 
 (dom/defn-dom input+focus [attrs & children]
   (x+focus input attrs children))
