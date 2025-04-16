@@ -13,6 +13,7 @@
             [wisen.frontend.util :as util]
             [wisen.frontend.modal :as modal]
             [wisen.frontend.default :as default]
+            [active.data.realm.validation :as validation]
             ["jsonld" :as jsonld]))
 
 (defn menu [schema]
@@ -69,6 +70,7 @@
 
 (defn ^:dev/after-load start []
   (println "start")
+  (validation/set-checking! true)
   (cmain/run
    (.getElementById js/document "main")
    (toplevel)))
