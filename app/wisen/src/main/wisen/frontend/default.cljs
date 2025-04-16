@@ -103,7 +103,7 @@
 (defn default-tree-for-sort [type]
   (cond
     (= type tree/literal-string)
-    (lit-s "...")
+    (lit-s "")
 
     (= type tree/literal-decimal)
     (lit-d "1.0")
@@ -197,7 +197,7 @@
 (defn default-tree-for-predicate-and-kind [predicate kind]
   (cond
     (= kind tree/literal-string)
-    (lit-s "...")
+    (lit-s "")
 
     (= kind tree/literal-decimal)
     (lit-d "1.0")
