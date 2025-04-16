@@ -767,10 +767,16 @@
             (let [marked (lens/yank eprops (lens/>> (lens/member pred) lens/first))]
               (and (or (edit-tree/added? marked)
                        (edit-tree/maybe-changed? marked))
-                   (matches? (edit-tree/marked-result-value marked))))))]
+                   (matches? (edit-tree/marked-result-value marked))))))
+        (check-derived-id [enode]
+          (= (edit-tree/edit-node-uri enode)
+             (edit-tree/edit-node-uri (edit-tree/edit-node-properties-derived-uri
+                                       enode
+                                       (edit-tree/edit-node-properties enode)))))]
 
   (defn- edit-node-is-geo-coordinates-value? [etree]
     (and
+     (check-derived-id etree)
      (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                  (fn [x]
                    (and (edit-tree/edit-node? x)
@@ -782,6 +788,7 @@
 
   (defn- edit-node-is-postal-address-value? [etree]
     (and
+     (check-derived-id etree)
      (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                  (fn [x]
                    (and (edit-tree/edit-node? x)
@@ -795,6 +802,7 @@
 
   (defn- edit-node-is-opening-hours-specification-value? [etree]
     (and
+     (check-derived-id etree)
      (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                  (fn [x]
                    (and (edit-tree/edit-node? x)
