@@ -4,7 +4,8 @@
             [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
             [active.clojure.lens :as lens]
-            [wisen.frontend.change :as change]))
+            [wisen.frontend.change :as change]
+            [wisen.frontend.util :as util]))
 
 (def-record deleted
   [deleted-original-value])
@@ -107,33 +108,113 @@
    edit-node-properties :- (realm/map-of tree/URI ; predicate
                                          (realm/sequence-of
                                           ;; payload: edit-tree
-                                          marked))])
+                                          marked))
+   edit-node-focused? :- realm/boolean])
 
 (defn edit-node? [x]
   (is-a? edit-node x))
 
+;;
+
+(def-record ref
+  [ref-uri :- tree/URI
+   ref-focused? :- realm/boolean])
+
+(defn make-ref
+  ([uri]
+   (make-ref uri false))
+  ([uri focused?]
+   (ref ref-uri uri ref-focused? focused?)))
+
+(defn ref? [x]
+  (is-a? ref x))
+
+;;
+
+(def-record literal-string
+  [literal-string-value :- realm/string
+   literal-string-focused? :- realm/boolean])
+
+(defn make-literal-string
+  ([s]
+   (literal-string literal-string-value s
+                   literal-string-focused? false))
+  ([s focused?]
+   (literal-string literal-string-value s
+                   literal-string-focused? focused?)))
+
+(defn literal-string? [x]
+  (is-a? literal-string x))
+
+;;
+
+(def-record literal-decimal
+  [literal-decimal-value :- realm/string
+   literal-decimal-focused? :- realm/boolean])
+
+(defn make-literal-decimal
+  ([s]
+   (literal-decimal literal-decimal-value s
+                    literal-decimal-focused? false))
+  ([s focused?]
+   (literal-decimal literal-decimal-value s
+                    literal-decimal-focused? focused?)))
+
+(defn literal-decimal? [x]
+  (is-a? literal-decimal x))
+
+;;
+
+(def-record literal-boolean
+  [literal-boolean-value :- realm/boolean
+   literal-boolean-focused? :- realm/boolean])
+
+(defn make-literal-boolean
+  ([s]
+   (literal-boolean literal-boolean-value s
+                    literal-boolean-focused? false))
+  ([s focused?]
+   (literal-boolean literal-boolean-value s
+                    literal-boolean-focused? focused?)))
+
+(defn literal-boolean? [x]
+  (is-a? literal-boolean x))
+
+;;
+
 (def edit-tree (realm/union
-                tree/ref
-                tree/literal-string
-                tree/literal-decimal
-                tree/literal-boolean
+                ref
+                literal-string
+                literal-decimal
+                literal-boolean
                 edit-node))
+
+(def edit-tree-focused?
+  (util/cond-lens
+   [ref ref-focused?]
+   [literal-string literal-string-focused?]
+   [literal-decimal literal-decimal-focused?]
+   [literal-boolean literal-boolean-focused?]
+   [edit-node edit-node-focused?]))
+
+(defn focus [etree]
+  (edit-tree-focused? etree true))
 
 (declare edit-tree-original)
 
 (defn- make-edit-tree [tree cns]
   (cond
     (tree/ref? tree)
-    tree
+    (make-ref (tree/ref-uri tree))
 
     (tree/literal-string? tree)
-    tree
+    (make-literal-string (tree/literal-string-value tree))
 
     (tree/literal-decimal? tree)
-    tree
+    (make-literal-decimal (tree/literal-decimal-value tree))
 
     (tree/literal-boolean? tree)
-    tree
+    (make-literal-boolean (tree/literal-boolean-value tree))
 
     (tree/node? tree)
     (edit-node
@@ -184,17 +265,17 @@
 
 (defn edit-tree-result-tree [etree]
   (cond
-    (tree/ref? etree)
-    etree
+    (ref? etree)
+    (tree/make-ref (ref-uri etree))
 
-    (tree/literal-string? etree)
-    etree
+    (literal-string? etree)
+    (tree/make-literal-string (literal-string-value etree))
 
-    (tree/literal-decimal? etree)
-    etree
+    (literal-decimal? etree)
+    (tree/make-literal-decimal (literal-decimal-value etree))
 
-    (tree/literal-boolean? etree)
-    etree
+    (literal-boolean? etree)
+    (tree/make-literal-boolean (literal-boolean-value etree))
 
     (is-a? edit-node etree)
     (edit-node-result-node etree)))
@@ -210,20 +291,21 @@
                    (update eprops
                            predicate
                            conj
-                           (make-added (make-added-edit-tree object-tree))))))
+                           (make-added (focus
+                                        (make-added-edit-tree object-tree)))))))
 
 (defn edit-tree-changes [etree]
   (cond
-    (tree/ref? etree)
+    (ref? etree)
     []
 
-    (tree/literal-string? etree)
+    (literal-string? etree)
     []
 
-    (tree/literal-decimal? etree)
+    (literal-decimal? etree)
     []
 
-    (tree/literal-boolean? etree)
+    (literal-boolean? etree)
     []
 
     (is-a? edit-node etree)
@@ -286,16 +368,16 @@
 (defn edit-tree-commit-changes
   [etree]
   (cond
-    (tree/ref? etree)
+    (ref? etree)
     etree
 
-    (tree/literal-string? etree)
+    (literal-string? etree)
     etree
 
-    (tree/literal-decimal? etree)
+    (literal-decimal? etree)
     etree
 
-    (tree/literal-boolean? etree)
+    (literal-boolean? etree)
     etree
 
     (is-a? edit-node etree)
@@ -327,17 +409,17 @@
 
 (defn- edit-tree-handle [etree]
   (cond
-    (tree/ref? etree)
-    etree
+    (ref? etree)
+    (tree/make-ref (ref-uri etree))
 
-    (tree/literal-string? etree)
-    etree
+    (literal-string? etree)
+    (tree/make-literal-string (literal-string-value etree))
 
-    (tree/literal-decimal? etree)
-    etree
+    (literal-decimal? etree)
+    (tree/make-literal-decimal (literal-decimal-value etree))
 
-    (tree/literal-boolean? etree)
-    etree
+    (literal-boolean? etree)
+    (tree/make-literal-boolean (literal-boolean-value etree))
 
     (is-a? edit-node etree)
     (edit-node-uri etree)))
@@ -391,41 +473,19 @@
      (is-a? edit-node etree)
      (edit-node-uri etree)
 
-     (tree/ref? etree)
-     (tree/ref-uri etree)))
+     (ref? etree)
+     (ref-uri etree)))
 
   ([etree uri]
    (cond
      (is-a? edit-node etree)
      (edit-node-uri etree uri)
 
-     (tree/ref? etree)
-     (tree/ref-uri etree uri))))
+     (ref? etree)
+     (ref-uri etree uri))))
 
 (defn node-type [enode]
   (tree/node-type (edit-tree-result-tree enode)))
-
-(def primitive? tree/primitive?)
-
-(def literal-string? tree/literal-string?)
-
-(def literal-string-value tree/literal-string-value)
-
-(def make-literal-string tree/make-literal-string)
-
-(def literal-decimal? tree/literal-decimal?)
-
-(def literal-decimal-value tree/literal-decimal-value)
-
-(def literal-boolean? tree/literal-boolean?)
-
-(def literal-boolean-value tree/literal-boolean-value)
-
-(def make-ref tree/make-ref)
-
-(def ref? tree/ref?)
-
-(def ref-uri tree/ref-uri)
 
 (defn graph->edit-trees [graph]
   (map make-same-edit-tree (tree/graph->trees graph)))
