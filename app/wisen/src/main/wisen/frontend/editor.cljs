@@ -284,8 +284,9 @@
                (postal-address-component schema editable? editing?))
 
       (= predicate "https://wisen.active-group.de/target-group")
-      (c/focus edit-tree/literal-string-value
-               (ds/select
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/edit-tree-focused?])
+               (ds/select+focus
                 {:disabled (when-not editable? "disabled")}
                 (forms/option {:value "elderly"} "Elderly")
                 (forms/option {:value "queer"} "Queer")
