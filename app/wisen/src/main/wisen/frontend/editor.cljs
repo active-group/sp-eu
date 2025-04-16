@@ -234,8 +234,9 @@
         (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
       (= predicate "http://schema.org/name")
-      (c/focus edit-tree/literal-string-value
-               (ds/input {:disabled (when-not editable? "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/edit-tree-focused?])
+               (ds/input+focus {:disabled (when-not editable? "disabled")}))
 
       (= predicate "http://schema.org/description")
       (c/focus edit-tree/literal-string-value
