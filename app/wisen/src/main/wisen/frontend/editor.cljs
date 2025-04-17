@@ -393,7 +393,7 @@
       (when (:graph local-state)
         (ds/button-primary
          {:onClick (fn [[node local-state]]
-                     (let [place-node (first (edit-tree/graph->edit-trees (:graph local-state)))]
+                     (let [place-node (edit-tree/graph->edit-tree (:graph local-state))]
                        (assert (edit-tree/node? place-node))
                        (c/return :state [(osm/organization-do-link-osm
                                           node
@@ -495,7 +495,7 @@
         (when (:graphs local-state)
           (ds/button-primary
            {:onClick (fn [[node local-state]]
-                       (let [ai-node (first (edit-tree/graph->edit-trees current-graph))]
+                       (let [ai-node (edit-tree/graph->edit-tree current-graph)]
                          (assert (edit-tree/node? ai-node))
                          (c/return :state [#_(tree/merge node ai-node)
                                            ai-node
@@ -570,7 +570,7 @@
            (c/handle-action (fn [[enode _] ac]
                               (if (success? ac)
                                 (let [new-graph (success-value ac)
-                                      new-node (first (tree/graph->trees new-graph))]
+                                      new-node (tree/graph->tree new-graph)]
                                   [(edit-tree/set-edit-node-original enode new-node) false])
                                 (assert false "TODO: implement error handling")))))))))
 
@@ -1025,6 +1025,17 @@
          (dom/b "REF")
          (dom/a {:href (str "#" uri)} uri)))
 
+      (edit-tree/many? etree)
+      (apply
+       dom/div
+       {:style {:display "flex"
+                :flex-direction "column"
+                :gap "2ex"}}
+       (map-indexed (fn [idx etree]
+                      (c/focus (lens/at-index idx)
+                               (edit-tree-component schema types editable? force-editing?)))
+                    (edit-tree/many-edit-trees etree)))
+
       (edit-tree/node? etree)
       (dom/div
        (when force-editing?
@@ -1038,29 +1049,10 @@
                             [(edit-node-type etree)])))))
        (node-component-for-type (edit-node-type etree) schema editable? force-editing?)))))
 
-;; The editor handles rooted graphs with edits
-
-(defn edit-trees-component
-
-  ([schema editable? force-editing?]
-   (edit-trees-component schema nil editable? force-editing?))
-
-  ([schema types editable? force-editing?]
-   (c/with-state-as etrees
-     (apply
-      dom/div
-      {:style {:display "flex"
-               :flex-direction "column"
-               :gap "2ex"}}
-      (map-indexed (fn [idx etree]
-                     (c/focus (lens/at-index idx)
-                              (edit-tree-component schema types editable? force-editing?)))
-                   etrees)))))
-
 (c/defn-item edit-graph [schema editable? force-editing? graph]
-  (c/isolate-state (edit-tree/graph->edit-trees graph)
-                   (edit-trees-component schema nil editable? force-editing?)))
+  (c/isolate-state (edit-tree/graph->edit-tree graph)
+                   (edit-tree-component schema nil editable? force-editing?)))
 
 (c/defn-item readonly-graph [schema graph]
-  (c/isolate-state (edit-tree/graph->edit-trees graph)
-                   (edit-trees-component schema nil false false)))
+  (c/isolate-state (edit-tree/graph->edit-tree graph)
+                   (edit-tree-component schema nil false false)))

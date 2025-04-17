@@ -59,7 +59,7 @@
           (pr-str (commit-failed-error state)))))))))
 
 (defn main [schema & additional-items]
-  (c/with-state-as etrees
+  (c/with-state-as etree
     (dom/div
      {:style {:border-top ds/border
               :padding "12px 24px"
@@ -70,8 +70,8 @@
                 :flex 1
                 :justify-content "space-between"}}
        (apply dom/div additional-items)
-       (changes-component schema (edit-tree/edit-trees-changes etrees)))
+       (changes-component schema (edit-tree/edit-tree-changes etree)))
       (fn [etree action]
         (if (is-a? commit-successful action)
-          (c/return :state (edit-tree/edit-trees-commit-changes etrees))
+          (c/return :state (edit-tree/edit-tree-commit-changes etree))
           (c/return :action action)))))))
