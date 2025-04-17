@@ -19,7 +19,7 @@
             [wisen.frontend.details :as details]
             [wisen.frontend.schemaorg :as schemaorg]
             [wisen.frontend.util :as util]
-            [wisen.frontend.or-error :refer [success? success-value]]
+            [wisen.common.or-error :refer [success? success-value error? error-value]]
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.schema :as schema]
             [wisen.frontend.spinner :as spinner]
@@ -422,14 +422,14 @@
        prompt))
 
 (c/defn-item ask-ai [schema close-action]
-  (c/with-state-as [node local-state :local {:graphs nil ;; prompt -> graph
+  (c/with-state-as [node local-state :local {:results nil ;; prompt -> results
                                              :commit-prompt nil
                                              :prompt "Just come up with something!"}]
     (let [prompt (:prompt local-state)
           commit-prompt (:commit-prompt local-state)
-          current-graph (get (:graphs local-state) prompt)
+          current-result (get (:results local-state) prompt)
           loading? (and (some? commit-prompt)
-                        (nil? current-graph))]
+                        (nil? current-result))]
 
       (dom/div
        {:style {:display "flex"
@@ -464,19 +464,23 @@
                    (ds/textarea)))
 
          (when commit-prompt
-           (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                    (util/load-json-ld-state (llm-query (prepare-prompt (tree/node-uri
+           (c/focus (lens/>> lens/second :results (lens/member commit-prompt))
+                    (util/load-json-ld-state* (llm-query (prepare-prompt (tree/node-uri
                                                                          (edit-tree/node-type node))
                                                                         commit-prompt)))))
 
-         (when current-graph
-           (dom/div
-            {:style {:padding "1ex 1em"
-                     :background "#eee"
-                     :border "1px solid gray"
-                     :border-radius "8px"}}
-            (dom/h3 "Result")
-            (readonly-graph schema current-graph)))))
+         (when current-result
+           (if (success? current-result)
+             (dom/div
+              {:style {:padding "1ex 1em"
+                       :background "#eee"
+                       :border "1px solid gray"
+                       :border-radius "8px"}}
+              (dom/h3 "Result")
+              (readonly-graph schema (success-value current-result)))
+             (dom/div
+              (dom/h3 "Error")
+              (dom/pre (pr-str (error-value current-result))))))))
 
        (modal/toolbar
 
@@ -492,7 +496,7 @@
         (when loading?
           (spinner/main))
 
-        (when (:graphs local-state)
+        #_(when (:graphs local-state)
           (ds/button-primary
            {:onClick (fn [[node local-state]]
                        (let [ai-node (edit-tree/graph->edit-tree current-graph)]
