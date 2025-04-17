@@ -7,10 +7,10 @@
             [wisen.frontend.promise :as promise]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.spinner :as spinner]
-            [wisen.frontend.or-error :refer [make-success
-                                             success?
-                                             success-value
-                                             make-error]]))
+            [wisen.common.or-error :refer [make-success
+                                           success?
+                                           success-value
+                                           make-error]]))
 
 (c/defn-item load-json-ld
   "Loads some JSON-LD for the given request. Parses the JSON-LD and
@@ -45,6 +45,13 @@
                              (if (success? ac)
                                (c/return :state (success-value ac))
                                (c/return :action ac))))))))
+(c/defn-item load-json-ld-state* [request]
+  (c/with-state-as graph
+    (when (nil? graph)
+      (-> (load-json-ld request)
+          (c/handle-action (fn [_ ac]
+                             (c/return :state ac)))))))
+
 
 (defn load-schemaorg []
   (load-json-ld-state (ajax/GET "/api/schema"
