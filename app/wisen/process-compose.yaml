@@ -3,6 +3,8 @@ version: "0.5"
 processes:
   shadow-cljs:
     command: clj -M:shadow-cljs:frontend watch :frontend
+  frontend-test:
+    command: clj -M:shadow-cljs:frontend watch :frontend :test
   backend:
     command: clj -M:backend -m wisen.backend.main
   ollama-server:
