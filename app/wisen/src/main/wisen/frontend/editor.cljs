@@ -19,7 +19,7 @@
             [wisen.frontend.details :as details]
             [wisen.frontend.schemaorg :as schemaorg]
             [wisen.frontend.util :as util]
-            [wisen.frontend.or-error :refer [success? success-value]]
+            [wisen.common.or-error :refer [success? success-value error? error-value]]
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.schema :as schema]
             [wisen.frontend.spinner :as spinner]
