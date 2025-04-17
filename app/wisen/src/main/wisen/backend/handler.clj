@@ -23,7 +23,8 @@
             [wisen.backend.sparql :as sparql]
             [wisen.common.routes :as routes]
             [clojure.edn :as edn]
-            [wisen.common.change-api :as change-api])
+            [wisen.common.change-api :as change-api]
+            [wisen.common.prefix :as prefix])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -201,6 +202,7 @@
                              :crossorigin ""}]]
                   [:body
                    [:div {:id "main"}]
+                   [:script {:type "text/javascript"} prefix/set-prefix-code]
                    [:script {:type "text/javascript"
                              :src "/js/main.js"
                              :charset "UTF-8"}]]])})
