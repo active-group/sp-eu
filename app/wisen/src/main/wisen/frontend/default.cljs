@@ -1,7 +1,8 @@
 (ns wisen.frontend.default
   (:require [wisen.frontend.tree :as tree]
             [wisen.frontend.edit-tree :as edit-tree]
-            [wisen.frontend.schema :as schema]))
+            [wisen.frontend.schema :as schema]
+            [wisen.frontend.value-node :as value-node]))
 
 (def ^:private lit-s tree/make-literal-string)
 (def ^:private lit-d tree/make-literal-decimal)
@@ -23,7 +24,7 @@
   (let [props* (conj props
                      (tree/make-property type-uri
                                          (tree/make-node (schema type))))]
-    (tree/make-node (tree/derive-uri props*) props*)))
+    (tree/make-node (value-node/properties-derive-uri props*) props*)))
 
 (defn- property [pred obj]
   (tree/make-property (schema pred) obj))

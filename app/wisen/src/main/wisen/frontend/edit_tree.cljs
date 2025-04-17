@@ -569,22 +569,3 @@
                               (lens/member pred))
                      conj
                      (added added-result-value etree))))
-
-(defn derive-uri [eprops]
-  (let [dummy-uri "http://example.org/root"
-        enode* (edit-node edit-node-uri dummy-uri
-                          edit-node-properties eprops)]
-    (-> enode*
-        (edit-node-result-node)
-        (tree/node-properties)
-        (tree/derive-uri))))
-
-(def edit-node-properties-derived-uri
-  (lens/lens
-   (fn [enode]
-     (edit-node-properties enode))
-
-   (fn [enode eprops*]
-     (-> enode
-         (edit-node-properties eprops*)
-         (edit-node-uri (derive-uri eprops*))))))

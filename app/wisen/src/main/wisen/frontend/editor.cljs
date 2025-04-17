@@ -23,7 +23,8 @@
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.schema :as schema]
             [wisen.frontend.spinner :as spinner]
-            [wisen.common.prefix :as prefix]))
+            [wisen.common.prefix :as prefix]
+            [wisen.frontend.value-node :as value-node]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -260,8 +261,8 @@
        (edit-tree/edit-node? etree)
        (= (tree/type-uri (edit-node-type etree)) "http://schema.org/OpeningHoursSpecification")
        (edit-node-is-opening-hours-specification-value? etree))
-      (c/focus edit-tree/edit-node-properties-derived-uri
-               (opening-hours-specification-component schema editable? editing?))
+      (value-node/as-value-node
+       (opening-hours-specification-component schema editable? editing?))
 
       (= predicate "http://schema.org/eventAttendanceMode")
       (c/focus edit-tree/tree-uri
@@ -283,8 +284,8 @@
        (edit-tree/edit-node? etree)
        (= (tree/type-uri (edit-node-type etree)) "http://schema.org/PostalAddress")
        (edit-node-is-postal-address-value? etree))
-      (c/focus edit-tree/edit-node-properties-derived-uri
-               (postal-address-component schema editable? editing?))
+      (value-node/as-value-node
+       (postal-address-component schema editable? editing?))
 
       (= predicate "https://wisen.active-group.de/target-group")
       (c/focus (lens/pattern [edit-tree/literal-string-value
@@ -768,14 +769,10 @@
             (let [marked (lens/yank eprops (lens/>> (lens/member pred) lens/first))]
               (and (or (edit-tree/added? marked)
                        (edit-tree/maybe-changed? marked))
-                   (matches? (edit-tree/marked-result-value marked))))))
-        (check-derived-id [enode]
-          (= (edit-tree/edit-node-uri enode)
-             (edit-tree/derive-uri (edit-tree/edit-node-properties enode))))]
+                   (matches? (edit-tree/marked-result-value marked))))))]
 
   (defn- edit-node-is-geo-coordinates-value? [etree]
     (and
-     (check-derived-id etree)
      (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                  (fn [x]
                    (and (edit-tree/edit-node? x)
@@ -787,7 +784,6 @@
 
   (defn- edit-node-is-postal-address-value? [etree]
     (and
-     (check-derived-id etree)
      (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                  (fn [x]
                    (and (edit-tree/edit-node? x)
@@ -801,7 +797,6 @@
 
   (defn- edit-node-is-opening-hours-specification-value? [etree]
     (and
-     (check-derived-id etree)
      (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                  (fn [x]
                    (and (edit-tree/edit-node? x)
@@ -984,18 +979,18 @@
       (cond
         (and (= type-uri "http://schema.org/GeoCoordinates")
              (edit-node-is-geo-coordinates-value? enode))
-        (c/focus edit-tree/edit-node-properties-derived-uri
-                 (geo-coordinates-component schema editable? force-editing?))
+        (value-node/as-value-node
+         (geo-coordinates-component schema editable? force-editing?))
 
         (and (= type-uri "http://schema.org/PostalAddress")
              (edit-node-is-postal-address-value? enode))
-        (c/focus edit-tree/edit-node-properties-derived-uri
-                 (postal-address-component schema editable? force-editing?))
+        (value-node/as-value-node
+         (postal-address-component schema editable? force-editing?))
 
         (and (= type-uri "http://schema.org/OpeningHoursSpecification")
              (edit-node-is-opening-hours-specification-value? enode))
-        (c/focus edit-tree/edit-node-properties-derived-uri
-                 (opening-hours-specification-component schema editable? force-editing?))
+        (value-node/as-value-node
+         (opening-hours-specification-component schema editable? force-editing?))
 
         :else
         (node-component schema editable? force-editing?)))))
