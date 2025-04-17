@@ -16,20 +16,26 @@
   (let [props* (conj props
                      (tree/make-property type-uri
                                          (tree/make-node (schema type))))]
-    (-> (tree/make-node (tree/derive-uri props*))
+    (-> (tree/make-node)
         (tree/node-properties props*))))
+
+(defn- make-value [type & props]
+  (let [props* (conj props
+                     (tree/make-property type-uri
+                                         (tree/make-node (schema type))))]
+    (tree/make-node (tree/derive-uri props*) props*)))
 
 (defn- property [pred obj]
   (tree/make-property (schema pred) obj))
 
 (def default-geo-coordinates
-  (make-node
+  (make-value
    "GeoCoordinates"
    (property "latitude" (lit-d "48.52105844145676"))
    (property "longitude" (lit-d "9.054090697517525"))))
 
 (def default-postal-address
-  (make-node
+  (make-value
    "PostalAddress"
    (property "streetAddress" (lit-s "Hechinger Str. 12/1"))
    (property "postalCode" (lit-s "72072"))
@@ -37,7 +43,7 @@
    (property "addressCountry" (lit-s "DE"))))
 
 (def default-opening-hours-specification
-  (make-node
+  (make-value
    "OpeningHoursSpecification"
    (property "dayOfWeek" (tree/make-node (schema "Monday")))
    (property "opens" (lit-s "10:00:00"))
@@ -71,13 +77,13 @@
    (property "name" (lit-s "Literary Circle"))
    (property "description" (lit-s "We read and discuss various sorts of books together."))
    (property "eventSchedule"
-             (make-node "Schedule"
-                        (property "byDay"
-                                  (-> (tree/make-node (schema "Tuesday"))
-                                      (tree/node-type (tree/make-node
-                                                       (schema "DayOfWeek")))))
-                        (property "startTime"
-                                  (lit-s "16:30:00"))))
+             (make-value "Schedule"
+                              (property "byDay"
+                                        (-> (tree/make-node (schema "Tuesday"))
+                                            (tree/node-type (tree/make-node
+                                                             (schema "DayOfWeek")))))
+                              (property "startTime"
+                                        (lit-s "16:30:00"))))
    (property "eventAttendanceMode" (tree/make-node (schema "OfflineEventAttendanceMode")))
    (property "location" default-place)
    #_(property "organizer" default-organization)
@@ -92,14 +98,7 @@
    (property "telephone" (lit-s "+1-123-456-7890"))
    (property "birthDate" (lit-s "1980-01-01"))
    (property "gender" (lit-s "Male"))
-   (property "image" (lit-s "https://example.com/john-doe.jpg"))
-   (property "address" (make-node
-                        "PostalAddress"
-                        (property "streetAddress" (lit-s "123 Main St"))
-                        (property "addressLocality" (lit-s "Anytown"))
-                        (property "addressRegion" (lit-s "CA"))
-                        (property "postalCode" (lit-s "12345"))
-                        (property "addressCountry" (lit-s "USA")))))))
+   (property "address" default-postal-address))))
 
 (defn default-tree-for-sort [type]
   (cond
