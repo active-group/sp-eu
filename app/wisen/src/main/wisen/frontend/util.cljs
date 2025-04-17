@@ -45,6 +45,13 @@
                              (if (success? ac)
                                (c/return :state (success-value ac))
                                (c/return :action ac))))))))
+(c/defn-item load-json-ld-state* [request]
+  (c/with-state-as graph
+    (when (nil? graph)
+      (-> (load-json-ld request)
+          (c/handle-action (fn [_ ac]
+                             (c/return :state ac)))))))
+
 
 (defn load-schemaorg []
   (load-json-ld-state (ajax/GET "/api/schema"
