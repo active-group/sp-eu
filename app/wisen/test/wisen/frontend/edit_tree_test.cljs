@@ -1,6 +1,7 @@
 (ns wisen.frontend.edit-tree-test
   (:require [wisen.frontend.rdf :as rdf]
             [wisen.frontend.edit-tree :as et]
+            [wisen.frontend.tree :as tree]
             [wisen.frontend.change :as change]
             [active.data.realm.validation :as v]
             [cljs.test :refer-macros [use-fixtures deftest is testing async]]))
@@ -23,7 +24,7 @@
   (is (= [(change/make-add
            (change/make-statement "http://example.org/a"
                                   "http://schema.org/name"
-                                  (et/make-literal-string "Foobar")))]
+                                  (tree/make-literal-string "Foobar")))]
          (et/edit-tree-changes
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
@@ -34,7 +35,7 @@
   (is (= [(change/make-delete
            (change/make-statement "http://example.org/a"
                                   "http://schema.org/name"
-                                  (et/make-literal-string "Foobar")))]
+                                  (tree/make-literal-string "Foobar")))]
          (et/edit-tree-changes
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
@@ -45,11 +46,11 @@
   (is (= [(change/make-delete
            (change/make-statement "http://example.org/a"
                                   "http://schema.org/name"
-                                  (et/make-literal-string "Foobar")))
+                                  (tree/make-literal-string "Foobar")))
           (change/make-add
            (change/make-statement "http://example.org/a"
                                   "http://schema.org/name"
-                                  (et/make-literal-string "Barfoo")))]
+                                  (tree/make-literal-string "Barfoo")))]
          (et/edit-tree-changes
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
@@ -62,7 +63,7 @@
   (is (= [(change/make-add
            (change/make-statement "http://example.org/b"
                                   "http://schema.org/name"
-                                  (et/make-literal-string "Foobar")))]
+                                  (tree/make-literal-string "Foobar")))]
          (et/edit-tree-changes
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
@@ -82,7 +83,7 @@
   (is (= [(change/make-delete
            (change/make-statement "http://example.org/b"
                                   "http://schema.org/name"
-                                  (et/make-literal-string "Foobar")))]
+                                  (tree/make-literal-string "Foobar")))]
          (et/edit-tree-changes
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
@@ -107,7 +108,7 @@
           (change/make-delete
            (change/make-statement "http://example.org/b"
                                   "http://schema.org/name"
-                                  (et/make-literal-string "Foobar")))]
+                                  (tree/make-literal-string "Foobar")))]
          (et/edit-tree-changes
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
