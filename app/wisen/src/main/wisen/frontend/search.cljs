@@ -17,10 +17,10 @@
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.spinner :as spinner]
             [wisen.frontend.util :as util]
-            [wisen.frontend.or-error :refer [make-success
-                                             success?
-                                             success-value
-                                             make-error]]
+            [wisen.common.or-error :refer [make-success
+                                           success?
+                                           success-value
+                                           make-error]]
             [wisen.frontend.commit :as commit]
             ["jsonld" :as jsonld]
             [wisen.frontend.create :as create]
