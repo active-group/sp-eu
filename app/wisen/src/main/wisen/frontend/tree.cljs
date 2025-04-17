@@ -149,12 +149,22 @@
 (defn node? [x]
   (record/is-a? node x))
 
+(def-record many
+  [many-trees :- (realm/sequence-of (realm/delay tree))])
+
+(defn make-many [ts]
+  (many many-trees ts))
+
+(defn many? [x]
+  (record/is-a? many x))
+
 (def tree (realm/union
            ref
            literal-string
            literal-decimal
            literal-boolean
-           node))
+           node
+           many))
 
 ;; The following just does a simple walk through the graph with a `visited` set as context.
 
@@ -186,93 +196,27 @@
     [links (make-literal-boolean (rdf/literal-boolean-value x))]
 
     (rdf/collection? x)
-    (assert false "Not supported yet")))
+    (let [[links* trees] (reduce (fn [[links trees] node]
+                                   (let [[links* tree] (node->tree graph links node)]
+                                     [links* (conj trees tree)]))
+                                 [links []]
+                                 (rdf/collection-elements x))]
+      [links* (many many-trees trees)])))
 
-(defn graph->trees [g]
-  (second
-   (reduce
-    (fn [[links trees] x]
-      (let [[links* tree] (node->tree g links x)]
-        [links* (conj trees tree)]))
-    [#{} []]
-    ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
-    ;; -> A has no roots.  rather look for "basis", a minimal set of
-    ;; nodes from which every other root is reachable
-    (rdf/roots g))))
-
-(defn tree-handle [obj]
-  (cond
-    (record/is-a? ref obj)
-    (ref-uri obj)
-
-    (record/is-a? literal-string obj)
-    (literal-string-value obj)
-
-    (record/is-a? literal-decimal obj)
-    (literal-decimal-value obj)
-
-    (record/is-a? literal-boolean obj)
-    (literal-boolean-value obj)
-
-    (record/is-a? node obj)
-    (node-uri obj)))
-
-(defn- tree->statements [statements tree]
-  (cond
-    (record/is-a? ref tree)
-    statements
-
-    (record/is-a? literal-string tree)
-    statements
-
-    (record/is-a? literal-decimal tree)
-    statements
-
-    (record/is-a? literal-boolean tree)
-    statements
-
-    (record/is-a? node tree)
-    (reduce (fn [statements prop]
-              (let [pred (property-predicate prop)
-                    obj (property-object prop)]
-                (cond
-                  (record/is-a? ref obj)
-                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                       (rdf/make-symbol pred)
-                                                       (rdf/make-symbol (ref-uri obj))))
-
-                  (record/is-a? literal-string obj)
-                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                       (rdf/make-symbol pred)
-                                                       (rdf/make-literal-string (literal-string-value obj))))
-
-                  (record/is-a? literal-decimal obj)
-                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                       (rdf/make-symbol pred)
-                                                       (rdf/make-literal-decimal (literal-decimal-value obj))))
-
-                  (record/is-a? literal-boolean obj)
-                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                       (rdf/make-symbol pred)
-                                                       (rdf/make-literal-boolean (literal-boolean-value obj))))
-
-                  (record/is-a? node obj)
-                  (let [statements* (tree->statements statements obj)]
-                    (conj statements* (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                          (rdf/make-symbol pred)
-                                                          (rdf/make-symbol (node-uri obj))))))))
-            statements
-            (node-properties tree))))
-
-(defn- trees->statements [trees]
-  (reduce tree->statements [] trees))
-
-(defn trees->graph [trees]
-  (rdf/statements->graph (trees->statements trees)))
-
-(def graph<->trees
-  (lens/xmap graph->trees
-             trees->graph))
+(defn graph->tree [g]
+  (let [trees (second
+               (reduce
+                (fn [[links trees] x]
+                  (let [[links* tree] (node->tree g links x)]
+                    [links* (conj trees tree)]))
+                [#{} []]
+                ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
+                ;; -> A has no roots.  rather look for "basis", a minimal set of
+                ;; nodes from which every other root is reachable
+                (rdf/roots g)))]
+    (if (= 1 (count trees))
+      (first trees)
+      (many many-trees trees))))
 
 ;; schema.org specific
 

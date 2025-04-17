@@ -27,9 +27,9 @@
   ([schema initial-tree & additional-items]
    (c/isolate-state
 
-    [(edit-tree/make-added-edit-tree initial-tree)]
+    (edit-tree/make-added-edit-tree initial-tree)
 
-    (c/with-state-as etrees
+    (c/with-state-as etree
       (dom/div
        {:style {:display "flex"
                 :flex-direction "column"
@@ -40,7 +40,7 @@
                  :padding "3ex 2em"
                  :scroll-behavior "smooth"}}
 
-        (editor/edit-trees-component schema [organization-type event-type] true true))
+        (editor/edit-tree-component schema [organization-type event-type] true true))
 
        (apply commit/main
               schema

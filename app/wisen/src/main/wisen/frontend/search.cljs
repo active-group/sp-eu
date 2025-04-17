@@ -269,7 +269,7 @@
      ;; may trigger queries
      (-> (c/isolate-state
           (when-let [graph (:graph state)]
-            (edit-tree/graph->edit-trees graph))
+            (edit-tree/graph->edit-tree graph))
 
           (dom/div
            {:style {:display "flex"
@@ -294,9 +294,10 @@
                                (rdf/geo-positions graph))))
 
             ;; display when we have a graph
-            (when (:graph state)
-              (ds/padded-2
-               (editor/edit-trees-component schema true false)))
+            (c/with-state-as state
+              (when state
+                (ds/padded-2
+                 (editor/edit-tree-component schema nil true false))))
 
             (when-let [sugg-graphs (:sugg-graphs state)]
               (apply dom/div {:style {:display "flex"
@@ -306,16 +307,16 @@
                             (dom/div
                              (editor/readonly-graph schema graph)
                              (modal/modal-button "open editor" (fn [close-action]
-                                                                 (let [trees (tree/graph->trees graph)]
+                                                                 (let [tree (tree/graph->tree graph)]
                                                                    (create/main schema
-                                                                                (first trees)
+                                                                                tree
                                                                                 (ds/button-secondary
                                                                                  {:onClick (fn [_] (c/return :action close-action))}
                                                                                  "Close")))))))
                           sugg-graphs))))
 
-           (c/with-state-as etrees
-             (when-not (empty? (edit-tree/edit-trees-changes etrees))
+           (c/with-state-as etree
+             (when-not (empty? (edit-tree/edit-tree-changes etree))
                (commit/main schema)))))
 
          (c/handle-action

@@ -41,12 +41,12 @@
    maybe-changed-original-value x
    maybe-changed-result-value x))
 
-(declare edit-tree-handle)
+(declare edit-tree-handles)
 
 (defn same? [x]
   (and (is-a? maybe-changed x)
-       (= (edit-tree-handle (maybe-changed-original-value x))
-          (edit-tree-handle (maybe-changed-result-value x)))))
+       (= (set (edit-tree-handles (maybe-changed-original-value x)))
+          (set (edit-tree-handles (maybe-changed-result-value x))))))
 
 (defn changed? [x]
   (and (is-a? maybe-changed x)
@@ -113,6 +113,15 @@
 
 (defn edit-node? [x]
   (is-a? edit-node x))
+
+;;
+
+(def-record many
+  [many-edit-trees :- (realm/sequence-of (realm/delay edit-tree))
+   many-focused? :- (realm/optional realm/boolean)])
+
+(defn many? [x]
+  (is-a? many x))
 
 ;;
 
@@ -195,6 +204,7 @@
    [literal-string literal-string-focused?]
    [literal-decimal literal-decimal-focused?]
    [literal-boolean literal-boolean-focused?]
+   [many many-focused?]
    [edit-node edit-node-focused?]))
 
 (defn focus
@@ -212,6 +222,9 @@
 
     (literal-boolean? etree)
     (edit-tree-focused? etree true)
+
+    (is-a? many etree)
+    (lens/overhaul etree (lens/>> many-edit-trees lens/first) focus)
 
     (is-a? edit-node etree)
     ;; focus the left-most neighbour
@@ -252,6 +265,11 @@
 
 (defn- make-edit-tree [tree cns]
   (cond
+    (tree/many? tree)
+    (lens/overhaul tree tree/many-trees
+                   (fn [trees]
+                     (map #(make-edit-tree % cns) trees)))
+
     (tree/ref? tree)
     (make-ref (tree/ref-uri tree))
 
@@ -325,6 +343,9 @@
     (literal-boolean? etree)
     (tree/make-literal-boolean (literal-boolean-value etree))
 
+    (is-a? many etree)
+    (tree/make-many (map edit-tree-result-tree (many-edit-trees etree)))
+
     (is-a? edit-node etree)
     (edit-node-result-node etree)))
 
@@ -356,6 +377,11 @@
     (literal-boolean? etree)
     []
 
+    (many? etree)
+    (apply concat
+           (map edit-tree-changes
+                (many-edit-trees etree)))
+
     (is-a? edit-node etree)
     (let [subject (edit-node-uri etree)]
       (mapcat
@@ -369,49 +395,56 @@
                        (maybe-changed-original-value metree))
 
                       ;; changes here
-                      (if (changed? metree)
-                        [(change/make-delete
-                          (change/make-statement subject
-                                                 predicate
-                                                 (edit-tree-handle
-                                                  (maybe-changed-original-value metree))))
-                         (change/make-add
-                          (change/make-statement subject
-                                                 predicate
-                                                 (edit-tree-handle
-                                                  (maybe-changed-result-value metree))))]
-                        [])
+                      (let [objects (edit-tree-handles
+                                     (maybe-changed-original-value metree))]
+                        (if (changed? metree)
+                          (concat
+                           ;; remove original
+                           (mapcat
+                            (fn [object]
+                              [(change/make-delete
+                                (change/make-statement subject predicate object))])
+                            (edit-tree-handles
+                             (maybe-changed-original-value metree)))
+                           ;; add result
+                           (mapcat
+                            (fn [object]
+                              [(change/make-add
+                                  (change/make-statement subject predicate object))])
+                            (edit-tree-handles
+                             (maybe-changed-result-value metree))))
+                          
+                          []))
 
                       ;; changes on after tree
                       (edit-tree-changes
                        (maybe-changed-result-value metree)))
 
                      (is-a? added metree)
-                     (conj
+                     (concat
                       (edit-tree-changes
                        (added-result-value metree))
-                      (change/make-add
-                       (change/make-statement subject
-                                              predicate
-                                              (edit-tree-handle
-                                               (added-result-value metree)))))
+                      (map
+                       (fn [object]
+                         (change/make-add
+                          (change/make-statement subject predicate object)))
+                       (edit-tree-handles
+                        (added-result-value metree))))
 
                      (is-a? deleted metree)
-                     (conj
+                     (concat
                       (edit-tree-changes
                        (deleted-original-value metree))
-                      (change/make-delete
-                       (change/make-statement subject
-                                              predicate
-                                              (edit-tree-handle
-                                               (deleted-original-value metree)))))))
+                      (map
+                       (fn [object]
+                         (change/make-delete
+                          (change/make-statement subject predicate object)))
+                       (edit-tree-handles
+                        (deleted-original-value metree))))))
 
                  metrees))
 
        (edit-node-properties etree)))))
-
-(defn edit-trees-changes [etrees]
-  (mapcat edit-tree-changes etrees))
 
 (defn edit-tree-commit-changes
   [etree]
@@ -427,6 +460,10 @@
 
     (literal-boolean? etree)
     etree
+
+    (many? etree)
+    (lens/overhaul etree many-edit-trees
+                   #(map edit-tree-commit-changes %))
 
     (is-a? edit-node etree)
     (let [subject (edit-node-uri etree)]
@@ -452,25 +489,25 @@
                {}
                (edit-node-properties etree))))))
 
-(defn edit-trees-commit-changes [etrees]
-  (map edit-tree-commit-changes etrees))
-
-(defn- edit-tree-handle [etree]
+(defn- edit-tree-handles [etree]
   (cond
     (ref? etree)
-    (tree/make-ref (ref-uri etree))
+    [(tree/make-ref (ref-uri etree))]
 
     (literal-string? etree)
-    (tree/make-literal-string (literal-string-value etree))
+    [(tree/make-literal-string (literal-string-value etree))]
 
     (literal-decimal? etree)
-    (tree/make-literal-decimal (literal-decimal-value etree))
+    [(tree/make-literal-decimal (literal-decimal-value etree))]
 
     (literal-boolean? etree)
-    (tree/make-literal-boolean (literal-boolean-value etree))
+    [(tree/make-literal-boolean (literal-boolean-value etree))]
+
+    (many? etree)
+    (mapcat edit-tree-handles (many-edit-trees etree))
 
     (is-a? edit-node etree)
-    (edit-node-uri etree)))
+    [(edit-node-uri etree)]))
 
 (defn can-discard-edit? [x]
   (or (changed? x)
@@ -535,8 +572,8 @@
 (defn node-type [enode]
   (tree/node-type (edit-tree-result-tree enode)))
 
-(defn graph->edit-trees [graph]
-  (map make-same-edit-tree (tree/graph->trees graph)))
+(defn graph->edit-tree [graph]
+  (make-same-edit-tree (tree/graph->tree graph)))
 
 (defn node-object-for-predicate [pred enode]
   (let [metrees (get (edit-node-properties enode) pred)]

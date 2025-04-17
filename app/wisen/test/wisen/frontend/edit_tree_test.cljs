@@ -101,21 +101,20 @@
                                                                 [(et/make-deleted (et/make-literal-string "Foobar"))]}))]}))))
 
   ;; delete inside delete
-  (is (= [(change/make-delete
-           (change/make-statement "http://example.org/a"
-                                  "http://example.org/foo"
-                                  "http://example.org/b"))
-          (change/make-delete
-           (change/make-statement "http://example.org/b"
-                                  "http://schema.org/name"
-                                  (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changes
-          (et/edit-node
-           et/edit-node-uri "http://example.org/a"
-           et/edit-node-properties {"http://example.org/foo"
-                                    [(et/make-deleted
-                                      (et/edit-node
-                                       et/edit-node-uri "http://example.org/b"
-                                       et/edit-node-properties {"http://schema.org/name"
-                                                                [(et/make-deleted (et/make-literal-string "Foobar"))]}))]}))))
-  )
+  (is (= (set [(change/make-delete
+                (change/make-statement "http://example.org/a"
+                                       "http://example.org/foo"
+                                       "http://example.org/b"))
+               (change/make-delete
+                (change/make-statement "http://example.org/b"
+                                       "http://schema.org/name"
+                                       (tree/make-literal-string "Foobar")))])
+         (set (et/edit-tree-changes
+               (et/edit-node
+                et/edit-node-uri "http://example.org/a"
+                et/edit-node-properties {"http://example.org/foo"
+                                         [(et/make-deleted
+                                           (et/edit-node
+                                            et/edit-node-uri "http://example.org/b"
+                                            et/edit-node-properties {"http://schema.org/name"
+                                                                     [(et/make-deleted (et/make-literal-string "Foobar"))]}))]}))))))
