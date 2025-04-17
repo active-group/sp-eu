@@ -1,6 +1,5 @@
 (ns wisen.backend.triple-store
-  (:require [wisen.backend.core :as core]
-            [wisen.backend.jsonld]
+  (:require [wisen.backend.jsonld]
             [wisen.backend.skolem :as skolem]
             [wisen.common.change-api :as change-api]
             [wisen.backend.osm :as osm])
@@ -76,50 +75,6 @@
    (let [qexec (QueryExecutionFactory/create q model)
          graph (.execConstruct qexec)]
      graph)))
-
-#_(run-construct-query!
- "CONSTRUCT { ?org a <http://schema.org/Organization> .
-              ?org <http://schema.org/location> ?place .
-              ?place a <http://schema.org/Place> .
-
-              ?place <http://schema.org/address> ?address .
-              ?address <http://schema.org/postalCode> ?postalCode .
-              ?address <http://schema.org/streetAddress> ?streetAddress .
-              ?address <http://schema.org/addressLocality> ?addressLocality .
-              ?address <http://schema.org/addressCountry> ?addressCountry .
-
-              ?place <http://schema.org/geo> ?geo .
-              ?geo a <http://schema.org/GeoCoordinates> .
-              ?geo <http://schema.org/latitude> ?lat .
-              ?geo <http://schema.org/longitude> ?long .
- }
-  WHERE {
-     ?org a <http://schema.org/Organization> .
-     ?org <http://schema.org/location> ?place .
-     ?place <http://schema.org/address> ?address .
-     ?address <http://schema.org/postalCode> ?postalCode .
-     ?address <http://schema.org/streetAddress> ?streetAddress .
-     ?address <http://schema.org/addressLocality> ?addressLocality .
-     ?address <http://schema.org/addressCountry> ?addressCountry .
- SERVICE
-    <http://localhost:4321/osm/search>
-    {
-     ?place a <http://schema.org/Place> .
-     ?place <http://schema.org/geo> ?geo .
-     ?geo a <http://schema.org/GeoCoordinates> .
-     ?geo <http://schema.org/latitude> ?lat .
-     ?geo <http://schema.org/longitude> ?long .
-     ?place <http://schema.org/address> ?address .
-     ?address <http://schema.org/postalCode> ?postalCode .
-     ?address <http://schema.org/streetAddress> ?streetAddress .
-     ?address <http://schema.org/addressLocality> ?addressLocality .
-     ?address <http://schema.org/addressCountry> ?addressCountry .
-
-  }
-
-FILTER(CONTAINS(LCASE(STR(?addressLocality)), \"bingen\"))
-
-}")
 
 (defn add-model!
   ([model-to-add]

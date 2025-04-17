@@ -1,7 +1,8 @@
 (ns wisen.backend.overpass
   (:require [clj-http.client :as http]
             [cheshire.core :as cheshire]
-            [ring.util.codec :as codec]))
+            [ring.util.codec :as codec]
+            [wisen.common.prefix :as prefix]))
 
 (defn assoc-some-from [m1 m2 m1-key m2-key]
   (when-let [v (get m2 m2-key)]
@@ -50,7 +51,7 @@
             (assoc-some "http://schema.org/url" (get tags "website"))
             (assoc "http://schema.org/location"
                    (-> {}
-                       (assoc "@id" (str "http://localhost:4321/resource/" (random-uuid)))
+                       (assoc "@id" (prefix/resource (random-uuid)))
                        (assoc "http://schema.org/geo" {"@id" (str "http://overpass-items24.de/vu/geo" lon lat)
                                                        "@type" "http://schema.org/GeoCoordinates"
                                                        "http://schema.org/longitude" lon

@@ -4,7 +4,8 @@
   (:require [wisen.frontend.rdf :as rdf]
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
-            [active.clojure.lens :as lens]))
+            [active.clojure.lens :as lens]
+            [wisen.common.prefix :as prefix]))
 
 (declare tree)
 
@@ -84,7 +85,7 @@
 
 ;; TODO: this is a bad side-effect that leads to a lot of suffering down the road:
 (defn- fresh-uri! []
-  (str "http://localhost:4321/resource/" (random-uuid)))
+  (prefix/resource (random-uuid)))
 
 (defn make-node
   ([]
@@ -274,8 +275,7 @@
              trees->graph))
 
 (defn derive-uri [props]
-  (str "http://localhost:4321/resource/"
-       (hash (set props))))
+  (prefix/resource (hash (set props))))
 
 (def node-properties-derived-uri
   (lens/lens
