@@ -13,7 +13,11 @@
 ;; the nearest surrounding `exists`
 
 (def existential realm/integer)
+
 (def existential-index identity)
+
+(defn existential? [x]
+  (realm/contains? existential x))
 
 (def URI (realm/union realm/string
                       existential))
@@ -25,7 +29,9 @@
   (string? s))
 
 (defn uri-string [uri]
-  uri)
+  (if (existential? uri)
+    (str (existential-index uri))
+    uri))
 
 (def-record ref [ref-uri :- URI])
 
