@@ -725,7 +725,7 @@
         (the-circle)
         (dom/span {:style {:margin-right "1em"}
                    :id uri}
-                  uri)
+                  (str uri))
 
         (when editing?
           (c/fragment
@@ -1027,7 +1027,7 @@
                   :align-items "center"}}
          (the-circle)
          (dom/b "REF")
-         (dom/a {:href (str "#" uri)} uri)))
+         (dom/a {:href (str "#" uri)} (str uri))))
 
       (edit-tree/many? etree)
       (apply

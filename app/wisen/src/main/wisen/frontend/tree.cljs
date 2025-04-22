@@ -1,6 +1,6 @@
 (ns wisen.frontend.tree
   "Tools to turn arbitrary RDF graphs into trees with references."
-  (:refer-clojure :exclude [uri?])
+  (:refer-clojure :exclude [uri? exists?])
   (:require [wisen.frontend.rdf :as rdf]
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
@@ -9,7 +9,14 @@
 
 (declare tree)
 
-(def URI realm/string)
+;; existentials are de-Bruijn indices, i.e.  `(existential ... 0)` maps to
+;; the nearest surrounding `exists`
+
+(def existential realm/integer)
+(def existential-index identity)
+
+(def URI (realm/union realm/string
+                      existential))
 
 (defn make-uri [s]
   s)
@@ -27,6 +34,17 @@
 
 (defn ref? [x]
   (record/is-a? ref x))
+
+;;
+
+(def-record exists
+  [exists-tree :- (realm/delay tree)])
+
+(defn make-exists [t]
+  (exists exists-tree t))
+
+(defn exists? [x]
+  (record/is-a? exists x))
 
 ;;
 
@@ -164,59 +182,76 @@
            literal-decimal
            literal-boolean
            node
-           many))
+           many
+           exists))
 
 ;; The following just does a simple walk through the graph with a `visited` set as context.
 
-(defn- node->tree [graph links x]
+(defn- get-produce-existential [existentials k]
+  (if-let [ex (get existentials k)]
+    [existentials ex]
+    (let [next-id (count existentials)]
+      [(assoc existentials k next-id)
+       next-id])))
+
+(defn- node->tree [graph links existentials x]
   (cond
-    (rdf/symbol? x)
-    (let [uri (rdf/symbol-uri x)]
-      (if-let [link (get links uri)]
-        [links (ref ref-uri
-                    link)]
-        (let [links* (conj links uri)
-              [links** props] (reduce (fn [[links props] prop]
-                                        (let [[links* tree] (node->tree graph links (rdf/property-object prop))]
-                                          [links* (conj props (property property-predicate (rdf/symbol-uri
-                                                                                            (rdf/property-predicate prop))
-                                                                        property-object tree))]))
-                                      [links* []]
-                                      (rdf/subject-properties graph x))]
-          [links** (node node-uri uri
-                         node-properties props)])))
+    (rdf/node? x)
+    (let [uri (rdf/symbol-uri x)
+          [existentials* real-uri] (if (rdf/blank-node? x)
+                                     (get-produce-existential existentials uri)
+                                     [existentials uri])]
+      (if-let [link (get links real-uri)]
+        [links existentials* (ref ref-uri link)]
+        (let [links*
+              (conj links real-uri)
+
+              [links** existentials** props]
+              (reduce (fn [[links existentials props] prop]
+                        (let [[links* existentials* tree] (node->tree graph links existentials (rdf/property-object prop))]
+                          [links* existentials* (conj props (property property-predicate (rdf/symbol-uri
+                                                                                          (rdf/property-predicate prop))
+                                                                      property-object tree))]))
+                      [links* existentials* []]
+                      (rdf/subject-properties graph x))]
+          [links** existentials** (node node-uri real-uri
+                                        node-properties props)])))
 
     (rdf/literal-string? x)
-    [links (make-literal-string (rdf/literal-string-value x))]
+    [links existentials (make-literal-string (rdf/literal-string-value x))]
 
     (rdf/literal-decimal? x)
-    [links (make-literal-decimal (rdf/literal-decimal-value x))]
+    [links existentials (make-literal-decimal (rdf/literal-decimal-value x))]
 
     (rdf/literal-boolean? x)
-    [links (make-literal-boolean (rdf/literal-boolean-value x))]
+    [links existentials (make-literal-boolean (rdf/literal-boolean-value x))]
 
     (rdf/collection? x)
-    (let [[links* trees] (reduce (fn [[links trees] node]
-                                   (let [[links* tree] (node->tree graph links node)]
-                                     [links* (conj trees tree)]))
-                                 [links []]
-                                 (rdf/collection-elements x))]
+    (let [[links* existentials* trees] (reduce (fn [[links existentials trees] node]
+                                                 (let [[links* existentials* tree] (node->tree graph links existentials node)]
+                                                   [links* existentials* (conj trees tree)]))
+                                               [links existentials []]
+                                               (rdf/collection-elements x))]
       [links* (many many-trees trees)])))
 
+(defn- comp-n [n f]
+  (apply comp (repeat n f)))
+
 (defn graph->tree [g]
-  (let [trees (second
-               (reduce
-                (fn [[links trees] x]
-                  (let [[links* tree] (node->tree g links x)]
-                    [links* (conj trees tree)]))
-                [#{} []]
-                ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
-                ;; -> A has no roots.  rather look for "basis", a minimal set of
-                ;; nodes from which every other root is reachable
-                (rdf/roots g)))]
-    (if (= 1 (count trees))
-      (first trees)
-      (many many-trees trees))))
+  (let [[_links existentials trees]
+        (reduce
+         (fn [[links existentials trees] x]
+           (let [[links* existentials* tree] (node->tree g links existentials x)]
+             [links* existentials* (conj trees tree)]))
+         [#{} {} []]
+         ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
+         ;; -> A has no roots.  rather look for "basis", a minimal set of
+         ;; nodes from which every other root is reachable
+         (rdf/roots g))]
+    ((comp-n (count existentials) make-exists)
+     (if (= 1 (count trees))
+       (first trees)
+       (many many-trees trees)))))
 
 ;; schema.org specific
 

@@ -270,6 +270,9 @@
                    (fn [trees]
                      (map #(make-edit-tree % cns) trees)))
 
+    (tree/exists? tree)
+    (recur (tree/exists-tree tree) cns)
+
     (tree/ref? tree)
     (make-ref (tree/ref-uri tree))
 
