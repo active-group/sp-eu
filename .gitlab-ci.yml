@@ -16,6 +16,11 @@ test-frontend:
     - cd app/wisen
     - nix develop .#testWeb -c bash -c "clj -T:build test-cljs"
 
+test-backend:
+  script:
+    - cd app/wisen
+    - nix develop -c bash -c "clj -T:build test-clj"
+
 deploy:
   image: debian@sha256:a726325fb0180a84cf1cb540df42959f413bf190aa2e6090d111222f3ddf8a06
   variables:
@@ -35,5 +40,6 @@ deploy:
   needs:
     - build
     - test-frontend
+    - test-backend
   dependencies:
     - build
