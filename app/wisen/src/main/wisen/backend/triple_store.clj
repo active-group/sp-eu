@@ -1,6 +1,7 @@
 (ns wisen.backend.triple-store
   (:require [wisen.backend.jsonld]
             [wisen.backend.skolem :as skolem]
+            [wisen.backend.skolem2 :as skolem2]
             [wisen.common.change-api :as change-api]
             [wisen.backend.osm :as osm])
   (:import
@@ -120,7 +121,7 @@
      (fn [base-model]
        (edit-model! base-model changeset))))
   ([base-model changeset]
-   (loop [changes* (skolem/skolemize-changeset changeset {})]
+   (loop [changes* (skolem2/skolemize-changeset changeset {})]
      (if (empty? changes*)
        nil
        (let [change (first changes*)]
