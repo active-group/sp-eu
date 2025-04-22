@@ -316,7 +316,7 @@
                           sugg-graphs))))
 
            (c/with-state-as etree
-             (when-not (empty? (edit-tree/edit-tree-changes etree))
+             (when-not (empty? (edit-tree/edit-tree-changeset etree))
                (commit/main schema)))))
 
          (c/handle-action

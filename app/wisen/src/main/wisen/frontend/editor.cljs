@@ -1056,6 +1056,10 @@
                                (edit-tree-component schema types editable? force-editing?)))
                     (edit-tree/many-edit-trees etree)))
 
+      (edit-tree/exists? etree)
+      (c/focus edit-tree/exists-edit-tree
+               (edit-tree-component schema types editable? force-editing?))
+
       (edit-tree/node? etree)
       (dom/div
        (when force-editing?
