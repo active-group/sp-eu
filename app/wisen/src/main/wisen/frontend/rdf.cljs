@@ -144,6 +144,10 @@
     (blank-node? x)
     (blank-node-uri x)))
 
+(defn node? [x]
+  (or (symbol? x)
+      (blank-node? x)))
+
 ;;
 
 (extend-type rdflib/Literal
