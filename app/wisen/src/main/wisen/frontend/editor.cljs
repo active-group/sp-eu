@@ -66,6 +66,12 @@
    (with-out-str
      (cljs.pprint/pprint x))))
 
+(defn- pr-uri [uri]
+  (if (tree/existential? uri)
+    (dom/span {:style {:font-style "italic"}}
+              (tree/uri-string uri))
+    (tree/uri-string uri)))
+
 (c/defn-item ^:private before-after [show? before-item after-item]
   (c/with-state-as [state before-or-after :local ::after]
     (dom/div
@@ -578,12 +584,14 @@
                                   [(edit-tree/set-edit-node-original enode new-node) false])
                                 (assert false "TODO: implement error handling")))))))))
 
-(defn- the-circle []
-  (dom/div {:style {:border "1px solid #777"
+(defn- the-circle [& children]
+  (apply dom/div
+         {:style {:border "1px solid #777"
                     :background "white"
                     :border-radius "100%"
                     :width "27px"
-                    :height "27px"}}))
+                  :height "27px"}}
+         children))
 
 (c/defn-item property-object-component [schema predicate editable? force-editing? last?]
   (c/with-state-as marked-edit-trees
@@ -722,10 +730,17 @@
                  :display "flex"
                  :align-items "center"
                  :gap "1em"}}
-        (the-circle)
+        (the-circle (when (and (tree/existential? uri)
+                               editing?)
+                      (dom/div {:style {:display "flex"
+                                        :justify-content "center"
+                                        :align-items "center"
+                                        :height "100%"
+                                        :color "green"}}
+                               ds/plus-icon)))
         (dom/span {:style {:margin-right "1em"}
-                   :id uri}
-                  (str uri))
+                   :id (tree/uri-string uri)}
+                  (pr-uri uri))
 
         (when editing?
           (c/fragment
@@ -1027,7 +1042,8 @@
                   :align-items "center"}}
          (the-circle)
          (dom/b "REF")
-         (dom/a {:href (str "#" uri)} (str uri))))
+         (dom/a {:href (str "#" (tree/uri-string uri))}
+                (pr-uri uri))))
 
       (edit-tree/many? etree)
       (apply
