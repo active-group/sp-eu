@@ -23,8 +23,7 @@
 
 (defn assoc-some-address-map [m address-map*]
   (let [address-map (when address-map*
-                                 (merge {"@id" (str "https://www.openstreetmap.org/TODO:use_proper_id/" (str (random-uuid)))
-                                         "@type" "http://schema.org/PostalAddress"}
+                                 (merge {"@type" "http://schema.org/PostalAddress"}
                                         address-map*))]
     (assoc-some m "http://schema.org/address" address-map)))
 
@@ -45,15 +44,12 @@
       (let [lon (bigdec lon*)
             lat (bigdec lat*)]
         (-> {}
-            (assoc "@id" (str "http://overpass-items24.de/vu/" id))
             (assoc "@type"  "http://schema.org/Organization")
             (assoc-some "http://schema.org/name" (get tags "name"))
             (assoc-some "http://schema.org/url" (get tags "website"))
             (assoc "http://schema.org/location"
                    (-> {}
-                       (assoc "@id" (prefix/resource (random-uuid)))
-                       (assoc "http://schema.org/geo" {"@id" (str "http://overpass-items24.de/vu/geo" lon lat)
-                                                       "@type" "http://schema.org/GeoCoordinates"
+                       (assoc "http://schema.org/geo" {"@type" "http://schema.org/GeoCoordinates"
                                                        "http://schema.org/longitude" lon
                                                        "http://schema.org/latitude" lat})
                        (assoc-some-address-map address-map))))))))
