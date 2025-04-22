@@ -8,11 +8,11 @@
 
 (use-fixtures :each (fn [f] (v/checking (f))))
 
-(deftest edit-tree-changes-test
+(deftest edit-tree-changeset-test
 
   ;; all same
   (is (= []
-         (et/edit-tree-changes
+         (et/edit-tree-changeset
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
            et/edit-node-properties {"http://schema.org/name"
@@ -25,7 +25,7 @@
            (change/make-statement "http://example.org/a"
                                   "http://schema.org/name"
                                   (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changes
+         (et/edit-tree-changeset
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
            et/edit-node-properties {"http://schema.org/name"
@@ -36,7 +36,7 @@
            (change/make-statement "http://example.org/a"
                                   "http://schema.org/name"
                                   (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changes
+         (et/edit-tree-changeset
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
            et/edit-node-properties {"http://schema.org/name"
@@ -51,7 +51,7 @@
            (change/make-statement "http://example.org/a"
                                   "http://schema.org/name"
                                   (tree/make-literal-string "Barfoo")))]
-         (et/edit-tree-changes
+         (et/edit-tree-changeset
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
            et/edit-node-properties {"http://schema.org/name"
@@ -64,7 +64,7 @@
            (change/make-statement "http://example.org/b"
                                   "http://schema.org/name"
                                   (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changes
+         (et/edit-tree-changeset
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
            et/edit-node-properties {"http://example.org/foo"
@@ -84,7 +84,7 @@
            (change/make-statement "http://example.org/b"
                                   "http://schema.org/name"
                                   (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changes
+         (et/edit-tree-changeset
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
            et/edit-node-properties {"http://example.org/foo"
@@ -109,7 +109,7 @@
                 (change/make-statement "http://example.org/b"
                                        "http://schema.org/name"
                                        (tree/make-literal-string "Foobar")))])
-         (set (et/edit-tree-changes
+         (set (et/edit-tree-changeset
                (et/edit-node
                 et/edit-node-uri "http://example.org/a"
                 et/edit-node-properties {"http://example.org/foo"

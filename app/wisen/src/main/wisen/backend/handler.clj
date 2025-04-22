@@ -70,10 +70,10 @@
      :body (jsonld/model->json-ld-string result-model)}))
 
 (defn add-changes [request]
-  (let [changes (map change-api/edn->change
-                     (get-in request
-                             [:body-params :changes]))]
-    (triple-store/edit-model! changes)
+  (let [changeset (change-api/edn->changeset
+                   (get-in request
+                           [:body-params :changes]))]
+    (triple-store/edit-model! changeset)
     ;; TODO: a bit wasteful to derive geo location on _every_ update
     ;; strictly neccessary only when address is added
     (triple-store/decorate-geo!)

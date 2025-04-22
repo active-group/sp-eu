@@ -17,11 +17,7 @@
 
 ;;
 
-(def uri (realm/union
-          ;; actual URIs
-          realm/string
-          ;; blank nodes
-          realm/integer))
+(def uri realm/string)
 
 (defn make-uri [s]
   s)
@@ -29,10 +25,30 @@
 (defn uri? [x]
   (realm/contains? uri x))
 
+(def uri<->edn
+  lens/id)
+
 (defn uri-value [s]
   s)
 
-(def uri<->edn
+;;
+
+(def existential realm/integer)
+
+(defn make-existential [idx]
+  idx)
+
+(defn existential? [x]
+  (realm/contains? existential x))
+
+(def existential<->edn
+  lens/id)
+
+;;
+
+(def uri-or-ex (realm/union uri existential))
+
+(def uri-or-ex<->edn
   lens/id)
 
 ;;
@@ -85,21 +101,22 @@
 
 ;;
 
-(def literal-or-uri (realm/union literal-string literal-decimal literal-boolean uri))
+(def leaf (realm/union literal-string literal-decimal literal-boolean uri-or-ex))
 
-(def literal-or-uri<->edn
+(def leaf<->edn
   (lens/union
    [literal-string? #(= "literal-string" (first %)) (tagged "literal-string" literal-string<->edn)]
    [literal-decimal? #(= "literal-decimal" (first %)) (tagged "literal-decimal" literal-decimal<->edn)]
    [literal-boolean? #(= "literal-boolean" (first %)) (tagged "literal-boolean" literal-boolean<->edn)]
-   [uri? #(= "uri" (first %)) (tagged "uri" uri<->edn)]))
+   [uri? #(= "uri" (first %)) (tagged "uri" uri<->edn)]
+   [existential? #(= "existential" (first %)) (tagged "existential" existential<->edn)]))
 
 ;;
 
 (def-record statement
-  [statement-subject :- uri
-   statement-predicate :- uri
-   statement-object :- literal-or-uri])
+  [statement-subject :- uri-or-ex
+   statement-predicate :- uri-or-ex
+   statement-object :- leaf])
 
 (defn make-statement [s p o]
   (statement statement-subject s
@@ -111,9 +128,9 @@
 
 (def edn<->statement
   (lens/project
-   {(lens/>> statement-subject uri<->edn) :subject
-    (lens/>> statement-predicate uri<->edn) :predicate
-    (lens/>> statement-object literal-or-uri<->edn) :object}
+   {(lens/>> statement-subject uri-or-ex<->edn) :subject
+    (lens/>> statement-predicate uri-or-ex<->edn) :predicate
+    (lens/>> statement-object leaf<->edn) :object}
    (statement)))
 
 (def statement<->edn (lens/invert edn<->statement {}))

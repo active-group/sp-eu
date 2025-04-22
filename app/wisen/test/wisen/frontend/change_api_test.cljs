@@ -2,17 +2,17 @@
   (:require [wisen.common.change-api :as ch]
             [cljs.test :refer-macros [deftest is testing async]]))
 
-(deftest literal-or-uri-test
-  (is (= (ch/literal-or-uri<->edn "some-uri")
+(deftest leaf-test
+  (is (= (ch/leaf<->edn "some-uri")
          ["uri" "some-uri"]))
 
-  (is (= (ch/literal-or-uri<->edn nil ["uri" "some-uri"])
+  (is (= (ch/leaf<->edn nil ["uri" "some-uri"])
          "some-uri"))
 
-  (is (= (ch/literal-or-uri<->edn (ch/make-literal-string "some-string"))
+  (is (= (ch/leaf<->edn (ch/make-literal-string "some-string"))
          ["literal-string" "some-string"]))
 
-  (is (= (ch/literal-or-uri<->edn nil ["literal-string" "some-string"])
+  (is (= (ch/leaf<->edn nil ["literal-string" "some-string"])
          (ch/make-literal-string "some-string"))))
 
 (deftest change-test
