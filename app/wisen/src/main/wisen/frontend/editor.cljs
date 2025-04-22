@@ -1046,15 +1046,16 @@
                 (pr-uri uri))))
 
       (edit-tree/many? etree)
-      (apply
-       dom/div
-       {:style {:display "flex"
-                :flex-direction "column"
-                :gap "2ex"}}
-       (map-indexed (fn [idx etree]
-                      (c/focus (lens/at-index idx)
-                               (edit-tree-component schema types editable? force-editing?)))
-                    (edit-tree/many-edit-trees etree)))
+      (c/focus edit-tree/many-edit-trees
+               (apply
+                dom/div
+                {:style {:display "flex"
+                         :flex-direction "column"
+                         :gap "2ex"}}
+                (map-indexed (fn [idx etree]
+                               (c/focus (lens/at-index idx)
+                                        (edit-tree-component schema types editable? force-editing?)))
+                             (edit-tree/many-edit-trees etree))))
 
       (edit-tree/exists? etree)
       (c/focus edit-tree/exists-edit-tree
