@@ -28,13 +28,14 @@
 (defn add? [x]
   (is-a? add x))
 
-(defn change-statement [x]
-  (cond
-    (delete? x)
-    (delete-statement x)
+(def-record with-blank-node
+  [with-blank-node-changes])
 
-    (add? x)
-    (add-statement x)))
+(defn make-with-blank-node [changes]
+  (with-blank-node with-blank-node-changes changes))
+
+(defn with-blank-node? [x]
+  (is-a? with-blank-node x))
 
 ;; Statements
 
@@ -51,6 +52,14 @@
    statement-subject s
    statement-predicate p
    statement-object o))
+
+;; Change
+
+(def change (realm/union add delete with-blank-node))
+
+;; Changeset
+
+(def changeset (realm/sequence-of change))
 
 ;; conversions
 
@@ -90,31 +99,59 @@
 
     (record/is-a? add ch)
     (change-api/make-add (statement->api
-                          (add-statement ch)))))
+                          (add-statement ch)))
+
+    (record/is-a? with-blank-node ch)
+    (change-api/make-with-blank-node
+     (map change->api
+          (with-blank-node-changes ch)))))
+
+(defn changeset->api [cs]
+  (map change->api cs))
 
 
 ;; GUI
 
-(defn changes-summary [schema changes]
-  (let [deletions (filter delete? changes)
-        additions (filter add? changes)]
+(defn- nchanges [n p? changeset]
+  (reduce
+   (fn [n chng]
+     (let [n* (if (p? chng)
+                (inc n)
+                n)]
+       (cond
+         (add? chng)
+         n*
+
+         (delete? chng)
+         n*
+
+         (with-blank-node? chng)
+         (nchanges n* p? (with-blank-node-changes chng)))))
+   n
+   changeset))
+
+(defn changeset-summary [schema changeset]
+  (let [deletions (nchanges 0 delete? changeset)
+        additions (nchanges 0 add? changeset)
+        blank-creations (nchanges 0 with-blank-node? changeset)]
     (dom/div
      {:style {:display "flex"
               :gap "1em"}}
      (dom/div
       {:style {:color "green"}}
-      (str (count additions))
+      (str additions)
+      (when (> blank-creations 0)
+        (str " + " blank-creations))
       " Additions")
 
      (dom/div
       {:style {:color "red"}}
-      (str (count deletions))
+      (str deletions)
       " Deletions"))))
 
-(defn commit-changes-request [changes]
+(defn commit-changeset-request [changeset]
   (ajax/POST "/api/changes"
              {:body (pr-str {:changes
-                             (map (comp change-api/change->edn
-                                        change->api)
-                                  changes)})
+                             (change-api/changeset->edn
+                              (changeset->api changeset))})
               :headers {:content-type "application/edn"}}))

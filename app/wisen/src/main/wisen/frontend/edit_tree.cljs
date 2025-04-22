@@ -1,5 +1,6 @@
 (ns wisen.frontend.edit-tree
   "Turn a rooted tree (wisen.frontend.tree) into an edit tree, tracking changes"
+  (:refer-clojure :exclude [exists?])
   (:require [wisen.frontend.tree :as tree]
             [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
@@ -125,6 +126,14 @@
 
 ;;
 
+(def-record exists
+  [exists-edit-tree :- (realm/delay edit-tree)])
+
+(defn exists? [x]
+  (is-a? exists x))
+
+;;
+
 (def-record ref
   [ref-uri :- tree/URI
    ref-focused? :- realm/boolean])
@@ -196,6 +205,7 @@
                 literal-string
                 literal-decimal
                 literal-boolean
+                exists
                 edit-node))
 
 (def edit-tree-focused?
@@ -271,7 +281,9 @@
                      (map #(make-edit-tree % cns) trees)))
 
     (tree/exists? tree)
-    (recur (tree/exists-tree tree) cns)
+    (exists
+     exists-edit-tree
+     (make-edit-tree (tree/exists-tree tree) cns))
 
     (tree/ref? tree)
     (make-ref (tree/ref-uri tree))
@@ -366,7 +378,7 @@
                            (make-added (focus
                                         (make-added-edit-tree object-tree)))))))
 
-(defn edit-tree-changes [etree]
+(defn edit-tree-changeset [etree]
   (cond
     (ref? etree)
     []
@@ -382,8 +394,12 @@
 
     (many? etree)
     (apply concat
-           (map edit-tree-changes
+           (map edit-tree-changeset
                 (many-edit-trees etree)))
+
+    (exists? etree)
+    (let [changes* (edit-tree-changeset (exists-edit-tree etree))]
+      [(change/make-with-blank-node changes*)])
 
     (is-a? edit-node etree)
     (let [subject (edit-node-uri etree)]
@@ -394,7 +410,7 @@
                      (is-a? maybe-changed metree)
                      (concat
                       ;; changes on before tree
-                      (edit-tree-changes
+                      (edit-tree-changeset
                        (maybe-changed-original-value metree))
 
                       ;; changes here
@@ -420,12 +436,12 @@
                           []))
 
                       ;; changes on after tree
-                      (edit-tree-changes
+                      (edit-tree-changeset
                        (maybe-changed-result-value metree)))
 
                      (is-a? added metree)
                      (concat
-                      (edit-tree-changes
+                      (edit-tree-changeset
                        (added-result-value metree))
                       (map
                        (fn [object]
@@ -436,7 +452,7 @@
 
                      (is-a? deleted metree)
                      (concat
-                      (edit-tree-changes
+                      (edit-tree-changeset
                        (deleted-original-value metree))
                       (map
                        (fn [object]
