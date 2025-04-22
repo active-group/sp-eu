@@ -60,3 +60,9 @@
   (copy-dirs nil)
   (compile-clj nil)
   (make-uber nil))
+
+(defn cljs-watch [_]
+  (shadow-cljs {:task "watch" :target "frontend"}))
+
+(defn cljs-watch-test [_]
+  (shadow-cljs {:task "watch" :target "test"}))
