@@ -276,9 +276,10 @@
 (defn- make-edit-tree [tree cns]
   (cond
     (tree/many? tree)
-    (lens/overhaul tree tree/many-trees
-                   (fn [trees]
-                     (map #(make-edit-tree % cns) trees)))
+    (many
+     many-edit-trees
+     (map #(make-edit-tree % cns)
+          (tree/many-trees tree)))
 
     (tree/exists? tree)
     (exists
