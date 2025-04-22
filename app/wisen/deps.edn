@@ -16,6 +16,12 @@
 
   :frontend {}
 
+  :test {:extra-paths ["toooosts"]
+         :extra-deps {io.github.cognitect-labs/test-runner
+                      {:git/tag "v0.5.1" :git/sha "dfb30dd"}}
+         :main-opts ["-m" "cognitect.test-runner"]
+         :exec-fn cognitect.test-runner.api/test}
+
   :backend {:extra-deps {ring/ring-jetty-adapter {:mvn/version "1.13.0"}
                          ring/ring-core {:mvn/version "1.13.0"}
                          org.apache.jena/jena-core {:mvn/version "5.3.0"}

@@ -12,6 +12,9 @@ Then either:
 The frontend then runs on =http://localhost:4321=. The cljs test
 display is at =http://localhost:9501/=
 
+Run backend tests:
+=clj -M:test= or =clj -X:test=
+
 * SP-EU Durchstich
 
 ** Search Frontend

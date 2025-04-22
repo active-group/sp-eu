@@ -115,21 +115,22 @@
     (.remove ^Model model s p o)))
 
 (defn edit-model!
-  ([changes]
+  ([changeset]
    (with-write-model!
      (fn [base-model]
-       (edit-model! base-model changes))))
-  ([base-model changes]
-   (let [additions (filter change-api/add? changes)
-         deletions (filter change-api/delete? changes)]
+       (edit-model! base-model changeset))))
+  ([base-model changeset]
+   (loop [changes* (skolem/skolemize-changeset changeset {})]
+     (if (empty? changes*)
+       nil
+       (let [change (first changes*)]
+         (cond
+           (change-api/add? change)
+           (add-statement! base-model (change-api/add-statement change))
 
-     (doall
-      (for [addition additions]
-        (add-statement! base-model (change-api/add-statement addition))))
-
-     (doall
-      (for [deletion deletions]
-        (remove-statement! base-model (change-api/delete-statement deletion)))))))
+           (change-api/delete? change)
+           (remove-statement! base-model (change-api/delete-statement change)))
+         (recur (rest changes*)))))))
 
 #_(run-select-query!
  "SELECT ?place ?country ?locality ?postcode ?street
@@ -245,7 +246,7 @@
            (if ds
              ds
              (let [new-ds (TDB2Factory/connectDataset dbname)]
-               (with-write-model! new-ds populate!)
+               #_(with-write-model! new-ds populate!)
                new-ds)))))
 
 

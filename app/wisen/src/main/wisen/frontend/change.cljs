@@ -40,11 +40,12 @@
 ;; Statements
 
 (def-record statement
-  [statement-subject :- tree/URI
-   statement-predicate :- tree/URI
+  [statement-subject :- (realm/union tree/existential tree/URI)
+   statement-predicate :- (realm/union tree/existential tree/URI)
    statement-object :- (realm/union tree/literal-string
                                     tree/literal-decimal
                                     tree/literal-boolean
+                                    tree/existential
                                     tree/URI)])
 
 (defn make-statement [s p o]
@@ -64,32 +65,44 @@
 ;; conversions
 
 (defn statement->api [s]
-  (change-api/make-statement
-   (change-api/make-uri
-    (tree/uri-string
-     (statement-subject s)))
+  (let [subject (statement-subject s)
+        predicate (statement-predicate s)
+        object (statement-object s)]
 
-   (change-api/make-uri
-    (tree/uri-string
-     (statement-predicate s)))
-
-   (let [obj (statement-object s)]
-     (cond
-       (tree/literal-string? obj)
-       (change-api/make-literal-string
-        (tree/literal-string-value obj))
-
-       (tree/literal-decimal? obj)
-       (change-api/make-literal-decimal
-        (tree/literal-decimal-value obj))
-
-       (tree/literal-boolean? obj)
-       (change-api/make-literal-boolean
-        (tree/literal-boolean-value obj))
-
-       (tree/uri? obj)
+    (change-api/make-statement
+     (if (tree/uri? subject)
        (change-api/make-uri
-        (tree/uri-string obj))))))
+        (tree/uri-string subject))
+       (change-api/make-existential
+        (tree/existential-index subject)))
+
+     (if (tree/uri? predicate)
+       (change-api/make-uri
+        (tree/uri-string predicate))
+       (change-api/make-existential
+        (tree/existential-index predicate)))
+
+     (let [obj (statement-object s)]
+       (cond
+         (tree/literal-string? obj)
+         (change-api/make-literal-string
+          (tree/literal-string-value obj))
+
+         (tree/literal-decimal? obj)
+         (change-api/make-literal-decimal
+          (tree/literal-decimal-value obj))
+
+         (tree/literal-boolean? obj)
+         (change-api/make-literal-boolean
+          (tree/literal-boolean-value obj))
+
+         (tree/existential? obj)
+         (change-api/make-existential
+          (tree/existential-index obj))
+
+         (tree/uri? obj)
+         (change-api/make-uri
+          (tree/uri-string obj)))))))
 
 (defn change->api [ch]
   (cond
