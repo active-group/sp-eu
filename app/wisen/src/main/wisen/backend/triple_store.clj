@@ -121,7 +121,7 @@
      (fn [base-model]
        (edit-model! base-model changeset))))
   ([base-model changeset]
-   (loop [changes* (skolem2/skolemize-changeset changeset {})]
+   (loop [changes* (skolem2/skolemize-changeset changeset)]
      (if (empty? changes*)
        nil
        (let [change (first changes*)]
