@@ -1014,7 +1014,7 @@
         :else
         (node-component schema editable? force-editing?)))))
 
-(defn edit-tree-component [schema types editable? force-editing?]
+(c/defn-item edit-tree-component [schema types editable? force-editing?]
   (c/with-state-as etree
     (cond
       (edit-tree/literal-string? etree)
