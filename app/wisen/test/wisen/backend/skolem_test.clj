@@ -25,6 +25,7 @@
         {0 "sub"})))
 
   (let [orig (change-api/make-with-blank-node
+              0
               [(change-api/make-add
                 (change-api/make-statement "sub" "pred" 0))
                (change-api/make-add

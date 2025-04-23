@@ -9,9 +9,6 @@
 
 (declare tree)
 
-;; existentials are de-Bruijn indices, i.e.  `(existential ... 0)` maps to
-;; the nearest surrounding `exists`
-
 (def existential realm/integer)
 
 (def existential-index identity)
@@ -19,8 +16,11 @@
 (defn existential? [x]
   (realm/contains? existential x))
 
-(def URI (realm/union realm/string
-                      existential))
+(def URI (realm/union
+          ;; a global identifier
+          realm/string
+          ;; a local identifier, bound by a surrounding `exists`
+          existential))
 
 (defn make-uri [s]
   s)
@@ -44,10 +44,17 @@
 ;;
 
 (def-record exists
-  [exists-tree :- (realm/delay tree)])
+  [exists-binder :- existential
+   exists-tree :- (realm/delay tree)])
 
-(defn make-exists [t]
-  (exists exists-tree t))
+(defn make-exists
+  ([k]
+   (let [binder (rand-int js/Number.MAX_SAFE_INTEGER)]
+     (exists exists-binder binder
+             exists-tree (k binder))))
+  ([binder tree]
+   (exists exists-binder binder
+           exists-tree tree)))
 
 (defn exists? [x]
   (record/is-a? exists x))
@@ -97,7 +104,7 @@
 
 (def-record property
   [property-predicate :- URI
-   property-object :- (realm/delay tree)
+   property-object #_#_:- (realm/delay tree)
    ])
 
 (defn make-property [pred obj]
@@ -243,21 +250,27 @@
 (defn- comp-n [n f]
   (apply comp (repeat n f)))
 
-(defn graph->tree [g]
-  (let [[_links existentials trees]
-        (reduce
-         (fn [[links existentials trees] x]
-           (let [[links* existentials* tree] (node->tree g links existentials x)]
-             [links* existentials* (conj trees tree)]))
-         [#{} {} []]
-         ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
-         ;; -> A has no roots.  rather look for "basis", a minimal set of
-         ;; nodes from which every other root is reachable
-         (rdf/roots g))]
-    ((comp-n (count existentials) make-exists)
-     (if (= 1 (count trees))
-       (first trees)
-       (many many-trees trees)))))
+(letfn [(wrap-exists [n x]
+          (if (zero? n)
+            x
+            (make-exists n (wrap-exists (dec n) x))
+
+            ))]
+  (defn graph->tree [g]
+   (let [[_links existentials trees]
+         (reduce
+          (fn [[links existentials trees] x]
+            (let [[links* existentials* tree] (node->tree g links existentials x)]
+              [links* existentials* (conj trees tree)]))
+          [#{} {} []]
+          ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
+          ;; -> A has no roots.  rather look for "basis", a minimal set of
+          ;; nodes from which every other root is reachable
+          (rdf/roots g))]
+     (wrap-exists (count existentials)
+                  (if (= 1 (count trees))
+                    (first trees)
+                    (many many-trees trees))))))
 
 ;; schema.org specific
 

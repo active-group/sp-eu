@@ -127,7 +127,8 @@
 ;;
 
 (def-record exists
-  [exists-edit-tree :- (realm/delay edit-tree)])
+  [exists-existential :- tree/existential
+   exists-edit-tree :- (realm/delay edit-tree)])
 
 (defn exists? [x]
   (is-a? exists x))
@@ -283,8 +284,8 @@
 
     (tree/exists? tree)
     (exists
-     exists-edit-tree
-     (make-edit-tree (tree/exists-tree tree) cns))
+     exists-existential (tree/exists-binder tree)
+     exists-edit-tree (make-edit-tree (tree/exists-tree tree) cns))
 
     (tree/ref? tree)
     (make-ref (tree/ref-uri tree))
@@ -399,8 +400,9 @@
                 (many-edit-trees etree)))
 
     (exists? etree)
-    (let [changes* (edit-tree-changeset (exists-edit-tree etree))]
-      [(change/make-with-blank-node changes*)])
+    (let [binder (exists-existential etree)
+          changes* (edit-tree-changeset (exists-edit-tree etree))]
+      [(change/make-with-blank-node binder changes*)])
 
     (is-a? edit-node etree)
     (let [subject (edit-node-uri etree)]

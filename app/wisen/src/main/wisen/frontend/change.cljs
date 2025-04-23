@@ -29,10 +29,13 @@
   (is-a? add x))
 
 (def-record with-blank-node
-  [with-blank-node-changes])
+  [with-blank-node-existential :- tree/existential
+   with-blank-node-changes])
 
-(defn make-with-blank-node [changes]
-  (with-blank-node with-blank-node-changes changes))
+(defn make-with-blank-node [existential changes]
+  (with-blank-node
+    with-blank-node-existential existential
+    with-blank-node-changes changes))
 
 (defn with-blank-node? [x]
   (is-a? with-blank-node x))
@@ -104,6 +107,8 @@
          (change-api/make-uri
           (tree/uri-string obj)))))))
 
+(declare changeset->api)
+
 (defn change->api [ch]
   (cond
     (record/is-a? delete ch)
@@ -116,8 +121,9 @@
 
     (record/is-a? with-blank-node ch)
     (change-api/make-with-blank-node
-     (map change->api
-          (with-blank-node-changes ch)))))
+     (with-blank-node-existential ch)
+     (changeset->api
+      (with-blank-node-changes ch)))))
 
 (defn changeset->api [cs]
   (map change->api cs))

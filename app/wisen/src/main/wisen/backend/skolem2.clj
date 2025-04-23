@@ -24,7 +24,7 @@
          (get-or-fail existential->uri o)
          o)))))
 
-(declare skolemize-changeset)
+(declare skolemize-changeset*)
 
 (defn skolemize-change [change existential->uri]
   (cond
@@ -39,13 +39,16 @@
                             existential->uri))]
 
     (change-api/with-blank-node? change)
-    (skolemize-changeset (change-api/with-blank-node-changes change)
-                         (assoc existential->uri
-                                (count existential->uri)
-                                (prefix/resource (str (random-uuid)))))))
+    (skolemize-changeset* (change-api/with-blank-node-changes change)
+                          (assoc existential->uri
+                                 (change-api/with-blank-node-existential change)
+                                 (prefix/resource (str (random-uuid)))))))
 
-(defn skolemize-changeset [changes existential->uri]
+(defn skolemize-changeset* [changes existential->uri]
   (reduce (fn [changes* change]
             (concat changes* (skolemize-change change existential->uri)))
           []
           changes))
+
+(defn skolemize-changeset [changes]
+  (skolemize-changeset* changes {}))

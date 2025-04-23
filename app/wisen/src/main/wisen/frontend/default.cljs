@@ -17,8 +17,10 @@
   (let [props* (conj props
                      (tree/make-property type-uri
                                          (tree/make-node (schema type))))]
-    (-> (tree/make-node)
-        (tree/node-properties props*))))
+    (tree/make-exists
+     (fn [ex]
+       (-> (tree/make-node ex)
+           (tree/node-properties props*))))))
 
 (defn- make-value [type & props]
   (let [props* (conj props

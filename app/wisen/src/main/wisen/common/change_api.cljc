@@ -174,21 +174,26 @@
 (declare change changeset<->edn)
 
 (def-record with-blank-node
-  [with-blank-node-changes :- (realm/sequence-of
+  [with-blank-node-existential :- existential
+   with-blank-node-changes :- (realm/sequence-of
                                (realm/delay change))])
 
-(defn make-with-blank-node [changes]
-  (with-blank-node with-blank-node-changes changes))
+(defn make-with-blank-node [existential changes]
+  (with-blank-node
+    with-blank-node-existential existential
+    with-blank-node-changes changes))
 
 (defn with-blank-node? [x]
   (record/is-a? with-blank-node x))
 
+(def edn<->with-blank-node
+  (lens/project
+   {(lens/>> with-blank-node-existential existential<->edn) :existential
+    (lens/>> with-blank-node-changes (lens/defer #'changeset<->edn)) :changes}
+   (with-blank-node)))
+
 (def with-blank-node<->edn
-  (lens/xmap
-   (fn [x]
-     (changeset<->edn (with-blank-node-changes x)))
-   (fn [x]
-     (make-with-blank-node (changeset<->edn nil x)))))
+  (lens/invert edn<->with-blank-node {}))
 
 ;;
 
