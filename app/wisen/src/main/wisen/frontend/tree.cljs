@@ -47,9 +47,12 @@
   [exists-binder :- existential
    exists-tree :- (realm/delay tree)])
 
+(defn make-random-existential! []
+  (rand-int js/Number.MAX_SAFE_INTEGER))
+
 (defn make-exists
   ([k]
-   (let [binder (rand-int js/Number.MAX_SAFE_INTEGER)]
+   (let [binder (make-random-existential!)]
      (exists exists-binder binder
              exists-tree (k binder))))
   ([binder tree]
@@ -203,7 +206,7 @@
 (defn- get-produce-existential [existentials k]
   (if-let [ex (get existentials k)]
     [existentials ex]
-    (let [next-id (count existentials)]
+    (let [next-id (make-random-existential!)]
       [(assoc existentials k next-id)
        next-id])))
 
