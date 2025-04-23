@@ -487,6 +487,9 @@
     (lens/overhaul etree many-edit-trees
                    #(map edit-tree-commit-changes %))
 
+    (exists? etree)
+    (lens/overhaul etree exists-edit-tree edit-tree-commit-changes)
+
     (is-a? edit-node etree)
     (let [subject (edit-node-uri etree)]
       (edit-node-properties
