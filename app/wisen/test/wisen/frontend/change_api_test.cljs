@@ -53,24 +53,28 @@
                              "obj"))))
 
   (is (= (ch/change<->edn (ch/make-with-blank-node
+                           123
                            [(ch/make-add
                              (ch/make-statement "sub"
                                                 "pred"
                                                 "obj"))]))
          ["with-blank-node"
-          [["add"
-            {:subject "sub"
-             :predicate "pred"
-             :object ["uri" "obj"]}]]]))
+          {:existential 123
+           :changes [["add"
+                      {:subject "sub"
+                       :predicate "pred"
+                       :object ["uri" "obj"]}]]}]))
 
   (is (= (ch/change<->edn nil ["with-blank-node"
-                               [["add"
-                                 {:subject 0
-                                  :predicate "pred"
-                                  :object ["uri" "obj"]}]]])
+                               {:existential 123
+                                :changes [["add"
+                                           {:subject 123
+                                            :predicate "pred"
+                                            :object ["uri" "obj"]}]]}])
          (ch/make-with-blank-node
+          123
           [(ch/make-add
-            (ch/make-statement 0
+            (ch/make-statement 123
                                "pred"
                                "obj"))]))))
 
