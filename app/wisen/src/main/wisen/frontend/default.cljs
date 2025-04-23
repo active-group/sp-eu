@@ -140,8 +140,7 @@
       "http://schema.org/Person"
       default-person
 
-      (-> (tree/make-node)
-          (tree/node-type type)))))
+      (make-node (tree/node-uri type)))))
 
 (defn default-type-for-predicate [pred]
   (case pred
@@ -194,8 +193,7 @@
     "http://schema.org/Person"
     default-person
 
-    (-> (tree/make-node)
-        (tree/node-type type))))
+    (make-node (tree/node-uri type))))
 
 (defn default-tree-for-predicate-and-kind [predicate kind]
   (cond

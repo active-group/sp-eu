@@ -117,14 +117,7 @@
 (def-record node [node-uri :- URI
                   node-properties :- (realm/sequence-of property)])
 
-;; TODO: this is a bad side-effect that leads to a lot of suffering down the road:
-(defn- fresh-uri! []
-  (prefix/resource (random-uuid)))
-
 (defn make-node
-  ([]
-   (node node-uri (fresh-uri!)
-         node-properties []))
   ([uri]
    (node node-uri uri
          node-properties []))
