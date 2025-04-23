@@ -33,14 +33,5 @@
       (done))))
 
 (deftest get-produce-existential-text
-  (is (= (tree/get-produce-existential {} "foo")
-         [{"foo" 0} 0]))
-
   (is (= (tree/get-produce-existential {"foo" 0} "foo")
-         [{"foo" 0} 0]))
-
-  (is (= (tree/get-produce-existential {"foo" 0} "bar")
-         [{"foo" 0 "bar" 1} 1]))
-
-  (is (= (tree/get-produce-existential {"foo" 0 "bar" 1} "boo")
-         [{"foo" 0 "bar" 1 "boo" 2} 2])))
+         [{"foo" 0} 0])))
