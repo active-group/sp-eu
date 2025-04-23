@@ -865,8 +865,8 @@
                               (if (is-a? leaflet/click-action ac)
                                 (let [[lat lng] (leaflet/click-action-coordinates ac)]
                                   (-> eprops
-                                      (latitude-lens lat)
-                                      (longitude-lens lng)))
+                                      (latitude-value-lens (str lat))
+                                      (longitude-value-lens (str lng))))
                                 (c/return :action ac)))))
        (dom/div
         "Latitude:"
