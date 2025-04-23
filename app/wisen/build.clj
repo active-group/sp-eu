@@ -61,10 +61,22 @@
   (shadow-cljs {:task "compile" :target "karma-test"})
   (b/process {:command-args ["npx" "karma" "start" "--single-run"]}))
 
-(defn test-cljs [_]
-  (let [result (test-cljs* nil)]
+(defn test-clj* [_]
+  (b/process {:command-args ["clojure" "-M:test:backend"]
+                           :dir "."
+                           :out :inherit
+                           :err :inherit}))
+
+(defn with-exit-code [f args]
+  (let [result (f args)]
     (when-not (zero? (:exit result))
       (System/exit (:exit result)))))
+
+(defn test-clj [opts]
+  (with-exit-code test-clj* opts))
+
+(defn test-cljs [opts]
+  (with-exit-code test-cljs* opts))
 
 (defn cljs-watch [_]
   (shadow-cljs {:task "watch" :target "frontend"}))
