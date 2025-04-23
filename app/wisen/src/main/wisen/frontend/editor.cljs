@@ -244,20 +244,20 @@
       (= predicate "http://schema.org/name")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
-               (ds/input+focus {:disabled (when-not editable? "disabled")}))
+               (ds/input+focus {:disabled (when-not editing? "disabled")}))
 
       (= predicate "http://schema.org/description")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
                (ds/textarea+focus {:style {:width "100%"
                                            :min-height "6em"}
-                                   :disabled (when-not editable?
+                                   :disabled (when-not editing?
                                                "disabled")}))
 
       (= predicate "http://schema.org/keywords")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
-               (ds/input+focus {:disabled (when-not editable? "disabled")}))
+               (ds/input+focus {:disabled (when-not editing? "disabled")}))
 
       (= predicate "http://schema.org/byDay")
       (day-of-week-component schema editable? editing?)
@@ -273,7 +273,7 @@
       (= predicate "http://schema.org/eventAttendanceMode")
       (c/focus edit-tree/tree-uri
                (ds/select
-                {:disabled (when-not editable? "disabled")
+                {:disabled (when-not editing? "disabled")
                  :style {:padding "7px 8px"}}
                 (forms/option {:value "http://schema.org/OfflineEventAttendanceMode"} "Offline")
                 (forms/option {:value "http://schema.org/OnlineEventAttendanceMode"} "Online")
@@ -283,7 +283,7 @@
       (c/focus edit-tree/literal-string-value
                (ds/input {:type "url"
                           :placeholder "https://example.com"
-                          :disabled (when-not editable? "disabled")}))
+                          :disabled (when-not editing? "disabled")}))
 
       (and
        (= predicate "http://schema.org/address")
@@ -297,7 +297,7 @@
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
                (ds/select+focus
-                {:disabled (when-not editable? "disabled")}
+                {:disabled (when-not editing? "disabled")}
                 (forms/option {:value "elderly"} "Elderly")
                 (forms/option {:value "queer"} "Queer")
                 (forms/option {:value "immigrants"} "Immigrants")))
@@ -308,7 +308,7 @@
          (c/focus (make-edit-tree-kind-lens schema predicate)
                   (apply
                    ds/select
-                   {:disabled (when-not editable? "disabled")}
+                   {:disabled (when-not editing? "disabled")}
                    (map (fn [kind]
                           (forms/option {:value kind} (label-for-kind kind)))
                         (schema/kinds-for-predicate schema predicate)))))
@@ -910,7 +910,7 @@
                    (dom/br)
                    (c/focus street-address-lens
                             (ds/input+focus
-                             {:disabled (when-not editable? "disabled")}))))
+                             {:disabled (when-not force-editing? "disabled")}))))
 
        (dom/div
         (dom/label "Postal code"
@@ -1019,19 +1019,19 @@
     (cond
       (edit-tree/literal-string? etree)
       (c/focus edit-tree/literal-string-value
-               (ds/input {:disabled (when-not editable?
+               (ds/input {:disabled (when-not force-editing?
                                       "disabled")}))
 
       (edit-tree/literal-decimal? etree)
       (c/focus edit-tree/literal-decimal-value
                (ds/input {:type "decimal"
-                          :disabled (when-not editable?
+                          :disabled (when-not force-editing?
                                       "disabled")}))
 
       (edit-tree/literal-boolean? etree)
       (c/focus edit-tree/literal-boolean-value
                (ds/input {:type "checkbox"
-                          :disabled (when-not editable?
+                          :disabled (when-not force-editing?
                                       "disabled")}))
 
       (edit-tree/ref? etree)
