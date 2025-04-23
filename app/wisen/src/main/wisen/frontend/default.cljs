@@ -1,6 +1,5 @@
 (ns wisen.frontend.default
   (:require [wisen.frontend.tree :as tree]
-            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.schema :as schema]
             [wisen.frontend.value-node :as value-node]))
 
