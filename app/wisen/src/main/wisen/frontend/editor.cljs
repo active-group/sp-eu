@@ -61,11 +61,6 @@
     (edit-tree/changed? marked)
     ds/dot-icon))
 
-(defn pprint [x]
-  (dom/pre
-   (with-out-str
-     (cljs.pprint/pprint x))))
-
 (defn- pr-uri [uri]
   (if (tree/existential? uri)
     (dom/span {:style {:font-style "italic"}}
@@ -127,7 +122,7 @@
                  ::after
                  after-item))))))
 
-(defn- make-edit-tree-kind-lens [schema predicate]
+(defn- make-edit-tree-kind-lens [predicate]
   (fn
     ([etree]
      (cond
@@ -146,7 +141,7 @@
        (edit-tree/edit-node? etree)
        tree/node))
     ([etree kind]
-     (if (= kind ((make-edit-tree-kind-lens schema predicate) etree))
+     (if (= kind ((make-edit-tree-kind-lens predicate) etree))
        etree
        (edit-tree/make-added-edit-tree
         (default/default-tree-for-predicate-and-kind predicate kind))))))
@@ -305,7 +300,7 @@
       :else
       (dom/div
        (when editing?
-         (c/focus (make-edit-tree-kind-lens schema predicate)
+         (c/focus (make-edit-tree-kind-lens predicate)
                   (apply
                    ds/select
                    {:disabled (when-not editing? "disabled")}
