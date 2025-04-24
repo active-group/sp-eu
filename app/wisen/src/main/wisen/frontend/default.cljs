@@ -111,7 +111,7 @@
     (lit-d "1.0")
 
     (= type tree/literal-boolean)
-    (lit-b "true")
+    (lit-b true)
 
     (= type tree/ref)
     (tree/make-ref "https://wisen.active-group.de/")
@@ -203,7 +203,7 @@
     (lit-d "1.0")
 
     (= kind tree/literal-boolean)
-    (lit-b "true")
+    (lit-b true)
 
     (= kind tree/ref)
     (tree/make-ref "https://wisen.active-group.de/")

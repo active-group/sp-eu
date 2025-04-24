@@ -87,7 +87,7 @@
 ;;
 
 (def-record literal-boolean
-  [literal-boolean-value :- realm/string])
+  [literal-boolean-value :- realm/boolean])
 
 (defn make-literal-boolean [s]
   (literal-boolean literal-boolean-value s))
