@@ -67,7 +67,7 @@
               (tree/uri-string uri))
     (tree/uri-string uri)))
 
-(c/defn-item ^:private before-after [show? before-item after-item]
+(c/defn-item ^:private before-after [show? before-item after-item background-color]
   (c/with-state-as [state before-or-after :local ::after]
     (dom/div
      {:style {:display "flex"
@@ -81,7 +81,7 @@
                                    :border-left "1px solid gray"
                                    :border-right "1px solid gray"
                                    :border-bottom (if (= before-or-after ::before)
-                                                    "1px solid #eee"
+                                                    (str "1px solid " background-color)
                                                     "1px solid gray")
                                    :border-top-left-radius "4px"
                                    :padding "0.5ex 0.5em"
@@ -97,7 +97,7 @@
                  (dom/div {:style {:border-top "1px solid gray"
                                    :border-right "1px solid gray"
                                    :border-bottom (if (= before-or-after ::after)
-                                                    "1px solid #eee"
+                                                    (str "1px solid " background-color)
                                                     "1px solid gray")
                                    :border-top-right-radius "4px"
                                    :padding "0.5ex 0.5em"
@@ -616,7 +616,9 @@
                                                   (component-for-predicate predicate schema false false background-color))
                                          ;; after
                                          (c/focus edit-tree/maybe-changed-result-value
-                                                  (component-for-predicate predicate schema editable? force-editing? background-color))))))))
+                                                  (component-for-predicate predicate schema editable? force-editing? background-color))
+
+                                         background-color))))))
 
                         marked-edit-trees))))
 
