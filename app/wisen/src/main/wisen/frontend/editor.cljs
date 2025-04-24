@@ -122,30 +122,6 @@
                  ::after
                  after-item))))))
 
-(defn- make-edit-tree-kind-lens [predicate]
-  (fn
-    ([etree]
-     (cond
-       (edit-tree/literal-string? etree)
-       tree/literal-string
-
-       (edit-tree/literal-decimal? etree)
-       tree/literal-decimal
-
-       (edit-tree/literal-boolean? etree)
-       tree/literal-boolean
-
-       (edit-tree/ref? etree)
-       tree/ref
-
-       (edit-tree/edit-node? etree)
-       tree/node))
-    ([etree kind]
-     (if (= kind ((make-edit-tree-kind-lens predicate) etree))
-       etree
-       (edit-tree/make-added-edit-tree
-        (default/default-tree-for-predicate-and-kind predicate kind))))))
-
 (defn- label-for-kind [kind]
   (cond
     (= kind tree/literal-string)
@@ -163,58 +139,8 @@
     (= kind tree/node)
     "Node"))
 
-(defn- map-values [f m]
-  (reduce (fn [acc [k v]]
-            (assoc acc k (f v)))
-          {}
-          m))
-
-(defn- edit-node-type
-  "TODO: This must be developed closer to a spec."
-  ([enode]
-   (edit-tree/edit-tree-result-tree
-    (edit-tree/node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" enode)))
-  ([enode type]
-   (if (= type (edit-node-type enode))
-     enode
-     (lens/overhaul
-      enode
-      edit-tree/edit-node-properties
-      (fn [old-eprops]
-        (let [old-eprops* (map-values (fn [metrees]
-                                        (map (fn [metree]
-                                               (if (edit-tree/can-delete? metree)
-                                                 (edit-tree/mark-deleted metree)
-                                                 metree))
-                                             metrees))
-                                      old-eprops)
-              new-eprops (edit-tree/edit-node-properties
-                          (edit-tree/make-added-edit-tree (default/default-node-for-type type)))]
-          (merge-with
-           (fn [old-metrees new-metrees]
-             ;; set new for now (TODO)
-             (distinct
-              (if (= 1
-                     (count old-metrees)
-                     (count new-metrees))
-                (let [old-metree (first old-metrees)
-                      new-metree (first new-metrees)]
-                  (cond
-                    (edit-tree/deleted? old-metree)
-                    [(edit-tree/make-maybe-changed
-                      (edit-tree/deleted-original-value old-metree)
-                      (edit-tree/added-result-value new-metree))]
-
-                    (edit-tree/added? old-metree)
-                    [new-metree]
-
-                    (edit-tree/maybe-changed? old-metree)
-                    [(edit-tree/maybe-changed-result-value old-metree
-                                                           (edit-tree/added-result-value new-metree))]))
-                ;; else choose new metrees (TODO
-                new-metrees)))
-           old-eprops*
-           new-eprops)))))))
+(def edit-node-type
+  (edit-tree/make-edit-node-type-lens default/default-node-for-type))
 
 (declare edit-tree-component)
 
@@ -300,7 +226,8 @@
       :else
       (dom/div
        (when editing?
-         (c/focus (make-edit-tree-kind-lens predicate)
+         (c/focus (edit-tree/make-edit-tree-kind-lens
+                   (partial default/default-tree-for-predicate-and-kind predicate))
                   (apply
                    ds/select
                    {:disabled (when-not editing? "disabled")}
@@ -313,10 +240,6 @@
         editable?
         editing?
         background-color)))))
-
-(defn- node-organization? [node]
-  (= "http://schema.org/Organization"
-     (tree/type-uri (edit-tree/node-type node))))
 
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [node predicate :local schemaorg/default-predicate]
@@ -527,7 +450,7 @@
               {:style {:display "flex"
                        :gap "1em"}}
 
-              (when (node-organization? node)
+              (when (edit-tree/organization? node)
                 (if-let [osm-uri (osm/node-osm-uri node)]
 
                   (dom/div

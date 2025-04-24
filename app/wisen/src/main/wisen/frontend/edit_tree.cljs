@@ -631,3 +631,85 @@
                               (lens/member pred))
                      conj
                      (added added-result-value etree))))
+
+(defn make-edit-tree-kind-lens [default-tree-for-kind]
+  (fn
+    ([etree]
+     (cond
+       (literal-string? etree)
+       tree/literal-string
+
+       (literal-decimal? etree)
+       tree/literal-decimal
+
+       (literal-boolean? etree)
+       tree/literal-boolean
+
+       (ref? etree)
+       tree/ref
+
+       (edit-node? etree)
+       tree/node))
+    ([etree kind]
+     (if (= kind ((make-edit-tree-kind-lens default-tree-for-kind) etree))
+       etree
+       (make-added-edit-tree
+        (default-tree-for-kind kind))))))
+
+(defn- map-values [f m]
+  (reduce (fn [acc [k v]]
+            (assoc acc k (f v)))
+          {}
+          m))
+
+(defn make-edit-node-type-lens [default-node-for-type]
+  "TODO: This must be developed closer to a spec."
+  (fn
+    ([enode]
+     (edit-tree-result-tree
+      (node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" enode)))
+    ([enode type]
+     (if (= type ((make-edit-node-type-lens default-node-for-type) enode))
+       enode
+       (lens/overhaul
+        enode
+        edit-node-properties
+        (fn [old-eprops]
+          (let [old-eprops* (map-values (fn [metrees]
+                                          (map (fn [metree]
+                                                 (if (can-delete? metree)
+                                                   (mark-deleted metree)
+                                                   metree))
+                                               metrees))
+                                        old-eprops)
+                new-eprops (edit-node-properties
+                            (make-added-edit-tree (default-node-for-type type)))]
+            (merge-with
+             (fn [old-metrees new-metrees]
+               ;; set new for now (TODO)
+               (distinct
+                (if (= 1
+                       (count old-metrees)
+                       (count new-metrees))
+                  (let [old-metree (first old-metrees)
+                        new-metree (first new-metrees)]
+                    (cond
+                      (deleted? old-metree)
+                      [(make-maybe-changed
+                        (deleted-original-value old-metree)
+                        (added-result-value new-metree))]
+
+                      (added? old-metree)
+                      [new-metree]
+
+                      (maybe-changed? old-metree)
+                      [(maybe-changed-result-value old-metree
+                                                   (added-result-value new-metree))]))
+                  ;; else choose new metrees (TODO
+                  new-metrees)))
+             old-eprops*
+             new-eprops))))))))
+
+(defn organization? [node]
+  (= "http://schema.org/Organization"
+     (tree/type-uri (node-type node))))
