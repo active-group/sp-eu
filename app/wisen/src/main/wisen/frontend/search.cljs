@@ -297,23 +297,31 @@
             (c/with-state-as state
               (when state
                 (ds/padded-2
-                 (editor/edit-tree-component schema nil true false))))
+                 (dom/h2 "Results")
+                 (dom/div
+                  {:style {:padding-bottom "1em"}}
+                  (editor/edit-tree-component schema nil true false)))))
 
             (when-let [sugg-graphs (:sugg-graphs state)]
-              (apply dom/div {:style {:display "flex"
-                                      :flex-direction "column"
-                                      :overflow "auto"}}
-                     (map (fn [graph]
-                            (dom/div
-                             (editor/readonly-graph schema graph)
-                             (modal/modal-button "open editor" (fn [close-action]
-                                                                 (let [tree (tree/graph->tree graph)]
-                                                                   (create/main schema
-                                                                                tree
-                                                                                (ds/button-secondary
-                                                                                 {:onClick (fn [_] (c/return :action close-action))}
-                                                                                 "Close")))))))
-                          sugg-graphs))))
+              (dom/div
+               {:style {:background "#e1e1e1"
+                        :border-top ds/border}}
+               (ds/padded-2
+                (dom/h2 "Results from the web")
+                (apply dom/div {:style {:display "flex"
+                                        :flex-direction "column"
+                                        :overflow "auto"}}
+                       (map (fn [graph]
+                              (dom/div
+                               (editor/readonly-graph schema graph)
+                               (modal/modal-button "open editor" (fn [close-action]
+                                                                   (let [tree (tree/graph->tree graph)]
+                                                                     (create/main schema
+                                                                                  tree
+                                                                                  (ds/button-secondary
+                                                                                   {:onClick (fn [_] (c/return :action close-action))}
+                                                                                   "Close")))))))
+                            sugg-graphs))))))
 
            (c/with-state-as etree
              (when-not (empty? (edit-tree/edit-tree-changeset etree))
