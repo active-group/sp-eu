@@ -1018,21 +1018,24 @@
   (c/with-state-as etree
     (cond
       (edit-tree/literal-string? etree)
-      (c/focus edit-tree/literal-string-value
-               (ds/input {:disabled (when-not force-editing?
-                                      "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/literal-string-focused?])
+               (ds/input+focus {:disabled (when-not force-editing?
+                                            "disabled")}))
 
       (edit-tree/literal-decimal? etree)
-      (c/focus edit-tree/literal-decimal-value
-               (ds/input {:type "decimal"
-                          :disabled (when-not force-editing?
-                                      "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-decimal-value
+                              edit-tree/literal-decimal-focused?])
+               (ds/input+focus {:type "decimal"
+                                :disabled (when-not force-editing?
+                                            "disabled")}))
 
       (edit-tree/literal-boolean? etree)
-      (c/focus edit-tree/literal-boolean-value
-               (ds/input {:type "checkbox"
-                          :disabled (when-not force-editing?
-                                      "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-boolean-value
+                              edit-tree/literal-boolean-focused?])
+               (ds/input+focus {:type "checkbox"
+                                :disabled (when-not force-editing?
+                                            "disabled")}))
 
       (edit-tree/ref? etree)
       (let [uri (edit-tree/ref-uri etree)]
