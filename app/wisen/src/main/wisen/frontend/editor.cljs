@@ -917,21 +917,21 @@
                    (dom/br)
                    (c/focus postal-code-lens
                             (ds/input+focus
-                             {:disabled (when-not editable? "disabled")}))))
+                             {:disabled (when-not force-editing? "disabled")}))))
 
        (dom/div
         (dom/label "Locality (Town)"
                    (dom/br)
                    (c/focus address-locality-lens
                             (ds/input+focus
-                             {:disabled (when-not editable? "disabled")}))))
+                             {:disabled (when-not force-editing? "disabled")}))))
 
        (dom/div
         (dom/label "Country"
                    (dom/br)
                    (c/focus address-country-lens
                             (ds/input+focus
-                             {:disabled (when-not editable? "disabled")}))))))))
+                             {:disabled (when-not force-editing? "disabled")}))))))))
 
 (declare day-of-week-component)
 
