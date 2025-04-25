@@ -66,11 +66,9 @@
 
 (defn try-parse-json-ld-string [json-ld-str]
   (try
-    (let [skolemized-model (-> json-ld-str
-                               (jsonld/json-ld-string->model)
-                               (skolem/skolemize-model ollama-model))
-          validation (validator/validate-model skolemized-model)
-          res {:json-ld-string (jsonld/model->json-ld-string skolemized-model)
+    (let [model (jsonld/json-ld-string->model json-ld-str)
+          validation (validator/validate-model model)
+          res {:json-ld-string (jsonld/model->json-ld-string model)
                :invalid-nodes (:invalid-nodes validation)}]
       (error/make-success res))
     (catch Exception e

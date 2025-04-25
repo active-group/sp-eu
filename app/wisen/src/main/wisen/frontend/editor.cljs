@@ -503,11 +503,10 @@
         (when loading?
           (spinner/main))
 
-        #_(when (:graphs local-state)
+        (when (success? current-result)
           (ds/button-primary
            {:onClick (fn [[node local-state]]
-                       (let [ai-node (edit-tree/graph->edit-tree current-graph)]
-                         (assert (edit-tree/node? ai-node))
+                       (let [ai-node (edit-tree/graph->addit-tree (success-value current-result))]
                          (c/return :state [#_(tree/merge node ai-node)
                                            ai-node
                                            {}]
