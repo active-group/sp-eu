@@ -118,3 +118,18 @@
                                             et/edit-node-uri "http://example.org/b"
                                             et/edit-node-properties {"http://schema.org/name"
                                                                      [(et/make-deleted (et/make-literal-string "Foobar"))]}))]}))))))
+
+(deftest insert-properties-test
+  (is (= (et/insert-properties (et/edit-node et/edit-node-uri "uri"
+                                             et/edit-node-properties {})
+                               [])
+         (et/edit-node et/edit-node-uri "uri"
+                                             et/edit-node-properties {})))
+  (let [metree (et/mark-added (et/make-literal-string "added string"))
+        di-metree (et/mark-added (et/make-literal-string "another string"))]
+    (is (= (et/insert-properties (et/edit-node et/edit-node-uri "uri"
+                                               et/edit-node-properties {"pred" [metree]})
+                                 [(tree/make-property "pred" (tree/make-literal-string "another string"))])
+           (et/edit-node et/edit-node-uri "uri"
+                         et/edit-node-properties {"pred" [metree di-metree]})))))
+

@@ -504,14 +504,23 @@
           (spinner/main))
 
         (when (success? current-result)
-          (ds/button-primary
-           {:onClick (fn [[node local-state]]
-                       (let [ai-node (edit-tree/graph->addit-tree (success-value current-result))]
-                         (c/return :state [#_(tree/merge node ai-node)
-                                           ai-node
-                                           {}]
-                                   :action close-action)))}
-           "Use these properties")))))))
+          (c/fragment
+           (ds/button-primary
+            {:onClick (fn [[node local-state]]
+                        (let [ai-node (edit-tree/graph->addit-tree (success-value current-result))]
+                          (c/return :state [ai-node
+                                            {}]
+                                    :action close-action)))}
+            "Replace")
+           (when-not (empty? (edit-tree/edit-node-properties node))
+             (ds/button-primary
+              {:onClick (fn [[node local-state]]
+                          (let [ai-node (tree/graph->tree (success-value current-result))]
+                            (c/return :state [(edit-tree/insert-properties node (tree/tree-properties ai-node))
+
+                                              {}]
+                                      :action close-action)))}
+              "Add properties")))))))))
 
 ;; ---
 
