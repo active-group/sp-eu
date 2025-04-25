@@ -282,3 +282,26 @@
 
     (ref? type)
     (ref-uri type)))
+
+(defn tree-properties [tree]
+  (cond
+    (many? tree)
+    (mapcat tree-properties (many-trees tree))
+
+    (exists? tree)
+    (tree-properties (exists-tree tree))
+
+    (ref? tree)
+    []
+
+    (literal-string? tree)
+    []
+
+    (literal-decimal? tree)
+    []
+
+    (literal-boolean? tree)
+    []
+
+    (node? tree)
+    (node-properties tree)))

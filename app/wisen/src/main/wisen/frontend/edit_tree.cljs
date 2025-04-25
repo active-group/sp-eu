@@ -20,7 +20,7 @@
 (def-record added
   [added-result-value])
 
-(defn make-added [x]
+(defn mark-added [x]
   (added added-result-value x))
 
 (defn added? [x]
@@ -37,7 +37,7 @@
 (defn maybe-changed? [x]
   (is-a? maybe-changed x))
 
-(defn- make-same [x]
+(defn- mark-same [x]
   (maybe-changed
    maybe-changed-original-value x
    maybe-changed-result-value x))
@@ -314,10 +314,10 @@
                                   (tree/node-properties tree)))))
 
 (defn make-added-edit-tree [tree]
-  (make-edit-tree tree make-added))
+  (make-edit-tree tree mark-added))
 
 (defn make-same-edit-tree [tree]
-  (make-edit-tree tree make-same))
+  (make-edit-tree tree mark-same))
 
 (declare edit-tree-result-tree)
 
@@ -369,7 +369,7 @@
 (defn set-edit-node-original [enode new-node]
   (assert (empty? (edit-node-properties enode)))
   (edit-node-properties enode
-                        (edit-node-properties (make-edit-tree new-node make-same))))
+                        (edit-node-properties (make-edit-tree new-node mark-same))))
 
 (defn edit-node-add-property [enode predicate object-tree]
   (lens/overhaul enode edit-node-properties
@@ -377,7 +377,7 @@
                    (update eprops
                            predicate
                            conj
-                           (make-added (focus
+                           (mark-added (focus
                                         (make-added-edit-tree object-tree)))))))
 
 (defn edit-tree-changeset [etree]
@@ -500,11 +500,11 @@
                          (fn [metree]
                            (cond
                              (is-a? maybe-changed metree)
-                             [(make-same (edit-tree-commit-changes
+                             [(mark-same (edit-tree-commit-changes
                                           (maybe-changed-result-value metree)))]
 
                              (is-a? added metree)
-                             [(make-same (edit-tree-commit-changes
+                             [(mark-same (edit-tree-commit-changes
                                           (added-result-value metree)))]
 
                              (is-a? deleted metree)
@@ -554,12 +554,12 @@
                              (is-a? maybe-changed metree)
                              (assoc (vec metrees)
                                     idx
-                                    (make-same (maybe-changed-original-value metree)))
+                                    (mark-same (maybe-changed-original-value metree)))
 
                              (is-a? deleted metree)
                              (assoc (vec metrees)
                                     idx
-                                    (make-same (deleted-original-value metree)))
+                                    (mark-same (deleted-original-value metree)))
 
                              (is-a? added metree)
                              (vec-remove idx (vec metrees)))]
@@ -599,6 +599,9 @@
 
 (defn graph->edit-tree [graph]
   (make-same-edit-tree (tree/graph->tree graph)))
+
+(defn graph->addit-tree [graph]
+  (make-added-edit-tree (tree/graph->tree graph)))
 
 (defn node-object-for-predicate [pred enode]
   (let [metrees (get (edit-node-properties enode) pred)]
@@ -713,3 +716,32 @@
 (defn organization? [node]
   (= "http://schema.org/Organization"
      (tree/type-uri (node-type node))))
+(defn- needs-to-be-added? [metrees etree]
+  (not (some #(cond
+                (added? %)
+                (= (added-result-value %)
+                   etree)
+
+                (deleted? %)
+                false
+
+                (maybe-changed? %)
+                (= (maybe-changed-result-value %)
+                   etree))
+             metrees)))
+
+(defn- smart-conj [metrees etree]
+  (if (needs-to-be-added? metrees etree)
+    (conj metrees (mark-added etree))
+    metrees))
+
+(defn- insert-property [enode prop]
+  (lens/overhaul enode (lens/>> edit-node-properties
+                                (lens/member (tree/property-predicate prop)))
+                 (fn [metrees]
+                   (smart-conj metrees
+                               (make-added-edit-tree
+                                (tree/property-object prop))))))
+
+(defn insert-properties [edit-node tree-properties]
+  (reduce insert-property edit-node tree-properties))
