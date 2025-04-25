@@ -126,10 +126,22 @@
          (et/edit-node et/edit-node-uri "uri"
                                              et/edit-node-properties {})))
   (let [metree (et/mark-added (et/make-literal-string "added string"))
-        di-metree (et/mark-added (et/make-literal-string "another string"))]
+        di-metree (et/mark-added (et/make-literal-string "another string"))
+        tri-metree (et/make-maybe-changed (et/make-literal-string "a") (et/make-literal-string "b"))]
     (is (= (et/insert-properties (et/edit-node et/edit-node-uri "uri"
                                                et/edit-node-properties {"pred" [metree]})
                                  [(tree/make-property "pred" (tree/make-literal-string "another string"))])
            (et/edit-node et/edit-node-uri "uri"
-                         et/edit-node-properties {"pred" [metree di-metree]})))))
+                         et/edit-node-properties {"pred" [metree di-metree]})))
 
+    (is (= (et/insert-properties (et/edit-node et/edit-node-uri "uri"
+                                               et/edit-node-properties {"pred" [metree]})
+                                 [(tree/make-property "pred" (tree/make-literal-string "added string"))])
+           (et/edit-node et/edit-node-uri "uri"
+                         et/edit-node-properties {"pred" [metree]})))
+
+    (is (= (et/insert-properties (et/edit-node et/edit-node-uri "uri"
+                                               et/edit-node-properties {"pred" [metree tri-metree]})
+                                 [(tree/make-property "pred" (tree/make-literal-string "b"))])
+           (et/edit-node et/edit-node-uri "uri"
+                         et/edit-node-properties {"pred" [metree tri-metree]})))))

@@ -635,14 +635,32 @@
                      conj
                      (added added-result-value etree))))
 
+(defn- needs-to-be-added? [metrees etree]
+  (not (some #(cond
+                (added? %)
+                (= (added-result-value %)
+                   etree)
+
+                (deleted? %)
+                false
+
+                (maybe-changed? %)
+                (= (maybe-changed-result-value %)
+                   etree))
+             metrees)))
+
+(defn- smart-conj [metrees etree]
+  (if (needs-to-be-added? metrees etree)
+    (conj metrees (mark-added etree))
+    metrees))
+
 (defn- insert-property [enode prop]
   (lens/overhaul enode (lens/>> edit-node-properties
                                 (lens/member (tree/property-predicate prop)))
                  (fn [metrees]
-                   (conj metrees
-                         (mark-added
-                          (make-added-edit-tree
-                           (tree/property-object prop)))))))
+                   (smart-conj metrees
+                               (make-added-edit-tree
+                                (tree/property-object prop))))))
 
 (defn insert-properties [edit-node tree-properties]
   (reduce insert-property edit-node tree-properties))
