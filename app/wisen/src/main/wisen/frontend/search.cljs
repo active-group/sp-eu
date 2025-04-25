@@ -199,7 +199,7 @@
 
     (dom/div "with tag")
     (c/focus (lens/>> :tags lens/first)
-             (ds/input))
+             (ds/input {:suggestions ["Education" "Fun" "Games"]}))
 
     (ds/button-primary {:type "submit"
                         :style {:background "#923dd2"
