@@ -600,6 +600,9 @@
 (defn graph->edit-tree [graph]
   (make-same-edit-tree (tree/graph->tree graph)))
 
+(defn graph->addit-tree [graph]
+  (make-added-edit-tree (tree/graph->tree graph)))
+
 (defn node-object-for-predicate [pred enode]
   (let [metrees (get (edit-node-properties enode) pred)]
     (marked-current (first metrees))))
