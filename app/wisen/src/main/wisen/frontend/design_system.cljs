@@ -102,18 +102,47 @@
 (dom/defn-dom select+focus [attrs & children]
   (x+focus select attrs children))
 
+(c/defn-subscription ^:private rid-sub deliver! []
+  (do
+    (deliver! (str (gensym)))
+    #()))
+
+(c/defn-item ^:private with-random-id [k]
+  (c/with-state-as [state rid :local nil]
+    (c/fragment
+     (c/focus lens/second
+              (c/handle-action
+               (rid-sub)
+               (fn [st ac] ac)))
+     (when rid
+       (c/focus lens/first
+                (k rid))))))
+
 (dom/defn-dom input [attrs & children]
-  (let [disabled? (get attrs :disabled)]
-    (apply forms/input
-           (dom/merge-attributes {:style
-                                  {:background-color (if disabled? "#eee" "#fefefe")
-                                   :border (if disabled? "1px solid #bbb" "1px solid #888")
-                                   :padding "4px 8px"
-                                   :font-size "14px"
-                                   :color "#333"
-                                   :border-radius "3px"}}
-                                 attrs)
-           children)))
+  (let [disabled? (get attrs :disabled)
+        suggestions (get attrs :suggestions)]
+    (with-random-id
+      (fn [id]
+        (c/fragment
+         (apply forms/input
+                (dom/merge-attributes {:list id
+                                       :style
+                                       {:background-color (if disabled? "#eee" "#fefefe")
+                                        :border (if disabled? "1px solid #bbb" "1px solid #888")
+                                        :padding "4px 8px"
+                                        :font-size "14px"
+                                        :color "#333"
+                                        :border-radius "3px"}}
+                                      (dissoc attrs :id))
+                children)
+         (apply dom/datalist
+
+                {:id id
+                 :style {:background "red"}}
+                (map (fn [suggestion]
+                       (dom/option {:value suggestion}
+                                   suggestion))
+                     suggestions)))))))
 
 (dom/defn-dom input+focus [attrs & children]
   (x+focus input attrs children))
