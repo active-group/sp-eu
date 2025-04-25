@@ -16,9 +16,9 @@
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
            et/edit-node-properties {"http://schema.org/name"
-                                    [(et/make-same (et/make-literal-string "Foobar"))]
+                                    [(et/mark-same (et/make-literal-string "Foobar"))]
                                     "http://schema.org/description"
-                                    [(et/make-same (et/make-literal-string "Descr"))]}))))
+                                    [(et/mark-same (et/make-literal-string "Descr"))]}))))
 
   ;; literal added
   (is (= [(change/make-add
@@ -29,7 +29,7 @@
           (et/edit-node
            et/edit-node-uri "http://example.org/a"
            et/edit-node-properties {"http://schema.org/name"
-                                    [(et/make-added (et/make-literal-string "Foobar"))]}))))
+                                    [(et/mark-added (et/make-literal-string "Foobar"))]}))))
 
   ;; literal removed
   (is (= [(change/make-delete
@@ -77,7 +77,7 @@
                                       (et/edit-node
                                        et/edit-node-uri "http://example.org/b"
                                        et/edit-node-properties {"http://schema.org/name"
-                                                                [(et/make-added (et/make-literal-string "Foobar"))]}))]}))))
+                                                                [(et/mark-added (et/make-literal-string "Foobar"))]}))]}))))
 
   ;; nested delete
   (is (= [(change/make-delete
@@ -93,7 +93,7 @@
                                       (et/edit-node
                                        et/edit-node-uri "http://example.org/b"
                                        et/edit-node-properties {"http://schema.org/name"
-                                                                [(et/make-same (et/make-literal-string "Foobar"))]})
+                                                                [(et/mark-same (et/make-literal-string "Foobar"))]})
                                       ;; after
                                       (et/edit-node
                                        et/edit-node-uri "http://example.org/b"

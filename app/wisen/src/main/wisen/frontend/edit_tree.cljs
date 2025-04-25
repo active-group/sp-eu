@@ -20,7 +20,7 @@
 (def-record added
   [added-result-value])
 
-(defn make-added [x]
+(defn mark-added [x]
   (added added-result-value x))
 
 (defn added? [x]
@@ -37,7 +37,7 @@
 (defn maybe-changed? [x]
   (is-a? maybe-changed x))
 
-(defn- make-same [x]
+(defn- mark-same [x]
   (maybe-changed
    maybe-changed-original-value x
    maybe-changed-result-value x))
@@ -314,10 +314,10 @@
                                   (tree/node-properties tree)))))
 
 (defn make-added-edit-tree [tree]
-  (make-edit-tree tree make-added))
+  (make-edit-tree tree mark-added))
 
 (defn make-same-edit-tree [tree]
-  (make-edit-tree tree make-same))
+  (make-edit-tree tree mark-same))
 
 (declare edit-tree-result-tree)
 
@@ -369,7 +369,7 @@
 (defn set-edit-node-original [enode new-node]
   (assert (empty? (edit-node-properties enode)))
   (edit-node-properties enode
-                        (edit-node-properties (make-edit-tree new-node make-same))))
+                        (edit-node-properties (make-edit-tree new-node mark-same))))
 
 (defn edit-node-add-property [enode predicate object-tree]
   (lens/overhaul enode edit-node-properties
@@ -377,7 +377,7 @@
                    (update eprops
                            predicate
                            conj
-                           (make-added (focus
+                           (mark-added (focus
                                         (make-added-edit-tree object-tree)))))))
 
 (defn edit-tree-changeset [etree]
@@ -500,11 +500,11 @@
                          (fn [metree]
                            (cond
                              (is-a? maybe-changed metree)
-                             [(make-same (edit-tree-commit-changes
+                             [(mark-same (edit-tree-commit-changes
                                           (maybe-changed-result-value metree)))]
 
                              (is-a? added metree)
-                             [(make-same (edit-tree-commit-changes
+                             [(mark-same (edit-tree-commit-changes
                                           (added-result-value metree)))]
 
                              (is-a? deleted metree)
@@ -554,12 +554,12 @@
                              (is-a? maybe-changed metree)
                              (assoc (vec metrees)
                                     idx
-                                    (make-same (maybe-changed-original-value metree)))
+                                    (mark-same (maybe-changed-original-value metree)))
 
                              (is-a? deleted metree)
                              (assoc (vec metrees)
                                     idx
-                                    (make-same (deleted-original-value metree)))
+                                    (mark-same (deleted-original-value metree)))
 
                              (is-a? added metree)
                              (vec-remove idx (vec metrees)))]
