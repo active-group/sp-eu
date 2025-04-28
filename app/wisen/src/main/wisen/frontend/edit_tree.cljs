@@ -6,7 +6,8 @@
             [active.data.realm :as realm]
             [active.clojure.lens :as lens]
             [wisen.frontend.change :as change]
-            [wisen.frontend.util :as util]))
+            [wisen.frontend.util :as util]
+            [wisen.frontend.forms :as forms]))
 
 (def-record deleted
   [deleted-original-value])
@@ -110,7 +111,7 @@
                                          (realm/sequence-of
                                           ;; payload: edit-tree
                                           marked))
-   edit-node-focused? :- (realm/optional realm/boolean)])
+   edit-node-focused? :- forms/selection-info])
 
 (defn edit-node? [x]
   (is-a? edit-node x))
@@ -119,7 +120,7 @@
 
 (def-record many
   [many-edit-trees :- (realm/sequence-of (realm/delay edit-tree))
-   many-focused? :- (realm/optional realm/boolean)])
+   many-focused? :- forms/selection-info])
 
 (defn many? [x]
   (is-a? many x))
@@ -137,11 +138,11 @@
 
 (def-record ref
   [ref-uri :- tree/URI
-   ref-focused? :- realm/boolean])
+   ref-focused? :- forms/selection-info])
 
 (defn make-ref
   ([uri]
-   (make-ref uri false))
+   (make-ref uri forms/unselected))
   ([uri focused?]
    (ref ref-uri uri ref-focused? focused?)))
 
@@ -152,12 +153,12 @@
 
 (def-record literal-string
   [literal-string-value :- realm/string
-   literal-string-focused? :- realm/boolean])
+   literal-string-focused? :- forms/selection-info])
 
 (defn make-literal-string
   ([s]
    (literal-string literal-string-value s
-                   literal-string-focused? false))
+                   literal-string-focused? forms/unselected))
   ([s focused?]
    (literal-string literal-string-value s
                    literal-string-focused? focused?)))
@@ -169,12 +170,12 @@
 
 (def-record literal-decimal
   [literal-decimal-value :- realm/string
-   literal-decimal-focused? :- realm/boolean])
+   literal-decimal-focused? :- forms/selection-info])
 
 (defn make-literal-decimal
   ([s]
    (literal-decimal literal-decimal-value s
-                    literal-decimal-focused? false))
+                    literal-decimal-focused? forms/unselected))
   ([s focused?]
    (literal-decimal literal-decimal-value s
                     literal-decimal-focused? focused?)))
@@ -186,12 +187,12 @@
 
 (def-record literal-boolean
   [literal-boolean-value :- realm/boolean
-   literal-boolean-focused? :- realm/boolean])
+   literal-boolean-focused? :- forms/selection-info])
 
 (defn make-literal-boolean
   ([s]
    (literal-boolean literal-boolean-value s
-                    literal-boolean-focused? false))
+                    literal-boolean-focused? forms/unselected))
   ([s focused?]
    (literal-boolean literal-boolean-value s
                     literal-boolean-focused? focused?)))
@@ -223,16 +224,16 @@
   [etree]
   (cond
     (ref? etree)
-    (edit-tree-focused? etree true)
+    (edit-tree-focused? etree (forms/make-selected))
 
     (literal-string? etree)
-    (edit-tree-focused? etree true)
+    (edit-tree-focused? etree (forms/make-selected))
 
     (literal-decimal? etree)
-    (edit-tree-focused? etree true)
+    (edit-tree-focused? etree (forms/make-selected))
 
     (literal-boolean? etree)
-    (edit-tree-focused? etree true)
+    (edit-tree-focused? etree (forms/make-selected))
 
     (is-a? many etree)
     (lens/overhaul etree (lens/>> many-edit-trees lens/first) focus)
@@ -270,7 +271,7 @@
       (if focused?
         (edit-node-properties etree eprops*)
         ;; else focus on uri
-        (edit-node-focused? etree true)))))
+        (edit-node-focused? etree (forms/make-selected))))))
 
 (declare edit-tree-original)
 
