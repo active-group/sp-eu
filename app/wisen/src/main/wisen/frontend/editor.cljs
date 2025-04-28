@@ -67,53 +67,52 @@
               (tree/uri-string uri))
     (tree/uri-string uri)))
 
-(c/defn-item ^:private before-after [show? before-item after-item background-color]
+(c/defn-item ^:private before-after [before-item after-item background-color]
   (c/with-state-as [state before-or-after :local ::after]
     (dom/div
      {:style {:display "flex"
               :flex-direction "column"}}
 
-     (when show?
-       (c/focus lens/second
-                (dom/div
-                 {:style {:display "flex"}}
-                 (dom/div {:style {:border-top "1px solid gray"
-                                   :border-left "1px solid gray"
-                                   :border-right "1px solid gray"
-                                   :border-bottom (if (= before-or-after ::before)
-                                                    (str "1px solid " background-color)
-                                                    "1px solid gray")
-                                   :border-top-left-radius "4px"
-                                   :padding "0.5ex 0.5em"
-                                   :cursor "pointer"
-                                   :color "red"
-                                   :position "relative"
-                                   :top "1px"
-                                   :font-weight (if (= before-or-after ::before)
-                                                  "bold"
-                                                  "normal")}
-                           :onClick (constantly ::before)}
-                          "Before")
-                 (dom/div {:style {:border-top "1px solid gray"
-                                   :border-right "1px solid gray"
-                                   :border-bottom (if (= before-or-after ::after)
-                                                    (str "1px solid " background-color)
-                                                    "1px solid gray")
-                                   :border-top-right-radius "4px"
-                                   :padding "0.5ex 0.5em"
-                                   :cursor "pointer"
-                                   :color "green"
-                                   :position "relative"
-                                   :top "1px"
-                                   :font-weight (if (= before-or-after ::after)
-                                                  "bold"
-                                                  "normal")}
-                           :onClick (constantly ::after)}
-                          "After"))))
+     (c/focus lens/second
+              (dom/div
+               {:style {:display "flex"}}
+               (dom/div {:style {:border-top "1px solid gray"
+                                 :border-left "1px solid gray"
+                                 :border-right "1px solid gray"
+                                 :border-bottom (if (= before-or-after ::before)
+                                                  (str "1px solid " background-color)
+                                                  "1px solid gray")
+                                 :border-top-left-radius "4px"
+                                 :padding "0.5ex 0.5em"
+                                 :cursor "pointer"
+                                 :color "red"
+                                 :position "relative"
+                                 :top "1px"
+                                 :font-weight (if (= before-or-after ::before)
+                                                "bold"
+                                                "normal")}
+                         :onClick (constantly ::before)}
+                        "Before")
+               (dom/div {:style {:border-top "1px solid gray"
+                                 :border-right "1px solid gray"
+                                 :border-bottom (if (= before-or-after ::after)
+                                                  (str "1px solid " background-color)
+                                                  "1px solid gray")
+                                 :border-top-right-radius "4px"
+                                 :padding "0.5ex 0.5em"
+                                 :cursor "pointer"
+                                 :color "green"
+                                 :position "relative"
+                                 :top "1px"
+                                 :font-weight (if (= before-or-after ::after)
+                                                "bold"
+                                                "normal")}
+                         :onClick (constantly ::after)}
+                        "After")))
 
      (dom/div
-      {:style (when show? {:border "1px solid gray"
-                           :padding "1ex 1em"})}
+      {:style {:border "1px solid gray"
+               :padding "1ex 1em"}}
       (c/focus lens/first
                (case before-or-after
                  ::before
@@ -613,12 +612,12 @@
                                         (c/focus edit-tree/added-result-value
                                                  (component-for-predicate predicate schema editable? force-editing? background-color))
 
-                                        (edit-tree/maybe-changed? marked-edit-tree)
-                                        ;; We need to wrap `maybe-changed` inside `before-after` so that
-                                        ;; we do not lose focus in input fields when the user transitions
-                                        ;; from `same?` to `changed?`
+                                        (edit-tree/same? marked-edit-tree)
+                                        (c/focus edit-tree/maybe-changed-result-value
+                                                 (component-for-predicate predicate schema editable? force-editing? background-color))
+
+                                        (edit-tree/changed? marked-edit-tree)
                                         (before-after
-                                         (edit-tree/changed? marked-edit-tree)
                                          ;; before
                                          (c/focus edit-tree/maybe-changed-original-value
                                                   (component-for-predicate predicate schema false false background-color))
