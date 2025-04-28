@@ -200,10 +200,11 @@
                 (forms/option {:value "http://schema.org/MixedEventAttendanceMode"} "Mixed")))
 
       (= predicate "http://schema.org/url")
-      (c/focus edit-tree/literal-string-value
-               (ds/input {:type "url"
-                          :placeholder "https://example.com"
-                          :disabled (when-not editing? "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/literal-string-focused?])
+               (ds/input+focus {:type "url"
+                                :placeholder "https://example.com"
+                                :disabled (when-not editing? "disabled")}))
 
       (and
        (= predicate "http://schema.org/address")
