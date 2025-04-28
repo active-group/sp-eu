@@ -381,6 +381,40 @@
                            (mark-added (focus
                                         (make-added-edit-tree object-tree)))))))
 
+(declare edit-tree-changeset)
+
+(defn- edit-tree-changeset* [constructor subject predicate etree]
+  (cond
+    (ref? etree)
+    [(constructor (change/make-statement subject predicate (ref-uri etree)))]
+
+    (literal-string? etree)
+    [(constructor (change/make-statement subject predicate (tree/make-literal-string (literal-string-value etree))))]
+
+    (literal-decimal? etree)
+    [(constructor (change/make-statement subject predicate (tree/make-literal-decimal (literal-decimal-value etree))))]
+
+    (literal-boolean? etree)
+    [(constructor (change/make-statement subject predicate (tree/make-literal-boolean (literal-boolean-value etree))))]
+
+    (many? etree)
+    (apply concat
+           (map (partial edit-tree-changeset* constructor subject predicate)
+                (many-edit-trees etree)))
+
+    (exists? etree)
+    (let [binder (exists-existential etree)
+          change* (constructor (change/make-statement subject predicate binder))
+          changes* (edit-tree-changeset (exists-edit-tree etree))]
+      [(change/make-with-blank-node binder (conj changes*
+                                                 change*))])
+
+    (is-a? edit-node etree)
+    (let [uri (edit-node-uri etree)
+          changes* (edit-tree-changeset etree)
+          change* (constructor (change/make-statement subject predicate uri))]
+      (conj changes* change*))))
+
 (defn edit-tree-changeset [etree]
   (cond
     (ref? etree)
@@ -411,59 +445,38 @@
        (fn [[predicate metrees]]
          (mapcat (fn [metree]
                    (cond
-                     (is-a? maybe-changed metree)
+                     (same? metree)
+                     (concat (edit-tree-changeset (maybe-changed-original-value metree))
+                             (edit-tree-changeset (maybe-changed-result-value metree)))
+
+                     (changed? metree)
                      (concat
-                      ;; changes on before tree
-                      (edit-tree-changeset
+
+                      (edit-tree-changeset*
+                       change/make-delete
+                       subject
+                       predicate
                        (maybe-changed-original-value metree))
 
-                      ;; changes here
-                      (let [objects (edit-tree-handles
-                                     (maybe-changed-original-value metree))]
-                        (if (changed? metree)
-                          (concat
-                           ;; remove original
-                           (mapcat
-                            (fn [object]
-                              [(change/make-delete
-                                (change/make-statement subject predicate object))])
-                            (edit-tree-handles
-                             (maybe-changed-original-value metree)))
-                           ;; add result
-                           (mapcat
-                            (fn [object]
-                              [(change/make-add
-                                  (change/make-statement subject predicate object))])
-                            (edit-tree-handles
-                             (maybe-changed-result-value metree))))
-                          
-                          []))
-
-                      ;; changes on after tree
-                      (edit-tree-changeset
+                      (edit-tree-changeset*
+                       change/make-add
+                       subject
+                       predicate
                        (maybe-changed-result-value metree)))
 
                      (is-a? added metree)
-                     (concat
-                      (edit-tree-changeset
-                       (added-result-value metree))
-                      (map
-                       (fn [object]
-                         (change/make-add
-                          (change/make-statement subject predicate object)))
-                       (edit-tree-handles
-                        (added-result-value metree))))
+                     (edit-tree-changeset*
+                      change/make-add
+                      subject
+                      predicate
+                      (added-result-value metree))
 
                      (is-a? deleted metree)
-                     (concat
-                      (edit-tree-changeset
-                       (deleted-original-value metree))
-                      (map
-                       (fn [object]
-                         (change/make-delete
-                          (change/make-statement subject predicate object)))
-                       (edit-tree-handles
-                        (deleted-original-value metree))))))
+                     (edit-tree-changeset*
+                      change/make-delete
+                      subject
+                      predicate
+                      (deleted-original-value metree))))
 
                  metrees))
 

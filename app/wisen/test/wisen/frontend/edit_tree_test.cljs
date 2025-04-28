@@ -117,7 +117,72 @@
                                            (et/edit-node
                                             et/edit-node-uri "http://example.org/b"
                                             et/edit-node-properties {"http://schema.org/name"
-                                                                     [(et/make-deleted (et/make-literal-string "Foobar"))]}))]}))))))
+                                                                     [(et/make-deleted (et/make-literal-string "Foobar"))]}))]})))))
+  (is (= (set [(change/make-add
+                (change/make-statement "http://example.org/a"
+                                       "http://example.org/foo"
+                                       "http://example.org/b"))
+               (change/make-add
+                (change/make-statement "http://example.org/b"
+                                       "http://schema.org/name"
+                                       (tree/make-literal-string "Foobar")))])
+         (set (et/edit-tree-changeset
+               (et/edit-node
+                et/edit-node-uri "http://example.org/a"
+                et/edit-node-properties {"http://example.org/foo"
+                                         [(et/mark-added
+                                           (et/edit-node
+                                            et/edit-node-uri "http://example.org/b"
+                                            et/edit-node-properties {"http://schema.org/name"
+                                                                     [(et/mark-added (et/make-literal-string "Foobar"))]}))]})))))
+
+  ;; add inside add with blank nodes
+  (is (= [(change/make-with-blank-node
+           1
+           [(change/make-add
+             (change/make-statement "A"
+                                    "http://example.org/foo"
+                                    1))
+            (change/make-add
+             (change/make-statement 1
+                                    "http://schema.org/name"
+                                    (tree/make-literal-string "Foobar")))])]
+         (et/edit-tree-changeset
+          (et/exists
+           et/exists-existential 1
+           et/exists-edit-tree
+           (et/edit-node
+            et/edit-node-uri "A"
+            et/edit-node-properties {"http://example.org/foo"
+                                     [(et/mark-added
+                                       (et/edit-node
+                                        et/edit-node-uri 1
+                                        et/edit-node-properties {"http://schema.org/name"
+                                                                 [(et/mark-added (et/make-literal-string "Foobar"))]}))]})))))
+
+  ;; add with blank node inside add
+  (is (= [(change/make-with-blank-node
+           1
+           [(change/make-add
+             (change/make-statement "A"
+                                    "http://example.org/foo"
+                                    1))
+            (change/make-add
+             (change/make-statement 1
+                                    "http://schema.org/name"
+                                    (tree/make-literal-string "Foobar")))])]
+         (et/edit-tree-changeset
+          (et/edit-node
+           et/edit-node-uri "A"
+           et/edit-node-properties {"http://example.org/foo"
+                                    [(et/mark-added
+                                      (et/exists
+                                       et/exists-existential 1
+                                       et/exists-edit-tree
+                                       (et/edit-node
+                                        et/edit-node-uri 1
+                                        et/edit-node-properties {"http://schema.org/name"
+                                                                 [(et/mark-added (et/make-literal-string "Foobar"))]})))]})))))
 
 (deftest insert-properties-test
   (is (= (et/insert-properties (et/edit-node et/edit-node-uri "uri"
