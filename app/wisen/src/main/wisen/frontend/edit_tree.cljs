@@ -531,6 +531,9 @@
     (many? etree)
     (mapcat edit-tree-handles (many-edit-trees etree))
 
+    (exists? etree)
+    [(exists-existential etree)]
+
     (is-a? edit-node etree)
     [(edit-node-uri etree)]))
 
