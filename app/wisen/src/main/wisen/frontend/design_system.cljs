@@ -2,7 +2,8 @@
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
-            [reacl-c-basics.forms.core :as forms]))
+            [reacl-c-basics.forms.core :as forms]
+            [wisen.frontend.forms]))
 
 (def border "1px solid gray")
 
@@ -61,32 +62,6 @@
 
 ;;
 
-(c/defn-effect focus! [ref]
-  (when-let [elem (c/deref ref)]
-    (.focus elem)))
-
-(defn- x+focus [x attrs children]
-  (c/with-ref
-    (fn [ref]
-      (c/fragment
-       (-> (c/focus lens/first
-                    (apply
-                     x
-                     (dom/merge-attributes
-                      attrs
-                      {:ref ref
-                       :onBlur (constantly (c/return :action false))
-                       :onFocus (constantly (c/return :action true))})
-                     children))
-           (c/handle-action (fn [[st _] ac]
-                              [st ac])))
-       (c/focus lens/second
-                (c/once (fn [should-focus?]
-                          (if should-focus?
-                            (c/return :action (focus! ref))
-                            (c/return))
-                          )))))))
-
 (dom/defn-dom select [attrs & children]
   (apply forms/select
          (dom/merge-attributes
@@ -100,7 +75,7 @@
          children))
 
 (dom/defn-dom select+focus [attrs & children]
-  (x+focus select attrs children))
+  (apply wisen.frontend.forms/x+ select attrs children))
 
 (c/defn-subscription ^:private rid-sub deliver! []
   (do
@@ -145,7 +120,7 @@
                      suggestions)))))))
 
 (dom/defn-dom input+focus [attrs & children]
-  (x+focus input attrs children))
+  (apply wisen.frontend.forms/x+ input attrs children))
 
 (dom/defn-dom textarea [attrs & children]
   (let [disabled? (get attrs :disabled)]
@@ -161,7 +136,7 @@
            children)))
 
 (dom/defn-dom textarea+focus [attrs & children]
-  (x+focus textarea attrs children))
+  (apply wisen.frontend.forms/x+ textarea attrs children))
 
 (def plus-icon
   (dom/svg
