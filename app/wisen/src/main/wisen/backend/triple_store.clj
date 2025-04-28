@@ -3,7 +3,8 @@
             [wisen.backend.skolem :as skolem]
             [wisen.backend.skolem2 :as skolem2]
             [wisen.common.change-api :as change-api]
-            [wisen.backend.osm :as osm])
+            [wisen.backend.osm :as osm]
+            [wisen.common.prefix :as prefix])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -187,7 +188,7 @@
            ;; 3. write back geo triples
            (let [lat (osm/search-success-latitude osm-result)
                  long (osm/search-success-longitude osm-result)
-                 geo-uri (str "http://TODO.org/" (random-uuid))
+                 geo-uri (prefix/resource (random-uuid))
                  geo (.createResource base-model geo-uri)]
 
              ;; place has geo
