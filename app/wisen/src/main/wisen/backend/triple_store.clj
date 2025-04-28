@@ -122,17 +122,18 @@
      (fn [base-model]
        (edit-model! base-model changeset))))
   ([base-model changeset]
-   (loop [changes* (skolem2/skolemize-changeset changeset)]
-     (if (empty? changes*)
-       nil
-       (let [change (first changes*)]
-         (cond
-           (change-api/add? change)
-           (add-statement! base-model (change-api/add-statement change))
+   (let [changes (skolem2/skolemize-changeset changeset)]
+     (loop [changes* changes]
+       (if (empty? changes*)
+         nil
+         (let [change (first changes*)]
+           (cond
+             (change-api/add? change)
+             (add-statement! base-model (change-api/add-statement change))
 
-           (change-api/delete? change)
-           (remove-statement! base-model (change-api/delete-statement change)))
-         (recur (rest changes*)))))))
+             (change-api/delete? change)
+             (remove-statement! base-model (change-api/delete-statement change)))
+           (recur (rest changes*))))))))
 
 #_(run-select-query!
  "SELECT ?place ?country ?locality ?postcode ?street
