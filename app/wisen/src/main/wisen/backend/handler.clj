@@ -130,6 +130,11 @@
   (let [bbox (:body-params request)]
     (overpass/search-area! bbox "amenity" "restaurant")))
 
+(defn semantic-area-search [request]
+  (let [params (:body-params request)]
+    (overpass/semantic-area-search! (:semantic-area-search-query params)
+                                    (:semantic-area-search-bbox params))))
+
 (defn ollama-handler [request]
   (let [body (slurp (get request :body))]
     (llm/ollama-request! body)))
@@ -153,7 +158,8 @@
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
       ["/search" {:post {:handler osm-search}}]
-      ["/search-area" {:post {:handler osm-search-area}}]]
+      ["/search-area" {:post {:handler osm-search-area}}]
+      ["/semantic-area-search" {:post {:handler semantic-area-search}}]]
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303

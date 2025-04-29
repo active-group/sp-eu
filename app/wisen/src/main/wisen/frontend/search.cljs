@@ -32,11 +32,19 @@
 (defn make-focus-query-action [q]
   (focus-query-action focus-query-action-query q))
 
-(def-record area-search-action
+#_(def-record area-search-action
   [area-search-action-params])
 
-(defn make-area-search-action [x]
+#_(defn make-area-search-action [x]
   (area-search-action area-search-action-params x))
+
+(def-record semantic-area-search-action
+  [semantic-area-search-action-query
+   semantic-area-search-action-bbox])
+
+(defn make-semantic-area-search-action [query bbox]
+  (semantic-area-search-action semantic-area-search-action-query query
+                               semantic-area-search-action-bbox bbox))
 
 (defn sparql-request [query]
   (-> (ajax/POST "/api/search"
@@ -151,8 +159,13 @@
     :event
     (event->sparql m)))
 
-(defn area-search! [params]
+#_(defn area-search! [params]
   (ajax/POST "/osm/search-area"
+             {:body (.stringify js/JSON (clj->js params))
+              :headers {:content-type "application/json"}}))
+
+(defn semantic-area-search! [params]
+  (ajax/POST "/osm/semantic-area-search"
              {:body (.stringify js/JSON (clj->js params))
               :headers {:content-type "application/json"}}))
 
@@ -166,7 +179,7 @@
                  (.preventDefault event)
                  (c/return :action (make-focus-query-action
                                     (quick-search->sparql state))
-                           :action (make-area-search-action (:location state))))
+                           #_#_:action (make-area-search-action (:location state))))
      :style {:display "flex"
              :align-items "baseline"
              :gap "16px"
@@ -213,7 +226,22 @@
                                    :gap "0.5em"}}
                           "Searching …"
                           (spinner/main))
-                         "Search")))))
+                         "Search")))
+   (forms/form
+    {:onSubmit (fn [state event]
+                 (.preventDefault event)
+                 (c/return :action (make-semantic-area-search-action
+                                    (:free-text state)
+                                    (:location state))))}
+    (dom/div "Freitextsuche")
+    (c/focus :free-text
+             (ds/input))
+    (ds/button-primary {:type "submit"
+                        :style {:background "#923dd2"
+                                :padding "6px 16px"
+                                :border-radius "20px"
+                                :color "white"}}
+                       "Search"))))
 
 (defn run-query [q]
   (util/load-json-ld (sparql-request q)))
@@ -247,7 +275,8 @@
     :target "elderly"
     :tags ["education"]
     :location [[48.484 48.550]
-               [9.0051 9.106]]}
+               [9.0051 9.106]]
+    :free-text ""}
    (dom/div
     {:style {:position "relative"}}
     (dom/div
@@ -334,10 +363,14 @@
               (record/is-a? focus-query-action ac)
               (assoc st :last-focus-query (focus-query-action-query ac))
 
-              (record/is-a? area-search-action ac)
+              #_#_(record/is-a? area-search-action ac)
               (assoc st :area-search-params (area-search-action-params ac)
                      :area-search-response nil)
 
+              (record/is-a? semantic-area-search-action ac)
+              (assoc st :semantic-area-search-params {:semantic-area-search-query (semantic-area-search-action-query ac)
+                                                      :semantic-area-search-bbox (semantic-area-search-action-bbox ac)}
+                     :semantic-area-searech-response nil)
               :else
               (c/return :action ac)))))
 
@@ -355,7 +388,7 @@
                                                (dissoc :last-focus-query)))
                                  (c/return :action ac)))))))
 
-     (when-let [area-search-params (:area-search-params state)]
+     #_(when-let [area-search-params (:area-search-params state)]
        (c/handle-action
         (util/load-json-ld (area-search! area-search-params))
         (fn [st ac]
@@ -367,15 +400,29 @@
                         (-> st
                             (assoc :sugg-graphs components)
                             (dissoc :area-search-params))))
-            (c/return :action ac))))))))
+            (c/return :action ac)))))
+
+     (when-let [semantic-area-search-params (:semantic-area-search-params state)]
+       (c/handle-action
+        (util/load-json-ld (semantic-area-search! semantic-area-search-params))
+        (fn [st ac]
+          (if (success? ac)
+            (let [full-graph (success-value ac)
+                  components (rdf/get-subcomponents full-graph)]
+              (c/return :state
+                        (-> st
+                            (assoc :sugg-graphs components)
+                            (dissoc :semantic-area-search-params)))))))))))
 
 (c/defn-item main [schema]
   (c/isolate-state
    {:last-focus-query nil
     :last-expand-by-query nil
     :graph nil
-    :area-search-params nil
-    :area-search-response nil}
+    ;; :area-search-params nil
+    ;; :area-search-response nil
+    :semantic-area-search-params nil
+    :semantic-area-search-response nil}
    (c/with-state-as state
      (c/fragment
       (main* schema)))))

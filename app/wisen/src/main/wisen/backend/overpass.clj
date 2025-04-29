@@ -2,7 +2,8 @@
   (:require [clj-http.client :as http]
             [cheshire.core :as cheshire]
             [ring.util.codec :as codec]
-            [wisen.common.prefix :as prefix]))
+            [wisen.common.prefix :as prefix]
+            [wisen.backend.osm-semantic-search :as sem]))
 
 (defn assoc-some-from [m1 m2 m1-key m2-key]
   (when-let [v (get m2 m2-key)]
@@ -34,7 +35,7 @@
       (assoc-some-from tags "http://schema.org/postalCode" "addr:postcode")
       (assoc-some-street-address tags)))
 
-(defn- parse-overpass-response-item [item]
+(defn parse-overpass-response-item [item]
   (let [lon* (get item "lon")
         lat* (get item "lat")
         id (get item "id")
@@ -91,3 +92,10 @@
 
       :else
       {:status status})))
+
+(defn semantic-area-search! [query [[min-lat max-lat] [min-long max-long]]]
+  (let [response (sem/semantic-osm-search query min-lat min-long max-lat max-long)
+        results (map parse-overpass-response-item (:results response))]
+    {:status 200
+     :headers {"Content-type" "application/ld+json"}
+     :body (cheshire/generate-string results)}))
