@@ -1,38 +1,13 @@
 (ns wisen.backend.osm-semantic-search
-  (:require [clojure.data.json :as json]
-            [clj-http.client :as http]
+  (:require [clj-http.client :as http]
             [clojure.string :as str]
-            [clojure.core.cache :as cache])
-  (:import #_[ai.djl.repository Repository]
-           [ai.djl.repository.zoo Criteria ModelZoo]
-           [ai.djl.translate Translator Batchifier]
-           [ai.djl.ndarray NDList]
-           [ai.djl.huggingface.tokenizers HuggingFaceTokenizer]
-           [org.slf4j LoggerFactory]))
+            [clojure.core.cache :as cache]
+            [ring.util.codec :as codec])
+  (:import [ai.djl.repository.zoo Criteria ModelZoo]
+           [ai.djl.huggingface.translator TextEmbeddingTranslatorFactory]))
 
 ;; Cache for embeddings (to avoid re-computing)
 (def embedding-cache (atom (cache/ttl-cache-factory {} :ttl (* 24 60 60 1000)))) ;; 24 hours
-
-;; Custom translator for embeddings
-(deftype EmbeddingTranslator [tokenizer]
-  Translator
-  (processInput [_ ctx input]
-    (let [manager (.getManager ctx)
-          sentence (str input)
-          tokenized (.encode tokenizer sentence)
-          input-ids (int-array (get tokenized "input_ids"))
-          attention-mask (int-array (get tokenized "attention_mask"))]
-      (doto (NDList.)
-        (.add (.create manager input-ids (long-array [(count input-ids)])))
-        (.add (.create manager attention-mask (long-array [(count attention-mask)]))))))
-
-  (processOutput [_ _ctx model-output]
-    (let [last-hidden-state (.get model-output 0)
-          pooled (.mean last-hidden-state 1)
-          normalized (.normalize pooled "l2")]
-      (.toFloatArray normalized)))
-
-  (getBatchifier [_] Batchifier/STACK))
 
 ;; DJL model + tokenizer
 ;; TODO: should be configurable
@@ -51,24 +26,17 @@
   (System/setProperty "ai.djl.repository.zoo.location"
                       (str (System/getProperty "user.home") "/.cache/huggingface/hub"))
   (let [model-path (str (System/getProperty "user.home")
-                        "/.cache/huggingface/hub/models--BAAI--bge-m3/")
-        tokenizer (HuggingFaceTokenizer/newInstance "BAAI/bge-m3")
-        translator (new EmbeddingTranslator tokenizer)
+                        "/.cache/huggingface/hub/models--BAAI--bge-m3/bge-m3.pt")
         criteria (-> (Criteria/builder)
                      (.setTypes String (Class/forName "[F"))
                      (.optModelPath (java.nio.file.Paths/get (java.net.URI. (str "file://" model-path))))
-                     (.optTranslator translator)
+                     (.optTranslatorFactory (TextEmbeddingTranslatorFactory.))
+                     (.optArgument "tokenizer", "BAAI/bge-m3")
                      (.optEngine "PyTorch")
-                     (.build))]
-    ;; Try with a try-catch to get more detailed error information
-    (try
-      (let [model (ModelZoo/loadModel criteria)]
-        {:model model
-         :predictor (.newPredictor model)})
-      (catch Exception e
-        (println "Error loading model:")
-        (.printStackTrace e)
-        (throw e)))))
+                     (.build))
+        model (ModelZoo/loadModel criteria)]
+    {:model model
+     :predictor (.newPredictor model)}))
 
 (defonce model-state (atom nil))
 
@@ -97,21 +65,42 @@
   (let [{:keys [predictor]} (ensure-model-loaded)]
     (.batchPredict predictor texts)))
 
+(defn test-embedding []
+  (let [embedding (get-embedding "This is a test text")]
+    (println "Embedding size:" (count embedding))
+    (println "First few values:" (take 5 embedding))
+    embedding))
+
 ;; -- OSM helpers --
 
 (defn fetch-osm-data [min-lat min-lon max-lat max-lon]
-  (let [overpass-url "https://overpass-api.de/api/interpreter"
-        query (str "[out:json][timeout:25];"
-                   "(node[~\".*\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "way[~\".*\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "relation[~\".*\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
+  (let [base-url "https://overpass-api.de/api/interpreter?data="
+        query (str "[out:json];"
+                   "("
+                   "  node[\"leisure\"~\"^(sports_centre|park|fitness_centre|swimming_pool|pitch|playground)$\"]"
+                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  node[\"sport\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  node[\"club\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  node[\"community_centre\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  node[\"social_facility\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  node[\"amenity\"~\"^(community_centre|social_centre|library|arts_centre|healthcare|wellness)$\"]"
+                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  way[\"leisure\"~\"^(sports_centre|park|fitness_centre|swimming_pool|pitch|playground)$\"]"
+                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  way[\"sport\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  way[\"community_centre\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  way[\"social_facility\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
+                   "  way[\"amenity\"~\"^(community_centre|social_centre|library|arts_centre|healthcare|wellness)$\"]"
+                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
                    ");"
-                   "out body;"
-                   ">;")
-        response (http/post overpass-url {:form-params {:data query}
-                                          :socket-timeout 30000
-                                          :conn-timeout 30000})]
-    (json/read-str (:body response))))
+                   "out body meta;")
+        encoded-query (codec/url-encode query)
+        url (str base-url encoded-query)
+        response (http/get url {:accept :json
+                                :as :json-string-keys})
+        elems (get (:body response) "elements")
+        _ (println (str "number of elements: " (count elems)))]
+     elems))
 
 (defn extract-features [element]
   (let [tags (get element "tags" {})
@@ -123,8 +112,7 @@
                 (get tags "tourism")
                 (get tags "leisure")
                 (get tags "historic")
-                (get tags "cuisine")
-                (get element "type")]]
+                (get tags "cuisine")]]
     (str/join " " (remove str/blank? fields))))
 
 (defn cosine-similarity [vec1 vec2]
@@ -138,10 +126,12 @@
 ;; -- Main semantic search --
 
 (defn rank-osm-results [query-embedding osm-elements]
-  (let [elements (map #(assoc % :features (extract-features %))
+  (let [_ (println (str "\nrank-osm-results got elements with first entries:\n\t" (pr-str (take 5 osm-elements)) "\n"))
+        elements (map #(assoc % :features (extract-features %))
                       (filter #(seq (get % "tags")) osm-elements))
         features (mapv :features elements)
-        embeddings (batch-embeddings features)
+        _ (println (str "\nfirst of features: \n\t" (pr-str (take 2 features)) "\n"))
+        embeddings #_(batch-embeddings features) (mapv get-embedding features)
         elements-with-embeddings (mapv (fn [element emb]
                                          (assoc element
                                                 :embedding emb
@@ -170,8 +160,7 @@
   (println "Area:" [min-lat min-lon max-lat max-lon])
   (let [query-embedding (get-embedding description)
         osm-data (fetch-osm-data min-lat min-lon max-lat max-lon)
-        elements (get osm-data "elements")
-        ranked (rank-osm-results query-embedding elements)
+        ranked (rank-osm-results query-embedding osm-data)
         top-results (take limit ranked)]
     {:query description
      :bbox {:min_lat min-lat :min_lon min-lon :max_lat max-lat :max_lon max-lon}
