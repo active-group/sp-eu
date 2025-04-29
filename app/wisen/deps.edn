@@ -34,6 +34,7 @@
                          cheshire/cheshire {:mvn/version "5.13.0"}
                          org.clojure/core.cache {:mvn/version "1.0.217"}
                          ai.djl/api {:mvn/version "0.27.0"} ;; 0.32.0?
+                         ai.djl.pytorch/pytorch-engine {:mvn/version "0.27.0"} ;; 0.32.0?
                          ai.djl.huggingface/tokenizers {:mvn/version "0.27.0"} ;; 0.32.0?
                          }}
   ;; `clj -M:nrepl:backend -m nrepl.cmdline`

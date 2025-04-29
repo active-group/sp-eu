@@ -126,11 +126,9 @@
 ;; -- Main semantic search --
 
 (defn rank-osm-results [query-embedding osm-elements]
-  (let [_ (println (str "\nrank-osm-results got elements with first entries:\n\t" (pr-str (take 5 osm-elements)) "\n"))
-        elements (map #(assoc % :features (extract-features %))
+  (let [elements (map #(assoc % :features (extract-features %))
                       (filter #(seq (get % "tags")) osm-elements))
         features (mapv :features elements)
-        _ (println (str "\nfirst of features: \n\t" (pr-str (take 2 features)) "\n"))
         embeddings #_(batch-embeddings features) (mapv get-embedding features)
         elements-with-embeddings (mapv (fn [element emb]
                                          (assoc element
@@ -141,7 +139,7 @@
         valid-elements (filter :similarity elements-with-embeddings)]
     (reverse (sort-by :similarity valid-elements))))
 
-(defn format-result [element]
+#_(defn format-result [element]
   (let [tags (get element "tags" {})
         id (get element "id")
         type (get element "type")
@@ -165,5 +163,4 @@
     {:query description
      :bbox {:min_lat min-lat :min_lon min-lon :max_lat max-lat :max_lon max-lon}
      :total_matches (count ranked)
-     :results (map format-result top-results)}))
-
+     :results top-results}))
