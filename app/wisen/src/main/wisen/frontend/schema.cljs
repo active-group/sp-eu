@@ -85,9 +85,7 @@
             subject
             (rdf/make-symbol "http://www.w3.org/ns/shacl#name")))]
 
-      (if (rdf/literal-string? object)
-        (rdf/literal-string-value object)
-        "Unknown predicate"))))
+      predicate)))
 
 (defn predicates-for-type [schema type]
   (sort
