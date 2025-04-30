@@ -10,13 +10,13 @@
 
 (def-record idle [])
 
-(def-record committing [committing-changes])
+(def-record committing [committing-changeset])
 
 (def-record commit-successful [commit-successful-changes])
 
 (def-record commit-failed [commit-failed-error])
 
-(defn changes-component [schema changes]
+(defn changeset-component [schema changeset]
   (c/isolate-state
    (idle)
    (c/with-state-as state
@@ -24,13 +24,13 @@
       {:style {:display "flex"
                :gap "1em"}}
 
-      (change/changes-summary schema changes)
+      (change/changeset-summary schema changeset)
 
       (cond
         (is-a? idle state)
-        (when-not (empty? changes)
+        (when-not (empty? changeset)
           (ds/button-primary {:onclick (fn [_]
-                                         (committing committing-changes changes))}
+                                         (committing committing-changeset changeset))}
                              "Commit changes"))
 
         (is-a? committing state)
@@ -38,14 +38,14 @@
          "Committing ..."
          (wisen.frontend.spinner/main)
          (c/handle-action
-          (ajax/execute (change/commit-changes-request (committing-changes state)))
+          (ajax/execute (change/commit-changeset-request (committing-changeset state)))
           (fn [st ac]
             (if (and (ajax/response? ac)
                      (ajax/response-ok? ac))
               (c/return :state (commit-successful commit-successful-changes
-                                                  (committing-changes st))
+                                                  (committing-changeset st))
                         :action (commit-successful commit-successful-changes
-                                                   (committing-changes st)))
+                                                   (committing-changeset st)))
               (commit-failed commit-failed-error
                              (ajax/response-value ac))))))
 
@@ -58,16 +58,20 @@
          (dom/pre
           (pr-str (commit-failed-error state)))))))))
 
-(defn main [schema]
-  (c/with-state-as etrees
+(defn main [schema & additional-items]
+  (c/with-state-as etree
     (dom/div
      {:style {:border-top ds/border
               :padding "12px 24px"
-              :display "flex"
-              :justify-content "flex-end"}}
+              :display "flex"}}
      (c/handle-action
-      (changes-component schema (edit-tree/edit-trees-changes etrees))
+      (dom/div
+       {:style {:display "flex"
+                :flex 1
+                :justify-content "space-between"}}
+       (apply dom/div additional-items)
+       (changeset-component schema (edit-tree/edit-tree-changeset etree)))
       (fn [etree action]
         (if (is-a? commit-successful action)
-          (c/return :state (edit-tree/edit-trees-commit-changes etrees))
-          (c/return)))))))
+          (c/return :state (edit-tree/edit-tree-commit-changes etree))
+          (c/return :action action)))))))

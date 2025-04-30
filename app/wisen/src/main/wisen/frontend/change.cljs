@@ -28,22 +28,27 @@
 (defn add? [x]
   (is-a? add x))
 
-(defn change-statement [x]
-  (cond
-    (delete? x)
-    (delete-statement x)
+(def-record with-blank-node
+  [with-blank-node-existential :- tree/existential
+   with-blank-node-changes])
 
-    (add? x)
-    (add-statement x)))
+(defn make-with-blank-node [existential changes]
+  (with-blank-node
+    with-blank-node-existential existential
+    with-blank-node-changes changes))
+
+(defn with-blank-node? [x]
+  (is-a? with-blank-node x))
 
 ;; Statements
 
 (def-record statement
-  [statement-subject :- tree/URI
-   statement-predicate :- tree/URI
+  [statement-subject :- (realm/union tree/existential tree/URI)
+   statement-predicate :- (realm/union tree/existential tree/URI)
    statement-object :- (realm/union tree/literal-string
                                     tree/literal-decimal
                                     tree/literal-boolean
+                                    tree/existential
                                     tree/URI)])
 
 (defn make-statement [s p o]
@@ -52,160 +57,57 @@
    statement-predicate p
    statement-object o))
 
-(defn- compare-object [o1 o2]
-  (cond
-    (= o1 o2)
-    0
+;; Change
 
-    (< o1 o2)
-    -1
+(def change (realm/union add delete with-blank-node))
 
-    (> o1 o2)
-    1
-    ))
+;; Changeset
 
-(defn compare-statement [s1 s2]
-  (case (compare (statement-subject s1)
-                 (statement-subject s2))
-    1 1
-    -1 -1
-    0 (case (compare (statement-predicate s1)
-                     (statement-predicate s2))
-        1 1
-        -1 -1
-        0 (compare-object (statement-object s1)
-                          (statement-object s2)))))
-
-;; Algorithm
-
-(defn delta-statements* [acc stmts1 stmts2]
-  (cond
-    (empty? stmts1)
-    ;; add all stmts2
-    (concat acc (map make-add stmts2))
-
-    (empty? stmts2)
-    ;; remove all stmts1
-    (concat acc (map make-delete stmts1))
-
-    :else
-    (let [[stmt1 & stmts1*] stmts1
-          [stmt2 & stmts2*] stmts2]
-      (case (compare-statement stmt1 stmt2)
-        -1
-        ;; stmt1 is not in stmts2 -> deleted
-        (delta-statements* (conj acc (make-delete stmt1))
-                           stmts1*
-                           stmts2)
-
-        0
-        ;; just continue
-        (delta-statements* acc stmts1* stmts2*)
-
-        1
-        ;; stmt2 is not in stmts1 -> added
-        (delta-statements* (conj acc (make-add stmt2))
-                           stmts1
-                           stmts2*)))))
-
-(defn delta-statements [stmts1 stmts2]
-  (delta-statements*
-   #{}
-   (sort compare-statement stmts1)
-   (sort compare-statement stmts2)))
-
-(defn- property->statements
-  "subject :- tree/URI, prop :- tree/property"
-  [subject prop]
-  ;; TODO: maybe tailrec
-  (let [mk-stmt (fn [object]
-                  (statement statement-subject subject
-                             statement-predicate (tree/property-predicate prop)
-                             statement-object object))
-        obj (tree/property-object prop)]
-    (cond
-      (tree/literal-string? obj)
-      [(mk-stmt obj)]
-
-      (tree/literal-decimal? obj)
-      [(mk-stmt obj)]
-
-      (tree/literal-boolean? obj)
-      [(mk-stmt obj)]
-
-      (tree/ref? obj)
-      [(mk-stmt (tree/ref-uri obj))]
-
-      (tree/node? obj)
-      (conj (mapcat
-             (fn [prop]
-               (property->statements (tree/node-uri obj) prop))
-             (tree/node-properties obj))
-            (mk-stmt (tree/node-uri obj))))))
-
-(defn tree-statements [t]
-  (cond
-    (tree/literal-string? t)
-    (assert false "Not possible to turn literal string into statements")
-
-    (tree/literal-decimal? t)
-    (assert false "Not possible to turn literal decimal into statements")
-
-    (tree/literal-boolean? t)
-    (assert false "Not possible to turn literal boolean into statements")
-
-    (tree/ref? t)
-    (assert false "Not possible to turn ref into statements")
-
-    (tree/node? t)
-    (mapcat (fn [prop]
-              (property->statements (tree/node-uri t) prop))
-            (tree/node-properties t))))
-
-(defn delta-tree [t1 t2]
-  (delta-statements (tree-statements t1)
-                    (tree-statements t2)))
-
-(defn trees-statements [trees]
-  (reduce (fn [acc tree]
-            (set/union acc (set (tree-statements tree))))
-          #{}
-          trees))
-
-(defn delta-trees [ts1 ts2]
-  (delta-statements (trees-statements ts1)
-                    (trees-statements ts2)))
-
+(def changeset (realm/sequence-of change))
 
 ;; conversions
 
 (defn statement->api [s]
-  (change-api/make-statement
-   (change-api/make-uri
-    (tree/uri-string
-     (statement-subject s)))
+  (let [subject (statement-subject s)
+        predicate (statement-predicate s)
+        object (statement-object s)]
 
-   (change-api/make-uri
-    (tree/uri-string
-     (statement-predicate s)))
-
-   (let [obj (statement-object s)]
-     (cond
-       (tree/literal-string? obj)
-       (change-api/make-literal-string
-        (tree/literal-string-value obj))
-
-       (tree/literal-decimal? obj)
-       (change-api/make-literal-decimal
-        (tree/literal-decimal-value obj))
-
-       (tree/literal-boolean? obj)
-       (change-api/make-literal-boolean
-        (tree/literal-boolean-value obj))
-
-       (tree/uri? obj)
+    (change-api/make-statement
+     (if (tree/uri? subject)
        (change-api/make-uri
-        (tree/uri-string obj))))))
+        (tree/uri-string subject))
+       (change-api/make-existential
+        (tree/existential-index subject)))
+
+     (if (tree/uri? predicate)
+       (change-api/make-uri
+        (tree/uri-string predicate))
+       (change-api/make-existential
+        (tree/existential-index predicate)))
+
+     (let [obj (statement-object s)]
+       (cond
+         (tree/literal-string? obj)
+         (change-api/make-literal-string
+          (tree/literal-string-value obj))
+
+         (tree/literal-decimal? obj)
+         (change-api/make-literal-decimal
+          (tree/literal-decimal-value obj))
+
+         (tree/literal-boolean? obj)
+         (change-api/make-literal-boolean
+          (tree/literal-boolean-value obj))
+
+         (tree/existential? obj)
+         (change-api/make-existential
+          (tree/existential-index obj))
+
+         (tree/uri? obj)
+         (change-api/make-uri
+          (tree/uri-string obj)))))))
+
+(declare changeset->api)
 
 (defn change->api [ch]
   (cond
@@ -215,59 +117,60 @@
 
     (record/is-a? add ch)
     (change-api/make-add (statement->api
-                          (add-statement ch)))))
+                          (add-statement ch)))
+
+    (record/is-a? with-blank-node ch)
+    (change-api/make-with-blank-node
+     (with-blank-node-existential ch)
+     (changeset->api
+      (with-blank-node-changes ch)))))
+
+(defn changeset->api [cs]
+  (map change->api cs))
 
 
 ;; GUI
 
-(defn- pr-change-kind [change]
-  (cond
-    (delete? change)
-    "-"
+(defn- nchanges [n p? changeset]
+  (reduce
+   (fn [n chng]
+     (let [n* (if (p? chng)
+                (inc n)
+                n)]
+       (cond
+         (add? chng)
+         n*
 
-    (add? change)
-    "+"))
+         (delete? chng)
+         n*
 
-(defn- pr-change [schema change]
-  (let [statement (change-statement change)]
-    (dom/div (pr-change-kind change)
-             (pr-str (statement-subject statement))
-             " – "
-             (schema/label-for-predicate schema (statement-predicate statement))
-             " – "
-             (pr-str (statement-object statement))
-             )))
+         (with-blank-node? chng)
+         (nchanges n* p? (with-blank-node-changes chng)))))
+   n
+   changeset))
 
-(defn changes-component [schema changes]
-  (apply
-   dom/div
-   {:style {:display "flex"
-            :flex-direction "column"
-            :gap "1ex"}}
-   (map
-    (partial pr-change schema)
-    changes)))
-
-(defn changes-summary [schema changes]
-  (let [deletions (filter delete? changes)
-        additions (filter add? changes)]
+(defn changeset-summary [schema changeset]
+  (let [deletions (nchanges 0 delete? changeset)
+        additions (nchanges 0 add? changeset)
+        blank-creations (nchanges 0 with-blank-node? changeset)]
     (dom/div
      {:style {:display "flex"
               :gap "1em"}}
      (dom/div
       {:style {:color "green"}}
-      (str (count additions))
+      (str additions)
+      (when (> blank-creations 0)
+        (str " + " blank-creations))
       " Additions")
 
      (dom/div
       {:style {:color "red"}}
-      (str (count deletions))
+      (str deletions)
       " Deletions"))))
 
-(defn commit-changes-request [changes]
+(defn commit-changeset-request [changeset]
   (ajax/POST "/api/changes"
              {:body (pr-str {:changes
-                             (map (comp change-api/change->edn
-                                        change->api)
-                                  changes)})
+                             (change-api/changeset->edn
+                              (changeset->api changeset))})
               :headers {:content-type "application/edn"}}))

@@ -19,9 +19,12 @@
             [wisen.frontend.details :as details]
             [wisen.frontend.schemaorg :as schemaorg]
             [wisen.frontend.util :as util]
-            [wisen.frontend.or-error :refer [success? success-value]]
+            [wisen.common.or-error :refer [success? success-value error? error-value]]
             [wisen.frontend.leaflet :as leaflet]
-            [wisen.frontend.schema :as schema]))
+            [wisen.frontend.schema :as schema]
+            [wisen.frontend.spinner :as spinner]
+            [wisen.common.prefix :as prefix]
+            [wisen.frontend.value-node :as value-node]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -58,54 +61,54 @@
     (edit-tree/changed? marked)
     ds/dot-icon))
 
-(defn pprint [x]
-  (dom/pre
-   (with-out-str
-     (cljs.pprint/pprint x))))
+(defn- pr-uri [uri]
+  (if (tree/existential? uri)
+    (dom/span {:style {:font-style "italic"}}
+              (tree/uri-string uri))
+    (tree/uri-string uri)))
 
-(c/defn-item ^:private before-after [show? before-item after-item]
+(c/defn-item ^:private before-after [before-item after-item background-color]
   (c/with-state-as [state before-or-after :local ::after]
     (dom/div
      {:style {:display "flex"
               :flex-direction "column"}}
 
-     (when show?
-       (c/focus lens/second
-                (dom/div
-                 {:style {:display "flex"}}
-                 (dom/div {:style {:border-top "1px solid gray"
-                                   :border-left "1px solid gray"
-                                   :border-right "1px solid gray"
-                                   :border-bottom (if (= before-or-after ::before)
-                                                    "1px solid #eee"
-                                                    "1px solid gray")
-                                   :border-top-left-radius "4px"
-                                   :padding "0.5ex 0.5em"
-                                   :cursor "pointer"
-                                   :color "red"
-                                   :position "relative"
-                                   :top "1px"
-                                   :font-weight (if (= before-or-after ::before)
-                                                  "bold"
-                                                  "normal")}
-                           :onClick (constantly ::before)}
-                          "Before")
-                 (dom/div {:style {:border-top "1px solid gray"
-                                   :border-right "1px solid gray"
-                                   :border-bottom (if (= before-or-after ::after)
-                                                    "1px solid #eee"
-                                                    "1px solid gray")
-                                   :border-top-right-radius "4px"
-                                   :padding "0.5ex 0.5em"
-                                   :cursor "pointer"
-                                   :color "green"
-                                   :position "relative"
-                                   :top "1px"
-                                   :font-weight (if (= before-or-after ::after)
-                                                  "bold"
-                                                  "normal")}
-                           :onClick (constantly ::after)}
-                          "After"))))
+     (c/focus lens/second
+              (dom/div
+               {:style {:display "flex"}}
+               (dom/div {:style {:border-top "1px solid gray"
+                                 :border-left "1px solid gray"
+                                 :border-right "1px solid gray"
+                                 :border-bottom (if (= before-or-after ::before)
+                                                  (str "1px solid " background-color)
+                                                  "1px solid gray")
+                                 :border-top-left-radius "4px"
+                                 :padding "0.5ex 0.5em"
+                                 :cursor "pointer"
+                                 :color "red"
+                                 :position "relative"
+                                 :top "1px"
+                                 :font-weight (if (= before-or-after ::before)
+                                                "bold"
+                                                "normal")}
+                         :onClick (constantly ::before)}
+                        "Before")
+               (dom/div {:style {:border-top "1px solid gray"
+                                 :border-right "1px solid gray"
+                                 :border-bottom (if (= before-or-after ::after)
+                                                  (str "1px solid " background-color)
+                                                  "1px solid gray")
+                                 :border-top-right-radius "4px"
+                                 :padding "0.5ex 0.5em"
+                                 :cursor "pointer"
+                                 :color "green"
+                                 :position "relative"
+                                 :top "1px"
+                                 :font-weight (if (= before-or-after ::after)
+                                                "bold"
+                                                "normal")}
+                         :onClick (constantly ::after)}
+                        "After")))
 
      (dom/div
       {:style {:border "1px solid gray"
@@ -117,30 +120,6 @@
 
                  ::after
                  after-item))))))
-
-(defn- make-edit-tree-kind-lens [schema predicate]
-  (fn
-    ([etree]
-     (cond
-       (edit-tree/literal-string? etree)
-       tree/literal-string
-
-       (edit-tree/literal-decimal? etree)
-       tree/literal-decimal
-
-       (edit-tree/literal-boolean? etree)
-       tree/literal-boolean
-
-       (edit-tree/ref? etree)
-       tree/ref
-
-       (edit-tree/edit-node? etree)
-       tree/node))
-    ([etree kind]
-     (if (= kind ((make-edit-tree-kind-lens schema predicate) etree))
-       etree
-       (edit-tree/make-added-edit-tree
-        (default/default-tree-for-predicate-and-kind predicate kind))))))
 
 (defn- label-for-kind [kind]
   (cond
@@ -159,58 +138,8 @@
     (= kind tree/node)
     "Node"))
 
-(defn- map-values [f m]
-  (reduce (fn [acc [k v]]
-            (assoc acc k (f v)))
-          {}
-          m))
-
-(defn- edit-node-type
-  "TODO: This must be developed closer to a spec."
-  ([enode]
-   (edit-tree/edit-tree-result-tree
-    (edit-tree/node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" enode)))
-  ([enode type]
-   (if (= type (edit-node-type enode))
-     enode
-     (lens/overhaul
-      enode
-      edit-tree/edit-node-properties
-      (fn [old-eprops]
-        (let [old-eprops* (map-values (fn [metrees]
-                                        (map (fn [metree]
-                                               (if (edit-tree/can-delete? metree)
-                                                 (edit-tree/mark-deleted metree)
-                                                 metree))
-                                             metrees))
-                                      old-eprops)
-              new-eprops (edit-tree/edit-node-properties
-                          (edit-tree/make-added-edit-tree (default/default-node-for-type type)))]
-          (merge-with
-           (fn [old-metrees new-metrees]
-             ;; set new for now (TODO)
-             (distinct
-              (if (= 1
-                     (count old-metrees)
-                     (count new-metrees))
-                (let [old-metree (first old-metrees)
-                      new-metree (first new-metrees)]
-                  (cond
-                    (edit-tree/deleted? old-metree)
-                    [(edit-tree/make-maybe-changed
-                      (edit-tree/deleted-original-value old-metree)
-                      (edit-tree/added-result-value new-metree))]
-
-                    (edit-tree/added? old-metree)
-                    [new-metree]
-
-                    (edit-tree/maybe-changed? old-metree)
-                    [(edit-tree/maybe-changed-result-value old-metree
-                                                           (edit-tree/added-result-value new-metree))]))
-                ;; else choose new metrees (TODO
-                new-metrees)))
-           old-eprops*
-           new-eprops)))))))
+(def edit-node-type
+  (edit-tree/make-edit-node-type-lens default/default-node-for-type))
 
 (declare edit-tree-component)
 
@@ -225,7 +154,7 @@
          edit-node-is-postal-address-value?
          edit-node-is-opening-hours-specification-value?)
 
-(c/defn-item ^:private component-for-predicate [predicate schema editable? editing?]
+(c/defn-item ^:private component-for-predicate [predicate schema editable? editing? background-color]
   (c/with-state-as etree
     (cond
       (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
@@ -233,47 +162,63 @@
         (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
       (= predicate "http://schema.org/name")
-      (c/focus edit-tree/literal-string-value
-               (ds/input {:disabled (when-not editable? "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/edit-tree-focused?])
+               (ds/input+focus {:disabled (when-not editing? "disabled")}))
 
       (= predicate "http://schema.org/description")
-      (c/focus edit-tree/literal-string-value
-               (ds/textarea {:style {:width "100%"
-                                     :min-height "6em"}
-                             :disabled (when-not editable?
-                                         "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/edit-tree-focused?])
+               (ds/textarea+focus {:style {:width "100%"
+                                           :min-height "6em"}
+                                   :disabled (when-not editing?
+                                               "disabled")}))
 
       (= predicate "http://schema.org/keywords")
-      (c/focus edit-tree/literal-string-value
-               (ds/input {:disabled (when-not editable? "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/edit-tree-focused?])
+               (ds/input+focus {:disabled (when-not editing? "disabled")}))
 
       (= predicate "http://schema.org/byDay")
       (day-of-week-component schema editable? editing?)
 
       (and
        (= predicate "http://schema.org/openingHoursSpecification")
+       (edit-tree/edit-node? etree)
        (= (tree/type-uri (edit-node-type etree)) "http://schema.org/OpeningHoursSpecification")
        (edit-node-is-opening-hours-specification-value? etree))
-      (c/focus edit-tree/edit-node-properties-derived-uri
-               (opening-hours-specification-component schema editable? editing?))
+      (value-node/as-value-node
+       (opening-hours-specification-component schema editable? editing?))
+
+      (= predicate "http://schema.org/eventAttendanceMode")
+      (c/focus edit-tree/tree-uri
+               (ds/select
+                {:disabled (when-not editing? "disabled")
+                 :style {:padding "7px 8px"}}
+                (forms/option {:value "http://schema.org/OfflineEventAttendanceMode"} "Offline")
+                (forms/option {:value "http://schema.org/OnlineEventAttendanceMode"} "Online")
+                (forms/option {:value "http://schema.org/MixedEventAttendanceMode"} "Mixed")))
 
       (= predicate "http://schema.org/url")
-      (c/focus edit-tree/literal-string-value
-               (ds/input {:type "url"
-                          :placeholder "https://example.com"
-                          :disabled (when-not editable? "disabled")}))
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/literal-string-focused?])
+               (ds/input+focus {:type "url"
+                                :placeholder "https://example.com"
+                                :disabled (when-not editing? "disabled")}))
 
       (and
        (= predicate "http://schema.org/address")
+       (edit-tree/edit-node? etree)
        (= (tree/type-uri (edit-node-type etree)) "http://schema.org/PostalAddress")
        (edit-node-is-postal-address-value? etree))
-      (c/focus edit-tree/edit-node-properties-derived-uri
-               (postal-address-component schema editable? editing?))
+      (value-node/as-value-node
+       (postal-address-component schema editable? editing?))
 
       (= predicate "https://wisen.active-group.de/target-group")
-      (c/focus edit-tree/literal-string-value
-               (ds/select
-                {:disabled (when-not editable? "disabled")}
+      (c/focus (lens/pattern [edit-tree/literal-string-value
+                              edit-tree/edit-tree-focused?])
+               (ds/select+focus
+                {:disabled (when-not editing? "disabled")}
                 (forms/option {:value "elderly"} "Elderly")
                 (forms/option {:value "queer"} "Queer")
                 (forms/option {:value "immigrants"} "Immigrants")))
@@ -281,10 +226,11 @@
       :else
       (dom/div
        (when editing?
-         (c/focus (make-edit-tree-kind-lens schema predicate)
+         (c/focus (edit-tree/make-edit-tree-kind-lens
+                   (partial default/default-tree-for-predicate-and-kind predicate))
                   (apply
                    ds/select
-                   {:disabled (when-not editable? "disabled")}
+                   {:disabled (when-not editing? "disabled")}
                    (map (fn [kind]
                           (forms/option {:value kind} (label-for-kind kind)))
                         (schema/kinds-for-predicate schema predicate)))))
@@ -292,11 +238,8 @@
         schema
         (schema/types-for-predicate schema predicate)
         editable?
-        editing?)))))
-
-(defn- node-organization? [node]
-  (= "http://schema.org/Organization"
-     (tree/node-uri (edit-tree/node-type node))))
+        editing?
+        background-color)))))
 
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [node predicate :local schemaorg/default-predicate]
@@ -375,7 +318,7 @@
       (when (:graph local-state)
         (ds/button-primary
          {:onClick (fn [[node local-state]]
-                     (let [place-node (first (edit-tree/graph->edit-trees (:graph local-state)))]
+                     (let [place-node (edit-tree/graph->edit-tree (:graph local-state))]
                        (assert (edit-tree/node? place-node))
                        (c/return :state [(osm/organization-do-link-osm
                                           node
@@ -391,62 +334,111 @@
 
 (defn llm-query [prompt]
   (ajax/map-ok-response
-   (ajax/POST "/describe" {:body prompt})
+   (ajax/POST "/describe" {:body prompt
+                           :headers {:content-type "text/plain"}})
    :json-ld-string))
 
+(defn- prompt-prefix [type]
+  (str "The type is <" type ">."))
+
 (defn- prepare-prompt [schema-type prompt]
-  (str "I need a <" schema-type ">, " prompt))
+  (str (prompt-prefix schema-type)
+       " "
+       prompt))
 
 (c/defn-item ask-ai [schema close-action]
-  (c/with-state-as [node local-state :local {:graphs nil ;; prompt -> graph
+  (c/with-state-as [node local-state :local {:results nil ;; prompt -> results
                                              :commit-prompt nil
                                              :prompt "Just come up with something!"}]
     (let [prompt (:prompt local-state)
           commit-prompt (:commit-prompt local-state)
-          current-graph (get (:graphs local-state) prompt)]
+          current-result (get (:results local-state) prompt)
+          loading? (and (some? commit-prompt)
+                        (nil? current-result))]
 
       (dom/div
        {:style {:display "flex"
                 :flex-direction "column"
-                :gap "2ex"}}
+                :overflow "auto"}}
 
        (modal/padded
+        {:style {:display "flex"
+                 :gap "1em"
+                 :overflow "auto"}}
 
-        (dom/h3 "Ask an AI to fill out this form")
+        (dom/div {:style {:padding "24px"
+                          :color "#444"}}
+                 (ds/lightbulb-icon "64"))
 
-        (c/focus (lens/>> lens/second :prompt)
-                 (ds/textarea))
+        (dom/div
+         {:style {:flex 1
+                  :display "flex"
+                  :flex-direction "column"
+                  :gap "2ex"}}
 
-        (when commit-prompt
-          (c/focus (lens/>> lens/second :graphs (lens/member commit-prompt))
-                   (util/load-json-ld-state (llm-query (prepare-prompt (tree/node-uri
-                                                                        (edit-tree/node-type node))
-                                                                       commit-prompt)))))
+         (dom/h3 "Ask an AI to fill out this form")
 
-        (when current-graph
-          #_(pr-str current-graph)
-          (readonly-graph schema current-graph)))
+         (dom/div
+          {:style {:display "flex"
+                   :flex-direction "column"
+                   :gap "1ex"}}
+          (dom/div (prompt-prefix (tree/node-uri
+                                   (edit-tree/node-type node))))
+
+          (c/focus (lens/>> lens/second :prompt)
+                   (ds/textarea)))
+
+         (when commit-prompt
+           (c/focus (lens/>> lens/second :results (lens/member commit-prompt))
+                    (util/load-json-ld-state* (llm-query (prepare-prompt (tree/node-uri
+                                                                         (edit-tree/node-type node))
+                                                                        commit-prompt)))))
+
+         (when current-result
+           (if (success? current-result)
+             (dom/div
+              {:style {:padding "1ex 1em"
+                       :background "#eee"
+                       :border "1px solid gray"
+                       :border-radius "8px"}}
+              (dom/h3 "Result")
+              (readonly-graph schema (success-value current-result)))
+             (dom/div
+              (dom/h3 "Error")
+              (dom/pre (pr-str (error-value current-result))))))))
 
        (modal/toolbar
 
         (ds/button-secondary {:onClick #(c/return :action close-action)}
                              "Cancel")
 
-        (c/focus lens/second
-                 (ds/button-primary {:onClick (fn [ls]
-                                                (assoc ls :commit-prompt (:prompt ls)))}
-                                    "Ask AI!"))
+        (when-not commit-prompt
+          (c/focus lens/second
+                   (ds/button-primary {:onClick (fn [ls]
+                                                  (assoc ls :commit-prompt (:prompt ls)))}
+                                      "Ask AI!")))
 
-        (when (:graphs local-state)
-          (ds/button-primary
-           {:onClick (fn [[node local-state]]
-                       (let [ai-node (first (edit-tree/graph->edit-trees current-graph))]
-                         (assert (edit-tree/node? ai-node))
-                         (c/return :state [#_(tree/merge node ai-node)
-                                           ai-node
-                                           {}]
-                                   :action close-action)))}
-           "Use these properties")))))))
+        (when loading?
+          (spinner/main))
+
+        (when (success? current-result)
+          (c/fragment
+           (ds/button-primary
+            {:onClick (fn [[node local-state]]
+                        (let [ai-node (edit-tree/graph->addit-tree (success-value current-result))]
+                          (c/return :state [ai-node
+                                            {}]
+                                    :action close-action)))}
+            "Replace")
+           (when-not (empty? (edit-tree/edit-node-properties node))
+             (ds/button-primary
+              {:onClick (fn [[node local-state]]
+                          (let [ai-node (tree/graph->tree (success-value current-result))]
+                            (c/return :state [(edit-tree/insert-properties node (tree/tree-properties ai-node))
+
+                                              {}]
+                                      :action close-action)))}
+              "Add properties")))))))))
 
 ;; ---
 
@@ -466,7 +458,7 @@
               {:style {:display "flex"
                        :gap "1em"}}
 
-              (when (node-organization? node)
+              (when (edit-tree/organization? node)
                 (if-let [osm-uri (osm/node-osm-uri node)]
 
                   (dom/div
@@ -476,7 +468,7 @@
                    (modal/modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
                   (modal/modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
 
-              (modal/modal-button "Set properties with AI" (partial ask-ai schema))))))
+              (modal/modal-button (ds/lightbulb-icon "21") (partial ask-ai schema))))))
 
 (defn- set-reference [close-action]
   (c/with-state-as node
@@ -515,20 +507,25 @@
            (c/handle-action (fn [[enode _] ac]
                               (if (success? ac)
                                 (let [new-graph (success-value ac)
-                                      new-node (first (tree/graph->trees new-graph))]
+                                      new-node (tree/graph->tree new-graph)]
                                   [(edit-tree/set-edit-node-original enode new-node) false])
                                 (assert false "TODO: implement error handling")))))))))
 
-(defn- the-circle []
-  (dom/div {:style {:border "1px solid #777"
+(defn- the-circle [& children]
+  (apply dom/div
+         {:style {:border "1px solid #777"
                     :background "white"
                     :border-radius "100%"
                     :width "27px"
-                    :height "27px"}}))
+                  :height "27px"}}
+         children))
 
-(c/defn-item property-object-component [schema predicate editable? force-editing? last?]
+(c/defn-item property-object-component [schema predicate editable? force-editing? last? background-color]
   (c/with-state-as marked-edit-trees
     (apply dom/div
+           {:style {:display "flex"
+                    :flex-direction "column"
+                    :gap "2ex"}}
            (map-indexed (fn [idx _]
                           (c/focus (lens/at-index idx)
                                    (c/with-state-as marked-edit-tree
@@ -541,13 +538,13 @@
                                         (dom/div {:style {:width "1px"
                                                           :border-left (if force-editing?
                                                                          "1px dashed gray"
-                                                                         "1px solid #eee")
+                                                                         (str "1px solid " background-color))
                                                           :height "100%"
                                                           :position "absolute"
                                                           :top "15px"
                                                           :z-index "5"
                                                           :left "-1px"
-                                                          :background "#eee"}}))
+                                                          :background background-color}}))
 
                                       (dom/div
                                        {:style {:min-width "15em"
@@ -610,28 +607,30 @@
                                       (cond
                                         (edit-tree/deleted? marked-edit-tree)
                                         (c/focus edit-tree/deleted-original-value
-                                                 (component-for-predicate predicate schema editable? force-editing?))
+                                                 (component-for-predicate predicate schema editable? force-editing? background-color))
 
                                         (edit-tree/added? marked-edit-tree)
                                         (c/focus edit-tree/added-result-value
-                                                 (component-for-predicate predicate schema editable? force-editing?))
+                                                 (component-for-predicate predicate schema editable? force-editing? background-color))
 
-                                        (edit-tree/maybe-changed? marked-edit-tree)
-                                        ;; We need to wrap `maybe-changed` inside `before-after` so that
-                                        ;; we do not lose focus in input fields when the user transitions
-                                        ;; from `same?` to `changed?`
+                                        (edit-tree/same? marked-edit-tree)
+                                        (c/focus edit-tree/maybe-changed-result-value
+                                                 (component-for-predicate predicate schema editable? force-editing? background-color))
+
+                                        (edit-tree/changed? marked-edit-tree)
                                         (before-after
-                                         (edit-tree/changed? marked-edit-tree)
                                          ;; before
                                          (c/focus edit-tree/maybe-changed-original-value
-                                                  (component-for-predicate predicate schema false false))
+                                                  (component-for-predicate predicate schema false false background-color))
                                          ;; after
                                          (c/focus edit-tree/maybe-changed-result-value
-                                                  (component-for-predicate predicate schema editable? force-editing?))))))))
+                                                  (component-for-predicate predicate schema editable? force-editing? background-color))
+
+                                         background-color))))))
 
                         marked-edit-trees))))
 
-(c/defn-item properties-component [schema editable? force-editing?]
+(c/defn-item properties-component [schema editable? force-editing? background-color]
   (c/with-state-as properties
 
     (apply
@@ -644,11 +643,11 @@
        (map-indexed (fn [idx predicate]
                       (c/focus (lens/member predicate)
                                (let [last? (= idx (dec (count ks)))]
-                                 (property-object-component schema predicate editable? force-editing? last?))))
+                                 (property-object-component schema predicate editable? force-editing? last? background-color))))
 
                     ks)))))
 
-(defn- node-component [schema editable? force-editing?]
+(defn- node-component [schema editable? force-editing? background-color]
   (c/with-state-as [node editing? :local force-editing?]
 
     (let [uri (edit-tree/node-uri node)]
@@ -660,10 +659,17 @@
                  :display "flex"
                  :align-items "center"
                  :gap "1em"}}
-        (the-circle)
+        (the-circle (when (and (tree/existential? uri)
+                               editing?)
+                      (dom/div {:style {:display "flex"
+                                        :justify-content "center"
+                                        :align-items "center"
+                                        :height "100%"
+                                        :color "green"}}
+                               ds/plus-icon)))
         (dom/span {:style {:margin-right "1em"}
-                   :id uri}
-                  uri)
+                   :id (tree/uri-string uri)}
+                  (pr-uri uri))
 
         (when editing?
           (c/fragment
@@ -694,7 +700,7 @@
                                     :border-left "1px solid gray"
                                     :padding-bottom "2ex"}}
 
-                           (properties-component schema editable? editing?)))))
+                           (properties-component schema editable? editing? background-color)))))
              (c/handle-action
               (fn [node action]
                 (if (is-a? discard-edit-action action)
@@ -752,17 +758,23 @@
 (c/defn-item ^:private geo-coordinates-component [schema editable? force-editing?]
   (c/with-state-as eprops
     (let [latitude-lens (lens/>>
-                         (lens/member "http://schema.org/latitude")
-                         lens/first
-                         edit-tree/marked-result-value
-                         edit-tree/literal-decimal-value)
-          longitude-lens (lens/>>
-                          (lens/member "http://schema.org/longitude")
+                         (lens/>>
+                          (lens/member "http://schema.org/latitude")
                           lens/first
-                          edit-tree/marked-result-value
-                          edit-tree/literal-decimal-value)
-          lat (js/parseFloat (latitude-lens eprops))
-          long (js/parseFloat (longitude-lens eprops))
+                          edit-tree/marked-result-value)
+                         (lens/pattern [edit-tree/literal-decimal-value
+                                        edit-tree/edit-tree-focused?]))
+          latitude-value-lens (lens/>> latitude-lens lens/first)
+          longitude-lens (lens/>>
+                          (lens/>>
+                           (lens/member "http://schema.org/longitude")
+                           lens/first
+                           edit-tree/marked-result-value)
+                          (lens/pattern [edit-tree/literal-decimal-value
+                                         edit-tree/edit-tree-focused?]))
+          longitude-value-lens (lens/>> longitude-lens lens/first)
+          lat (js/parseFloat (latitude-value-lens eprops))
+          long (js/parseFloat (longitude-value-lens eprops))
           coords [lat long]]
 
       (dom/div
@@ -782,22 +794,27 @@
                               (if (is-a? leaflet/click-action ac)
                                 (let [[lat lng] (leaflet/click-action-coordinates ac)]
                                   (-> eprops
-                                      (latitude-lens lat)
-                                      (longitude-lens lng)))
+                                      (latitude-value-lens (str lat))
+                                      (longitude-value-lens (str lng))))
                                 (c/return :action ac)))))
        (dom/div
         "Latitude:"
         (c/focus latitude-lens
-                 (ds/input {:disabled (when-not editable? "disabled")}))
+                 (ds/input+focus {:disabled (when-not editable? "disabled")}))
         "Longitude:"
         (c/focus longitude-lens
-                 (ds/input {:disabled (when-not editable? "disabled")})))))))
+                 (ds/input+focus {:disabled (when-not editable? "disabled")})))))))
 
 (c/defn-item ^:private postal-address-component [schema editable? force-editing?]
   (c/with-state-as eprops
-    (let [unpack (lens/>> lens/first
-                          edit-tree/marked-result-value
-                          edit-tree/literal-string-value)
+    (let [unpack-value (lens/>> lens/first
+                                edit-tree/marked-result-value
+                                edit-tree/literal-string-value)
+          unpack-focus (lens/>> lens/first
+                                edit-tree/marked-result-value
+                                edit-tree/edit-tree-focused?)
+          unpack (lens/pattern [unpack-value unpack-focus])
+
           street-address-lens (lens/>>
                                (lens/member "http://schema.org/streetAddress")
                                unpack)
@@ -821,29 +838,29 @@
         (dom/label "Street address"
                    (dom/br)
                    (c/focus street-address-lens
-                            (ds/input
-                             {:disabled (when-not editable? "disabled")}))))
+                            (ds/input+focus
+                             {:disabled (when-not force-editing? "disabled")}))))
 
        (dom/div
         (dom/label "Postal code"
                    (dom/br)
                    (c/focus postal-code-lens
-                            (ds/input
-                             {:disabled (when-not editable? "disabled")}))))
+                            (ds/input+focus
+                             {:disabled (when-not force-editing? "disabled")}))))
 
        (dom/div
         (dom/label "Locality (Town)"
                    (dom/br)
                    (c/focus address-locality-lens
-                            (ds/input
-                             {:disabled (when-not editable? "disabled")}))))
+                            (ds/input+focus
+                             {:disabled (when-not force-editing? "disabled")}))))
 
        (dom/div
         (dom/label "Country"
                    (dom/br)
                    (c/focus address-country-lens
-                            (ds/input
-                             {:disabled (when-not editable? "disabled")}))))))))
+                            (ds/input+focus
+                             {:disabled (when-not force-editing? "disabled")}))))))))
 
 (declare day-of-week-component)
 
@@ -891,105 +908,115 @@
                               :disabled (when-not editable? "disabled")}))))))))
 
 (c/defn-item ^:private day-of-week-component [schema editable? force-editing?]
-  (c/focus edit-tree/tree-uri (ds/select
-                               {:disabled (when-not editable? "disabled")
-                                :style {:padding "7px 8px"}}
-                               (forms/option {:value "http://schema.org/Monday"} "Monday")
-                               (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
-                               (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
-                               (forms/option {:value "http://schema.org/Thursday"} "Thursday")
-                               (forms/option {:value "http://schema.org/Friday"} "Friday")
-                               (forms/option {:value "http://schema.org/Saturday"} "Saturday")
-                               (forms/option {:value "http://schema.org/Sunday"} "Sunday"))))
+  (c/focus (lens/pattern [edit-tree/tree-uri
+                          edit-tree/edit-tree-focused?])
+           (ds/select+focus
+            {:disabled (when-not editable? "disabled")
+             :style {:padding "7px 8px"}}
+            (forms/option {:value "http://schema.org/Monday"} "Monday")
+            (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
+            (forms/option {:value "http://schema.org/Wednesday"} "Wednesday")
+            (forms/option {:value "http://schema.org/Thursday"} "Thursday")
+            (forms/option {:value "http://schema.org/Friday"} "Friday")
+            (forms/option {:value "http://schema.org/Saturday"} "Saturday")
+            (forms/option {:value "http://schema.org/Sunday"} "Sunday"))))
 
-(c/defn-item ^:private node-component-for-type [type schema editable? force-editing?]
+(c/defn-item ^:private node-component-for-type [type schema editable? force-editing? background-color]
   (c/with-state-as enode
     (let [type-uri (tree/type-uri type)]
       (cond
         (and (= type-uri "http://schema.org/GeoCoordinates")
              (edit-node-is-geo-coordinates-value? enode))
-        (c/focus edit-tree/edit-node-properties-derived-uri
-                 (geo-coordinates-component schema editable? force-editing?))
+        (value-node/as-value-node
+         (geo-coordinates-component schema editable? force-editing?))
 
         (and (= type-uri "http://schema.org/PostalAddress")
              (edit-node-is-postal-address-value? enode))
-        (c/focus edit-tree/edit-node-properties-derived-uri
-                 (postal-address-component schema editable? force-editing?))
+        (value-node/as-value-node
+         (postal-address-component schema editable? force-editing?))
 
         (and (= type-uri "http://schema.org/OpeningHoursSpecification")
              (edit-node-is-opening-hours-specification-value? enode))
-        (c/focus edit-tree/edit-node-properties-derived-uri
-                 (opening-hours-specification-component schema editable? force-editing?))
+        (value-node/as-value-node
+         (opening-hours-specification-component schema editable? force-editing?))
 
         :else
-        (node-component schema editable? force-editing?)))))
+        (node-component schema editable? force-editing? background-color)))))
 
-(defn edit-tree-component [schema types editable? force-editing?]
+(c/defn-item edit-tree-component [schema types editable? force-editing? & [background-color]]
   (c/with-state-as etree
-    (cond
-      (edit-tree/literal-string? etree)
-      (c/focus edit-tree/literal-string-value
-               (ds/input {:disabled (when-not editable?
-                                      "disabled")}))
+    (let [bgc (or background-color "#eee")]
+      (cond
+        (edit-tree/literal-string? etree)
+        (c/focus (lens/pattern [edit-tree/literal-string-value
+                                edit-tree/literal-string-focused?])
+                 (ds/input+focus {:disabled (when-not force-editing?
+                                              "disabled")}))
 
-      (edit-tree/literal-decimal? etree)
-      (c/focus edit-tree/literal-decimal-value
-               (ds/input {:type "decimal"
-                          :disabled (when-not editable?
-                                      "disabled")}))
+        (edit-tree/literal-decimal? etree)
+        (c/focus (lens/pattern [edit-tree/literal-decimal-value
+                                edit-tree/literal-decimal-focused?])
+                 (ds/input+focus {:type "decimal"
+                                  :disabled (when-not force-editing?
+                                              "disabled")}))
 
-      (edit-tree/literal-boolean? etree)
-      (c/focus edit-tree/literal-boolean-value
-               (ds/input {:type "checkbox"
-                          :disabled (when-not editable?
-                                      "disabled")}))
+        (edit-tree/literal-boolean? etree)
+        (c/focus (lens/pattern [edit-tree/literal-boolean-value
+                                edit-tree/literal-boolean-focused?])
+                 (ds/input+focus {:type "checkbox"
+                                  :disabled (when-not force-editing?
+                                              "disabled")}))
 
-      (edit-tree/ref? etree)
-      (let [uri (edit-tree/ref-uri etree)]
+        (edit-tree/ref? etree)
+        (let [uri (edit-tree/ref-uri etree)]
+          (dom/div
+           {:style {:display "flex"
+                    :gap "1em"
+                    :align-items "center"}}
+           (the-circle)
+           (dom/b "REF")
+           (dom/a {:href (str "#" (tree/uri-string uri))}
+                  (pr-uri uri))))
+
+        (edit-tree/many? etree)
+        (c/focus edit-tree/many-edit-trees
+                 (c/with-state-as etrees
+                   (if (empty? etrees)
+                     (dom/div
+                      {:style {:font-style "italic"
+                               :color "gray"}}
+                      "Nothing to display")
+                     (apply
+                      dom/div
+                      {:style {:display "flex"
+                               :flex-direction "column"
+                               :gap "2ex"}}
+                      (map-indexed (fn [idx etree]
+                                     (c/focus (lens/at-index idx)
+                                              (edit-tree-component schema types editable? force-editing? bgc)))
+                                   (edit-tree/many-edit-trees etree))))))
+
+        (edit-tree/exists? etree)
+        (c/focus edit-tree/exists-edit-tree
+                 (edit-tree-component schema types editable? force-editing? bgc))
+
+        (edit-tree/node? etree)
         (dom/div
-         {:style {:display "flex"
-                  :gap "1em"
-                  :align-items "center"}}
-         (the-circle)
-         (dom/b "REF")
-         (dom/a {:href (str "#" uri)} uri)))
+         (when force-editing?
+           (c/focus edit-node-type
+                    (apply
+                     ds/select
+                     {:disabled (when-not editable? "disabled")}
+                     (map (fn [type]
+                            (forms/option {:value type} (schema/label-for-type schema type)))
+                          (or types
+                              [(edit-node-type etree)])))))
+         (node-component-for-type (edit-node-type etree) schema editable? force-editing? bgc))))))
 
-      (edit-tree/node? etree)
-      (dom/div
-       (when force-editing?
-         (c/focus edit-node-type
-                  (apply
-                   ds/select
-                   {:disabled (when-not editable? "disabled")}
-                   (map (fn [type]
-                          (forms/option {:value type} (schema/label-for-type schema type)))
-                        (or types
-                            [(edit-node-type etree)])))))
-       (node-component-for-type (edit-node-type etree) schema editable? force-editing?)))))
+(c/defn-item edit-graph [schema editable? force-editing? graph & [background-color]]
+  (c/isolate-state (edit-tree/graph->edit-tree graph)
+                   (edit-tree-component schema nil editable? force-editing? background-color)))
 
-;; The editor handles rooted graphs with edits
-
-(defn edit-trees-component
-
-  ([schema editable? force-editing?]
-   (edit-trees-component schema nil editable? force-editing?))
-
-  ([schema types editable? force-editing?]
-   (c/with-state-as etrees
-     (apply
-      dom/div
-      {:style {:display "flex"
-               :flex-direction "column"
-               :gap "2ex"}}
-      (map-indexed (fn [idx etree]
-                     (c/focus (lens/at-index idx)
-                              (edit-tree-component schema types editable? force-editing?)))
-                   etrees)))))
-
-(c/defn-item edit-graph [schema editable? force-editing? graph]
-  (c/isolate-state (edit-tree/graph->edit-trees graph)
-                   (edit-trees-component schema nil editable? force-editing?)))
-
-(c/defn-item readonly-graph [schema graph]
-  (c/isolate-state (edit-tree/graph->edit-trees graph)
-                   (edit-trees-component schema nil false false)))
+(c/defn-item readonly-graph [schema graph & [background-color]]
+  (c/isolate-state (edit-tree/graph->edit-tree graph)
+                   (edit-tree-component schema nil false false background-color)))

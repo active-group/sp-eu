@@ -1,5 +1,6 @@
-(ns wisen.frontend.or-error
-  (:require [active.data.record :as record :refer-macros [def-record]]))
+(ns wisen.common.or-error
+  (:require #?(:cljs [active.data.record :as record :refer-macros [def-record]])
+            #?(:clj [active.data.record :as record :refer [def-record]])))
 
 (def-record success
   [success-value])

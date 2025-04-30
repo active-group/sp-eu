@@ -1,9 +1,10 @@
 (ns wisen.backend.triple-store
-  (:require [wisen.backend.core :as core]
-            [wisen.backend.jsonld]
+  (:require [wisen.backend.jsonld]
             [wisen.backend.skolem :as skolem]
+            [wisen.backend.skolem2 :as skolem2]
             [wisen.common.change-api :as change-api]
-            [wisen.backend.osm :as osm])
+            [wisen.backend.osm :as osm]
+            [wisen.common.prefix :as prefix])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -77,50 +78,6 @@
          graph (.execConstruct qexec)]
      graph)))
 
-#_(run-construct-query!
- "CONSTRUCT { ?org a <http://schema.org/Organization> .
-              ?org <http://schema.org/location> ?place .
-              ?place a <http://schema.org/Place> .
-
-              ?place <http://schema.org/address> ?address .
-              ?address <http://schema.org/postalCode> ?postalCode .
-              ?address <http://schema.org/streetAddress> ?streetAddress .
-              ?address <http://schema.org/addressLocality> ?addressLocality .
-              ?address <http://schema.org/addressCountry> ?addressCountry .
-
-              ?place <http://schema.org/geo> ?geo .
-              ?geo a <http://schema.org/GeoCoordinates> .
-              ?geo <http://schema.org/latitude> ?lat .
-              ?geo <http://schema.org/longitude> ?long .
- }
-  WHERE {
-     ?org a <http://schema.org/Organization> .
-     ?org <http://schema.org/location> ?place .
-     ?place <http://schema.org/address> ?address .
-     ?address <http://schema.org/postalCode> ?postalCode .
-     ?address <http://schema.org/streetAddress> ?streetAddress .
-     ?address <http://schema.org/addressLocality> ?addressLocality .
-     ?address <http://schema.org/addressCountry> ?addressCountry .
- SERVICE
-    <http://localhost:4321/osm/search>
-    {
-     ?place a <http://schema.org/Place> .
-     ?place <http://schema.org/geo> ?geo .
-     ?geo a <http://schema.org/GeoCoordinates> .
-     ?geo <http://schema.org/latitude> ?lat .
-     ?geo <http://schema.org/longitude> ?long .
-     ?place <http://schema.org/address> ?address .
-     ?address <http://schema.org/postalCode> ?postalCode .
-     ?address <http://schema.org/streetAddress> ?streetAddress .
-     ?address <http://schema.org/addressLocality> ?addressLocality .
-     ?address <http://schema.org/addressCountry> ?addressCountry .
-
-  }
-
-FILTER(CONTAINS(LCASE(STR(?addressLocality)), \"bingen\"))
-
-}")
-
 (defn add-model!
   ([model-to-add]
    (with-write-model!
@@ -160,21 +117,23 @@ FILTER(CONTAINS(LCASE(STR(?addressLocality)), \"bingen\"))
     (.remove ^Model model s p o)))
 
 (defn edit-model!
-  ([changes]
+  ([changeset]
    (with-write-model!
      (fn [base-model]
-       (edit-model! base-model changes))))
-  ([base-model changes]
-   (let [additions (filter change-api/add? changes)
-         deletions (filter change-api/delete? changes)]
+       (edit-model! base-model changeset))))
+  ([base-model changeset]
+   (let [changes (skolem2/skolemize-changeset changeset)]
+     (loop [changes* changes]
+       (if (empty? changes*)
+         nil
+         (let [change (first changes*)]
+           (cond
+             (change-api/add? change)
+             (add-statement! base-model (change-api/add-statement change))
 
-     (doall
-      (for [addition additions]
-        (add-statement! base-model (change-api/add-statement addition))))
-
-     (doall
-      (for [deletion deletions]
-        (remove-statement! base-model (change-api/delete-statement deletion)))))))
+             (change-api/delete? change)
+             (remove-statement! base-model (change-api/delete-statement change)))
+           (recur (rest changes*))))))))
 
 #_(run-select-query!
  "SELECT ?place ?country ?locality ?postcode ?street
@@ -230,7 +189,7 @@ FILTER(CONTAINS(LCASE(STR(?addressLocality)), \"bingen\"))
            ;; 3. write back geo triples
            (let [lat (osm/search-success-latitude osm-result)
                  long (osm/search-success-longitude osm-result)
-                 geo-uri (str "http://TODO.org/" (random-uuid))
+                 geo-uri (prefix/resource (random-uuid))
                  geo (.createResource base-model geo-uri)]
 
              ;; place has geo
@@ -290,7 +249,7 @@ FILTER(CONTAINS(LCASE(STR(?addressLocality)), \"bingen\"))
            (if ds
              ds
              (let [new-ds (TDB2Factory/connectDataset dbname)]
-               (with-write-model! new-ds populate!)
+               #_(with-write-model! new-ds populate!)
                new-ds)))))
 
 

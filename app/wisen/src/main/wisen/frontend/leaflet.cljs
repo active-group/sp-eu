@@ -3,7 +3,8 @@
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
             [active.data.realm :as realm]
-            [active.data.record :refer [is-a?] :refer-macros [def-record]]))
+            [active.data.record :refer [is-a?] :refer-macros [def-record]]
+            ["leaflet" :as leaflet]))
 
 (def-record bounding-box-change-action
   [bounding-box-change-action-value])
@@ -13,8 +14,6 @@
 
 (def-record setup-action
   [setup-action-map-instance])
-
-(def leaflet js/L)
 
 (defn- leaflet-dom-event-stop-propagation [e]
   (.stopPropagation (.-DomEvent leaflet) e))
