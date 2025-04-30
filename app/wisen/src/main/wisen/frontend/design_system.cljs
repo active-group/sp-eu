@@ -101,6 +101,7 @@
         (c/fragment
          (apply forms/input
                 (dom/merge-attributes {:list id
+                                       :size "48"
                                        :style
                                        {:background-color (if disabled? "#eee" "#fefefe")
                                         :border (if disabled? "1px solid #bbb" "1px solid #888")
