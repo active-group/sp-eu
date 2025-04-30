@@ -16,8 +16,8 @@
                  (rdf/make-symbol "http://www.w3.org/2000/01/rdf-schema#label")))]
     (if (rdf/literal-string? res)
       (rdf/literal-string-value res)
-      "Unknown type")
-    "Unknown type"))
+      (tree/type-uri type))
+    (tree/type-uri type)))
 
 (defn nice-name [x]
   (case x
