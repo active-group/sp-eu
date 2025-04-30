@@ -19,10 +19,12 @@
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
+            [wisen.backend.overpass :as overpass]
             [wisen.backend.sparql :as sparql]
             [wisen.common.routes :as routes]
             [clojure.edn :as edn]
-            [wisen.common.change-api :as change-api])
+            [wisen.common.change-api :as change-api]
+            [wisen.common.prefix :as prefix])
   (:import
    (org.apache.jena.tdb2 TDB2 TDB2Factory)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -55,8 +57,7 @@
 
 (defn get-resource [request]
   (try
-    (let [id (java.util.UUID/fromString
-              (get-in request [:path-params :id]))]
+    (let [id (get-in request [:path-params :id])]
       {:status 303
        :headers {"Location" (r/description-url-for-resource-id id)}})
     (catch Exception _e
@@ -69,10 +70,10 @@
      :body (jsonld/model->json-ld-string result-model)}))
 
 (defn add-changes [request]
-  (let [changes (map change-api/edn->change
-                     (get-in request
-                             [:body-params :changes]))]
-    (triple-store/edit-model! changes)
+  (let [changeset (change-api/edn->changeset
+                   (get-in request
+                           [:body-params :changes]))]
+    (triple-store/edit-model! changeset)
     ;; TODO: a bit wasteful to derive geo location on _every_ update
     ;; strictly neccessary only when address is added
     (triple-store/decorate-geo!)
@@ -125,6 +126,15 @@
                           (osm/search-failure-error
                            address-search-result))})))
 
+(defn osm-search-area [request]
+  (let [bbox (:body-params request)]
+    (overpass/search-area! bbox "amenity" "restaurant")))
+
+(defn semantic-area-search [request]
+  (let [params (:body-params request)]
+    (overpass/semantic-area-search! (:semantic-area-search-query params)
+                                    (:semantic-area-search-bbox params))))
+
 (defn ollama-handler [request]
   (let [body (slurp (get request :body))]
     (llm/ollama-request! body)))
@@ -147,7 +157,9 @@
 
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
-      ["/search" {:post {:handler osm-search}}]]
+      ["/search" {:post {:handler osm-search}}]
+      ["/search-area" {:post {:handler osm-search-area}}]
+      ["/semantic-area-search" {:post {:handler semantic-area-search}}]]
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303
@@ -172,6 +184,7 @@
                    [:title "Wisen Web"]
                    [:meta {:charset "utf-8"}]
                    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+                   [:link {:rel "icon" :href "favicon.png" :type "image/png"}]
                    [:style "html, body {margin: 0; padding: 0;
                                         font-family: 'Helvetica Neue', Helvetica, sans-serif;}
                             ul, ol {margin: 0; padding: 0; padding-left: 1.4em;}
@@ -190,12 +203,10 @@
                    [:link {:rel "stylesheet"
                            :href "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
                            :integrity "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-                           :crossorigin ""}]
-                   [:script {:src "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-                             :integrity "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-                             :crossorigin ""}]]
+                           :crossorigin ""}]]
                   [:body
                    [:div {:id "main"}]
+                   [:script {:type "text/javascript"} prefix/set-prefix-code]
                    [:script {:type "text/javascript"
                              :src "/js/main.js"
                              :charset "UTF-8"}]]])})

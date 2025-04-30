@@ -35,10 +35,6 @@
     (b/process {:command-args ["npm" "i"]})
     (b/process cmds)))
 
-(defn karma [_]
-  (shadow-cljs {:task "compile" :target "karma-test"})
-  (b/process {:command-args ["npx" "karma" "start" "--single-run"]}))
-
 (defn compile-clj [_]
   (b/compile-clj {:basis @basis
                   :ns-compile '[wisen.backend.main]
@@ -60,3 +56,30 @@
   (copy-dirs nil)
   (compile-clj nil)
   (make-uber nil))
+
+(defn test-cljs* [_]
+  (shadow-cljs {:task "compile" :target "karma-test"})
+  (b/process {:command-args ["npx" "karma" "start" "--single-run"]}))
+
+(defn test-clj* [_]
+  (b/process {:command-args ["clojure" "-M:test:backend"]
+                           :dir "."
+                           :out :inherit
+                           :err :inherit}))
+
+(defn with-exit-code [f args]
+  (let [result (f args)]
+    (when-not (zero? (:exit result))
+      (System/exit (:exit result)))))
+
+(defn test-clj [opts]
+  (with-exit-code test-clj* opts))
+
+(defn test-cljs [opts]
+  (with-exit-code test-cljs* opts))
+
+(defn cljs-watch [_]
+  (shadow-cljs {:task "watch" :target "frontend"}))
+
+(defn cljs-watch-test [_]
+  (shadow-cljs {:task "watch" :target "test"}))

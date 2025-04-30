@@ -1,14 +1,26 @@
 (ns wisen.frontend.tree
   "Tools to turn arbitrary RDF graphs into trees with references."
-  (:refer-clojure :exclude [uri?])
+  (:refer-clojure :exclude [uri? exists?])
   (:require [wisen.frontend.rdf :as rdf]
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
-            [active.clojure.lens :as lens]))
+            [active.clojure.lens :as lens]
+            [wisen.common.prefix :as prefix]))
 
 (declare tree)
 
-(def URI realm/string)
+(def existential realm/integer)
+
+(def existential-index identity)
+
+(defn existential? [x]
+  (realm/contains? existential x))
+
+(def URI (realm/union
+          ;; a global identifier
+          realm/string
+          ;; a local identifier, bound by a surrounding `exists`
+          existential))
 
 (defn make-uri [s]
   s)
@@ -17,7 +29,9 @@
   (string? s))
 
 (defn uri-string [uri]
-  uri)
+  (if (existential? uri)
+    (str (existential-index uri))
+    uri))
 
 (def-record ref [ref-uri :- URI])
 
@@ -26,6 +40,27 @@
 
 (defn ref? [x]
   (record/is-a? ref x))
+
+;;
+
+(def-record exists
+  [exists-binder :- existential
+   exists-tree :- (realm/delay tree)])
+
+(defn make-random-existential! []
+  (rand-int js/Number.MAX_SAFE_INTEGER))
+
+(defn make-exists
+  ([k]
+   (let [binder (make-random-existential!)]
+     (exists exists-binder binder
+             exists-tree (k binder))))
+  ([binder tree]
+   (exists exists-binder binder
+           exists-tree tree)))
+
+(defn exists? [x]
+  (record/is-a? exists x))
 
 ;;
 
@@ -52,7 +87,7 @@
 ;;
 
 (def-record literal-boolean
-  [literal-boolean-value :- realm/string])
+  [literal-boolean-value :- realm/boolean])
 
 (defn make-literal-boolean [s]
   (literal-boolean literal-boolean-value s))
@@ -72,7 +107,7 @@
 
 (def-record property
   [property-predicate :- URI
-   property-object :- (realm/delay tree)
+   property-object #_#_:- (realm/delay tree)
    ])
 
 (defn make-property [pred obj]
@@ -82,14 +117,7 @@
 (def-record node [node-uri :- URI
                   node-properties :- (realm/sequence-of property)])
 
-;; TODO: this is a bad side-effect that leads to a lot of suffering down the road:
-(defn- fresh-uri! []
-  (str "http://localhost:4321/resource/" (random-uuid)))
-
 (defn make-node
-  ([]
-   (node node-uri (fresh-uri!)
-         node-properties []))
   ([uri]
    (node node-uri uri
          node-properties []))
@@ -148,144 +176,97 @@
 (defn node? [x]
   (record/is-a? node x))
 
+(def-record many
+  [many-trees :- (realm/sequence-of (realm/delay tree))])
+
+(defn make-many [ts]
+  (many many-trees ts))
+
+(defn many? [x]
+  (record/is-a? many x))
+
 (def tree (realm/union
            ref
            literal-string
            literal-decimal
            literal-boolean
-           node))
+           node
+           many
+           exists))
 
 ;; The following just does a simple walk through the graph with a `visited` set as context.
 
-(defn- node->tree [graph links x]
+(defn- get-produce-existential [existentials k]
+  (if-let [ex (get existentials k)]
+    [existentials ex]
+    (let [next-id (make-random-existential!)]
+      [(assoc existentials k next-id)
+       next-id])))
+
+(defn- node->tree [graph links existentials x]
   (cond
-    (rdf/symbol? x)
-    (let [uri (rdf/symbol-uri x)]
-      (if-let [link (get links uri)]
-        [links (ref ref-uri
-                    link)]
-        (let [links* (conj links uri)
-              [links** props] (reduce (fn [[links props] prop]
-                                        (let [[links* tree] (node->tree graph links (rdf/property-object prop))]
-                                          [links* (conj props (property property-predicate (rdf/symbol-uri
-                                                                                            (rdf/property-predicate prop))
-                                                                        property-object tree))]))
-                                      [links* []]
-                                      (rdf/subject-properties graph x))]
-          [links** (node node-uri uri
-                         node-properties props)])))
+    (rdf/node? x)
+    (let [uri (rdf/symbol-uri x)
+          [existentials* real-uri] (if (rdf/blank-node? x)
+                                     (get-produce-existential existentials uri)
+                                     [existentials uri])]
+      (if-let [link (get links real-uri)]
+        [links existentials* (ref ref-uri link)]
+        (let [links*
+              (conj links real-uri)
+
+              [links** existentials** props]
+              (reduce (fn [[links existentials props] prop]
+                        (let [[links* existentials* tree] (node->tree graph links existentials (rdf/property-object prop))]
+                          [links* existentials* (conj props (property property-predicate (rdf/symbol-uri
+                                                                                          (rdf/property-predicate prop))
+                                                                      property-object tree))]))
+                      [links* existentials* []]
+                      (rdf/subject-properties graph x))]
+          [links** existentials** (node node-uri real-uri
+                                        node-properties props)])))
 
     (rdf/literal-string? x)
-    [links (make-literal-string (rdf/literal-string-value x))]
+    [links existentials (make-literal-string (rdf/literal-string-value x))]
 
     (rdf/literal-decimal? x)
-    [links (make-literal-decimal (rdf/literal-decimal-value x))]
+    [links existentials (make-literal-decimal (rdf/literal-decimal-value x))]
 
     (rdf/literal-boolean? x)
-    [links (make-literal-boolean (rdf/literal-boolean-value x))]
+    [links existentials (make-literal-boolean (rdf/literal-boolean-value x))]
 
     (rdf/collection? x)
-    (assert false "Not supported yet")))
+    (let [[links* existentials* trees] (reduce (fn [[links existentials trees] node]
+                                                 (let [[links* existentials* tree] (node->tree graph links existentials node)]
+                                                   [links* existentials* (conj trees tree)]))
+                                               [links existentials []]
+                                               (rdf/collection-elements x))]
+      [links* (many many-trees trees)])))
 
-(defn graph->trees [g]
-  (second
-   (reduce
-    (fn [[links trees] x]
-      (let [[links* tree] (node->tree g links x)]
-        [links* (conj trees tree)]))
-    [#{} []]
-    ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
-    ;; -> A has no roots.  rather look for "basis", a minimal set of
-    ;; nodes from which every other root is reachable
-    (rdf/roots g))))
+(defn- comp-n [n f]
+  (apply comp (repeat n f)))
 
-(defn tree-handle [obj]
-  (cond
-    (record/is-a? ref obj)
-    (ref-uri obj)
+(letfn [(wrap-exists [n x]
+          (if (zero? n)
+            x
+            (make-exists n (wrap-exists (dec n) x))
 
-    (record/is-a? literal-string obj)
-    (literal-string-value obj)
-
-    (record/is-a? literal-decimal obj)
-    (literal-decimal-value obj)
-
-    (record/is-a? literal-boolean obj)
-    (literal-boolean-value obj)
-
-    (record/is-a? node obj)
-    (node-uri obj)))
-
-(defn- tree->statements [statements tree]
-  (cond
-    (record/is-a? ref tree)
-    statements
-
-    (record/is-a? literal-string tree)
-    statements
-
-    (record/is-a? literal-decimal tree)
-    statements
-
-    (record/is-a? literal-boolean tree)
-    statements
-
-    (record/is-a? node tree)
-    (reduce (fn [statements prop]
-              (let [pred (property-predicate prop)
-                    obj (property-object prop)]
-                (cond
-                  (record/is-a? ref obj)
-                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                       (rdf/make-symbol pred)
-                                                       (rdf/make-symbol (ref-uri obj))))
-
-                  (record/is-a? literal-string obj)
-                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                       (rdf/make-symbol pred)
-                                                       (rdf/make-literal-string (literal-string-value obj))))
-
-                  (record/is-a? literal-decimal obj)
-                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                       (rdf/make-symbol pred)
-                                                       (rdf/make-literal-decimal (literal-decimal-value obj))))
-
-                  (record/is-a? literal-boolean obj)
-                  (conj statements (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                       (rdf/make-symbol pred)
-                                                       (rdf/make-literal-boolean (literal-boolean-value obj))))
-
-                  (record/is-a? node obj)
-                  (let [statements* (tree->statements statements obj)]
-                    (conj statements* (rdf/make-statement (rdf/make-symbol (node-uri tree))
-                                                          (rdf/make-symbol pred)
-                                                          (rdf/make-symbol (node-uri obj))))))))
-            statements
-            (node-properties tree))))
-
-(defn- trees->statements [trees]
-  (reduce tree->statements [] trees))
-
-(defn trees->graph [trees]
-  (rdf/statements->graph (trees->statements trees)))
-
-(def graph<->trees
-  (lens/xmap graph->trees
-             trees->graph))
-
-(letfn [(derive-uri [props]
-          (str "https://sp-eu.active-group.de/pure/"
-               (hash props)))]
-
-  (def node-properties-derived-uri
-    (lens/lens
-     (fn [node]
-       (node-properties node))
-
-     (fn [node props*]
-       (-> node
-           (node-properties props*)
-           (node-uri (derive-uri props*)))))))
+            ))]
+  (defn graph->tree [g]
+   (let [[_links existentials trees]
+         (reduce
+          (fn [[links existentials trees] x]
+            (let [[links* existentials* tree] (node->tree g links existentials x)]
+              [links* existentials* (conj trees tree)]))
+          [#{} {} []]
+          ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
+          ;; -> A has no roots.  rather look for "basis", a minimal set of
+          ;; nodes from which every other root is reachable
+          (rdf/roots g))]
+     (wrap-exists (count existentials)
+                  (if (= 1 (count trees))
+                    (first trees)
+                    (many many-trees trees))))))
 
 ;; schema.org specific
 
@@ -301,3 +282,26 @@
 
     (ref? type)
     (ref-uri type)))
+
+(defn tree-properties [tree]
+  (cond
+    (many? tree)
+    (mapcat tree-properties (many-trees tree))
+
+    (exists? tree)
+    (tree-properties (exists-tree tree))
+
+    (ref? tree)
+    []
+
+    (literal-string? tree)
+    []
+
+    (literal-decimal? tree)
+    []
+
+    (literal-boolean? tree)
+    []
+
+    (node? tree)
+    (node-properties tree)))

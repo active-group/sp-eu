@@ -4,7 +4,8 @@
             [jsonista.core :as jsonista]
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.skolem :as skolem]
-            [wisen.backend.rdf-validator :as validator])
+            [wisen.backend.rdf-validator :as validator]
+            [wisen.common.or-error :as error])
   (:import (com.fasterxml.jackson.core JsonFactory JsonParser$Feature)
            (com.fasterxml.jackson.databind ObjectMapper)))
 
@@ -63,6 +64,16 @@
   (str (or (System/getenv "OLLAMA_HOST")  "http://localhost:11434")
         "/api/generate"))
 
+(defn try-parse-json-ld-string [json-ld-str]
+  (try
+    (let [model (jsonld/json-ld-string->model json-ld-str)
+          validation (validator/validate-model model)
+          res {:json-ld-string (jsonld/model->json-ld-string model)
+               :invalid-nodes (:invalid-nodes validation)}]
+      (error/make-success res))
+    (catch Exception e
+      (error/make-error (pr-str e)))))
+
 (defn ollama-request! [prompt]
   (let [response
         (client/post ollama-request-url {:content-type :json
@@ -71,16 +82,15 @@
                                          :body (make-ollama-request-string
                                                  (format-ollama-prompt prompt))})]
     (case (:status response)
-      ;; TODO: error handling?
-      200 (let [llm-response (get-in response [:body :response])
-                json-ld-string (prepare-llm-response llm-response)
-                model (jsonld/json-ld-string->model json-ld-string)
-                skolemized-model (skolem/skolemize-model model "phi4")
-                skolemized-json-ld-string (jsonld/model->json-ld-string skolemized-model)
-                validation (validator/validate-model skolemized-model)]
-            {:status 200
-             :body {:json-ld-string skolemized-json-ld-string :invalid-nodes (:invalid-nodes validation)}
-             :headers {"content-type" "application/ld+json"}})
+      200 (let [parsed-response (-> response
+                                    (get-in [:body :response])
+                                    (prepare-llm-response)
+                                    (try-parse-json-ld-string))]
+            (if (error/success? parsed-response)
+              {:status 200
+               :body (error/success-value parsed-response)}
+              {:status 500
+               :body {:error (error/error-value parsed-response)
+                      :ai-response response}}))
       ;; TODO: error handling
-      {:status 500 :body (pr-str response)})
-   ))
+      {:status 500 :body (pr-str response)})))

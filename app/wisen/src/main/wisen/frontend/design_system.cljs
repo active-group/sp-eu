@@ -2,7 +2,8 @@
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
-            [reacl-c-basics.forms.core :as forms]))
+            [reacl-c-basics.forms.core :as forms]
+            [wisen.frontend.forms]))
 
 (def border "1px solid gray")
 
@@ -42,7 +43,8 @@
                                         :appearance "none"
                                         :border "none"
                                         :font-size "1em"
-                                        :padding 0}}
+                                        :padding 0
+                                        :cursor "pointer"}}
                                attrs)
          children))
 
@@ -53,9 +55,12 @@
                                         :appearance "none"
                                         :border "none"
                                         :font-size "1em"
-                                        :padding 0}}
+                                        :padding 0
+                                        :cursor "pointer"}}
                                attrs)
          children))
+
+;;
 
 (dom/defn-dom select [attrs & children]
   (apply forms/select
@@ -69,18 +74,53 @@
           attrs)
          children))
 
+(dom/defn-dom select+focus [attrs & children]
+  (apply wisen.frontend.forms/x+ select attrs children))
+
+(c/defn-subscription ^:private rid-sub deliver! []
+  (do
+    (deliver! (str (gensym)))
+    #()))
+
+(c/defn-item ^:private with-random-id [k]
+  (c/with-state-as [state rid :local nil]
+    (c/fragment
+     (c/focus lens/second
+              (c/handle-action
+               (rid-sub)
+               (fn [st ac] ac)))
+     (when rid
+       (c/focus lens/first
+                (k rid))))))
+
 (dom/defn-dom input [attrs & children]
-  (let [disabled? (get attrs :disabled)]
-    (apply forms/input
-           (dom/merge-attributes {:style
-                                  {:background-color (if disabled? "#eee" "#fefefe")
-                                   :border (if disabled? "1px solid #bbb" "1px solid #888")
-                                   :padding "4px 8px"
-                                   :font-size "14px"
-                                   :color "#333"
-                                   :border-radius "3px"}}
-                                 attrs)
-           children)))
+  (let [disabled? (get attrs :disabled)
+        suggestions (get attrs :suggestions)]
+    (with-random-id
+      (fn [id]
+        (c/fragment
+         (apply forms/input
+                (dom/merge-attributes {:list id
+                                       :style
+                                       {:background-color (if disabled? "#eee" "#fefefe")
+                                        :border (if disabled? "1px solid #bbb" "1px solid #888")
+                                        :padding "4px 8px"
+                                        :font-size "14px"
+                                        :color "#333"
+                                        :border-radius "3px"}}
+                                      (dissoc attrs :id))
+                children)
+         (apply dom/datalist
+
+                {:id id
+                 :style {:background "red"}}
+                (map (fn [suggestion]
+                       (dom/option {:value suggestion}
+                                   suggestion))
+                     suggestions)))))))
+
+(dom/defn-dom input+focus [attrs & children]
+  (apply wisen.frontend.forms/x+ input attrs children))
 
 (dom/defn-dom textarea [attrs & children]
   (let [disabled? (get attrs :disabled)]
@@ -94,6 +134,9 @@
                                    :border-radius "3px"}}
                                  attrs)
            children)))
+
+(dom/defn-dom textarea+focus [attrs & children]
+  (apply wisen.frontend.forms/x+ textarea attrs children))
 
 (def plus-icon
   (dom/svg
@@ -177,3 +220,20 @@
      :strokeWidth "2"
      :strokeLinecap "round"
      :strokeLinejoin "round"})))
+
+;; License: Apache. Made by vaadin: https://github.com/vaadin/vaadin-icons
+(defn lightbulb-icon [& [size]]
+  (dom/svg
+   {:viewBox "0 0 16 16"
+    :width (or size "16")
+    :height (or size "16")
+    :fill "none"
+    :xmlns "http://www.w3.org/2000/svg"
+    :xmlnsXlink "http://www.w3.org/1999/xlink"}
+   (dom/path
+    {:d "M8 0c-2.761 0-5 2.239-5 5 0.013 1.672 0.878 3.138 2.182 3.989l0.818 2.011c-0.276 0-0.5 0.224-0.5 0.5s0.224 0.5 0.5 0.5c-0.276 0-0.5 0.224-0.5 0.5s0.224 0.5 0.5 0.5c-0.276 0-0.5 0.224-0.5 0.5s0.224 0.5 0.5 0.5c-0.276 0-0.5 0.224-0.5 0.5s0.224 0.5 0.5 0.5h0.41c0.342 0.55 0.915 0.929 1.581 0.999 0.684-0.071 1.258-0.449 1.594-0.99l0.415-0.009c0.276 0 0.5-0.224 0.5-0.5s-0.224-0.5-0.5-0.5c0.276 0 0.5-0.224 0.5-0.5s-0.224-0.5-0.5-0.5c0.276 0 0.5-0.224 0.5-0.5s-0.224-0.5-0.5-0.5c0.276 0 0.5-0.224 0.5-0.5s-0.224-0.5-0.5-0.5l0.8-2c1.322-0.862 2.187-2.328 2.2-3.998 0-2.763-2.239-5.002-5-5.002zM10.25 8.21l-0.25 0.17-0.11 0.29-0.89 2.14c-0.042 0.111-0.147 0.189-0.27 0.19h-1.51c-0.103-0.020-0.186-0.093-0.219-0.188l-0.871-2.142-0.13-0.29-0.25-0.18c-1.045-0.7-1.729-1.868-1.75-3.197-0-2.212 1.791-4.003 4-4.003s4 1.791 4 4c-0.017 1.336-0.702 2.509-1.736 3.201z"
+     :fill "currentColor"})
+   (dom/path
+    {:d "M10.29 3c-0.574-0.612-1.387-0.995-2.289-1l-0.001 1c0.585 0.002 1.115 0.238 1.5 0.62 0.278 0.386 0.459 0.858 0.499 1.37l1.001 0.009c-0.045-0.756-0.305-1.443-0.718-2.011z"
+     :fill "currentColor"})))
+

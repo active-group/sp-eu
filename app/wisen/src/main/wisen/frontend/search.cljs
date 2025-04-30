@@ -5,26 +5,46 @@
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
+            [reacl-c-basics.pages.core :as routing]
             [wisen.frontend.promise :as promise]
             [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.editor :as editor]
             [wisen.frontend.design-system :as ds]
+            [wisen.frontend.modal :as modal]
             [wisen.frontend.rdf :as rdf]
+            [wisen.frontend.tree :as tree]
+            [wisen.common.routes :as routes]
             [wisen.frontend.leaflet :as leaflet]
             [wisen.frontend.spinner :as spinner]
             [wisen.frontend.util :as util]
-            [wisen.frontend.or-error :refer [make-success
-                                             success?
-                                             success-value
-                                             make-error]]
+            [wisen.common.or-error :refer [make-success
+                                           success?
+                                           success-value
+                                           make-error]]
             [wisen.frontend.commit :as commit]
-            ["jsonld" :as jsonld]))
+            ["jsonld" :as jsonld]
+            [wisen.frontend.create :as create]
+            [wisen.frontend.schema :as schema]))
 
 (def-record focus-query-action
   [focus-query-action-query])
 
 (defn make-focus-query-action [q]
   (focus-query-action focus-query-action-query q))
+
+#_(def-record area-search-action
+  [area-search-action-params])
+
+#_(defn make-area-search-action [x]
+  (area-search-action area-search-action-params x))
+
+(def-record semantic-area-search-action
+  [semantic-area-search-action-query
+   semantic-area-search-action-bbox])
+
+(defn make-semantic-area-search-action [query bbox]
+  (semantic-area-search-action semantic-area-search-action-query query
+                               semantic-area-search-action-bbox bbox))
 
 (defn sparql-request [query]
   (-> (ajax/POST "/api/search"
@@ -35,15 +55,10 @@
        (fn [body]
          (js/JSON.parse body)))))
 
-(defn quick-search->sparql [m]
-  (let [ty (case (:type m)
-             :organization "<http://schema.org/Organization>"
-             :place "<http://schema.org/Place>"
-             :offer "<http://schema.org/Offer>"
-             :event "<http://schema.org/Event>")
-        [[min-lat max-lat] [min-long max-long]] (:location m)]
+(defn- organization->sparql [m]
+  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
     (str "CONSTRUCT { ?s ?p ?o .
-                      ?s a " ty ".
+                      ?s a <http://schema.org/Organization> .
                       ?s <https://wisen.active-group.de/target-group> ?target .
                       ?s <http://schema.org/keywords> ?keywords .
                       ?s <http://schema.org/location> ?location .
@@ -52,9 +67,9 @@
                       ?coords <http://schema.org/latitude> ?lat .
                       ?coords <http://schema.org/longitude> ?long .
                       ?location ?locationp ?locationo .
- }
+                    }
           WHERE { ?s ?p ?o .
-                  ?s a " ty ".
+                  ?s a <http://schema.org/Organization> .
                   ?s <https://wisen.active-group.de/target-group> ?target .
                   ?s <http://schema.org/keywords> ?keywords .
                   ?s <http://schema.org/location> ?location .
@@ -71,6 +86,89 @@
                   FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
                   }")))
 
+(defn- offer->sparql [m]
+  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
+    (str "CONSTRUCT { ?s ?p ?o .
+                      ?s a <http://schema.org/Offer> .
+                      ?s <https://wisen.active-group.de/target-group> ?target .
+                      ?s <http://schema.org/keywords> ?keywords .
+                      ?s <http://schema.org/location> ?location .
+                      ?location a <http://schema.org/Place> .
+                      ?location <http://schema.org/geo> ?coords .
+                      ?coords <http://schema.org/latitude> ?lat .
+                      ?coords <http://schema.org/longitude> ?long .
+                      ?location ?locationp ?locationo .
+                    }
+          WHERE { ?s ?p ?o .
+                  ?s a <http://schema.org/Offer> .
+                  ?s <https://wisen.active-group.de/target-group> ?target .
+                  ?s <http://schema.org/keywords> ?keywords .
+                  ?s <http://schema.org/availableAtOrFrom> ?location .
+                  ?location a <http://schema.org/Place> .
+                  ?location <http://schema.org/geo> ?coords .
+                  ?coords <http://schema.org/latitude> ?lat .
+                  ?coords <http://schema.org/longitude> ?long .
+
+                      OPTIONAL {
+                        ?location ?locationp ?locationo .
+                      }
+                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
+                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
+                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
+                  }")))
+
+(defn- event->sparql [m]
+  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
+    (str "CONSTRUCT { ?s ?p ?o .
+                      ?s a <http://schema.org/Event> .
+                      ?s <https://wisen.active-group.de/target-group> ?target .
+                      ?s <http://schema.org/keywords> ?keywords .
+                      ?s <http://schema.org/location> ?location .
+                      ?location a <http://schema.org/Place> .
+                      ?location <http://schema.org/geo> ?coords .
+                      ?coords <http://schema.org/latitude> ?lat .
+                      ?coords <http://schema.org/longitude> ?long .
+                      ?location ?locationp ?locationo .
+                    }
+          WHERE { ?s ?p ?o .
+                  ?s a <http://schema.org/Event> .
+                  ?s <https://wisen.active-group.de/target-group> ?target .
+                  ?s <http://schema.org/keywords> ?keywords .
+                  ?s <http://schema.org/location> ?location .
+                  ?location a <http://schema.org/Place> .
+                  ?location <http://schema.org/geo> ?coords .
+                  ?coords <http://schema.org/latitude> ?lat .
+                  ?coords <http://schema.org/longitude> ?long .
+
+                      OPTIONAL {
+                        ?location ?locationp ?locationo .
+                      }
+                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
+                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
+                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
+                  }")))
+
+(defn- quick-search->sparql [m]
+  (case (:type m)
+    :organization
+    (organization->sparql m)
+
+    :offer
+    (offer->sparql m)
+
+    :event
+    (event->sparql m)))
+
+#_(defn area-search! [params]
+  (ajax/POST "/osm/search-area"
+             {:body (.stringify js/JSON (clj->js params))
+              :headers {:content-type "application/json"}}))
+
+(defn semantic-area-search! [params]
+  (ajax/POST "/osm/semantic-area-search"
+             {:body (.stringify js/JSON (clj->js params))
+              :headers {:content-type "application/json"}}))
+
 (c/defn-item quick-search [loading?]
   (dom/div
    {:style {:padding "8px"
@@ -80,7 +178,8 @@
     {:onSubmit (fn [state event]
                  (.preventDefault event)
                  (c/return :action (make-focus-query-action
-                                    (quick-search->sparql state))))
+                                    (quick-search->sparql state))
+                           #_#_:action (make-area-search-action (:location state))))
      :style {:display "flex"
              :align-items "baseline"
              :gap "16px"
@@ -96,8 +195,6 @@
              (ds/select
               (forms/option {:value :organization}
                             "organizations")
-              (forms/option {:value :place}
-                            "places")
               (forms/option {:value :offer}
                             "offers")
               (forms/option {:value :event}
@@ -115,7 +212,7 @@
 
     (dom/div "with tag")
     (c/focus (lens/>> :tags lens/first)
-             (ds/input))
+             (ds/input {:suggestions ["Education" "Fun" "Games"]}))
 
     (ds/button-primary {:type "submit"
                         :style {:background "#923dd2"
@@ -129,7 +226,22 @@
                                    :gap "0.5em"}}
                           "Searching …"
                           (spinner/main))
-                         "Search")))))
+                         "Search")))
+   (forms/form
+    {:onSubmit (fn [state event]
+                 (.preventDefault event)
+                 (c/return :action (make-semantic-area-search-action
+                                    (:free-text state)
+                                    (:location state))))}
+    (dom/div "Freitextsuche")
+    (c/focus :free-text
+             (ds/input))
+    (ds/button-primary {:type "submit"
+                        :style {:background "#923dd2"
+                                :padding "6px 16px"
+                                :border-radius "20px"
+                                :color "white"}}
+                       "Search"))))
 
 (defn run-query [q]
   (util/load-json-ld (sparql-request q)))
@@ -163,7 +275,8 @@
     :target "elderly"
     :tags ["education"]
     :location [[48.484 48.550]
-               [9.0051 9.106]]}
+               [9.0051 9.106]]
+    :free-text ""}
    (dom/div
     {:style {:position "relative"}}
     (dom/div
@@ -185,7 +298,7 @@
      ;; may trigger queries
      (-> (c/isolate-state
           (when-let [graph (:graph state)]
-            (edit-tree/graph->edit-trees graph))
+            (edit-tree/graph->edit-tree graph))
 
           (dom/div
            {:style {:display "flex"
@@ -195,7 +308,8 @@
            (dom/div
             {:class "map-and-search-results"
              :style {:overflow "auto"
-                     :flex 1}}
+                     :flex 1
+                     :scroll-behavior "smooth"}}
 
             (map-search schema
                         (some? (:last-focus-query state))
@@ -209,18 +323,55 @@
                                (rdf/geo-positions graph))))
 
             ;; display when we have a graph
-            (when (:graph state)
-              (ds/padded-2
-               (editor/edit-trees-component schema true false))))
+            (c/with-state-as state
+              (when state
+                (ds/padded-2
+                 (dom/h2 "Results")
+                 (dom/div
+                  {:style {:padding-bottom "1em"}}
+                  (editor/edit-tree-component schema nil true false)))))
 
-           (c/with-state-as etrees
-             (when-not (empty? (edit-tree/edit-trees-changes etrees))
-                       (commit/main schema)))))
+            (when-let [sugg-graphs (:sugg-graphs state)]
+              (let [background-color "#e1e1e1"]
+                (dom/div
+                 {:style {:background background-color
+                          :border-top ds/border}}
+                 (ds/padded-2
+                  (dom/h2 "Results from the web")
+                  (apply dom/div {:style {:display "flex"
+                                          :flex-direction "column"
+                                          :overflow "auto"}}
+                         (map (fn [graph]
+                                (dom/div
+                                 (editor/readonly-graph schema graph background-color)
+                                 (modal/modal-button "open editor" (fn [close-action]
+                                                                     (let [tree (tree/graph->tree graph)]
+                                                                       (create/main schema
+                                                                                    tree
+                                                                                    (ds/button-secondary
+                                                                                     {:onClick (fn [_] (c/return :action close-action))}
+                                                                                     "Close")))))))
+                              sugg-graphs)))))))
+
+           (c/with-state-as etree
+             (when-not (empty? (edit-tree/edit-tree-changeset etree))
+               (commit/main schema)))))
 
          (c/handle-action
           (fn [st ac]
-            (if (record/is-a? focus-query-action ac)
+            (cond
+              (record/is-a? focus-query-action ac)
               (assoc st :last-focus-query (focus-query-action-query ac))
+
+              #_#_(record/is-a? area-search-action ac)
+              (assoc st :area-search-params (area-search-action-params ac)
+                     :area-search-response nil)
+
+              (record/is-a? semantic-area-search-action ac)
+              (assoc st :semantic-area-search-params {:semantic-area-search-query (semantic-area-search-action-query ac)
+                                                      :semantic-area-search-bbox (semantic-area-search-action-bbox ac)}
+                     :semantic-area-searech-response nil)
+              :else
               (c/return :action ac)))))
 
      ;; perform focus query
@@ -235,13 +386,43 @@
                                            (-> st
                                                (assoc :graph (success-value ac))
                                                (dissoc :last-focus-query)))
-                                 (c/return :action ac))))))))))
+                                 (c/return :action ac)))))))
+
+     #_(when-let [area-search-params (:area-search-params state)]
+       (c/handle-action
+        (util/load-json-ld (area-search! area-search-params))
+        (fn [st ac]
+          ;; TODO: error handling
+          (if (success? ac)
+            (let [full-graph (success-value ac)
+                  components (rdf/get-subcomponents full-graph)]
+              (c/return :state
+                        (-> st
+                            (assoc :sugg-graphs components)
+                            (dissoc :area-search-params))))
+            (c/return :action ac)))))
+
+     (when-let [semantic-area-search-params (:semantic-area-search-params state)]
+       (c/handle-action
+        (util/load-json-ld (semantic-area-search! semantic-area-search-params))
+        (fn [st ac]
+          (if (success? ac)
+            (let [full-graph (success-value ac)
+                  components (rdf/get-subcomponents full-graph)]
+              (c/return :state
+                        (-> st
+                            (assoc :sugg-graphs components)
+                            (dissoc :semantic-area-search-params)))))))))))
 
 (c/defn-item main [schema]
   (c/isolate-state
    {:last-focus-query nil
     :last-expand-by-query nil
-    :graph nil}
+    :graph nil
+    ;; :area-search-params nil
+    ;; :area-search-response nil
+    :semantic-area-search-params nil
+    :semantic-area-search-response nil}
    (c/with-state-as state
      (c/fragment
       (main* schema)))))

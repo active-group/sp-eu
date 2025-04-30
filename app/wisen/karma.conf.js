@@ -22,4 +22,3 @@ module.exports = function (config) {
         }
     });
 };
-// npm install karma-cljs-test --save-dev

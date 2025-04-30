@@ -11,38 +11,46 @@
             [reacl-c-basics.pages.core :as routing]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.util :as util]
+            [wisen.frontend.modal :as modal]
+            [wisen.frontend.default :as default]
+            [active.data.realm.validation :as validation]
             ["jsonld" :as jsonld]))
 
-(defn menu []
-  (ds/padded-2
-   {:style {:border-bottom ds/border
-            :padding "12px 24px"}}
+(defn menu [schema]
+  (letfn [(new-* [title initial-tree]
+            (dom/li
+             (modal/modal-button (dom/div
+                                  {:style {:display "flex"
+                                           :align-items "center"
+                                           :gap "0.3em"
+                                           :font-weight "normal"}}
 
-   (dom/menu {:style {:list-style-type "none"
-                      :padding 0
-                      :margin 0
-                      :display "flex"
-                      :align-items "baseline"
-                      :justify-content "space-between"
-                      :gap 16}}
+                                  (dom/span {:style {:font-size "1.6em"}}
+                                            "+ ")
 
-             (dom/li
-              (dom/a {:href (routes/search)
-                      :style {:color "blue"
-                              :text-decoration "none"
-                              :display "flex"
-                              :gap "7px"
-                              :align-items "center"}}
-                     ds/search-icon
-                     (dom/div " Search")))
+                                  title)
+                                 (fn [close-action]
+                                   (create/main schema
+                                                initial-tree
+                                                (ds/button-secondary
+                                                 {:onClick #(c/return :action close-action)}
+                                                 "Close"))))))]
 
-             (dom/li
-              (dom/a {:href (routes/create)
-                      :style {:color "blue"
-                              :text-decoration "none"}}
-                     (dom/span {:style {:font-size "1.4em"}}
-                               "+ ")
-                     "New resource")))))
+    (ds/padded-2
+     {:style {:border-bottom ds/border
+              :padding "12px 24px"}}
+
+     (dom/menu {:style {:list-style-type "none"
+                        :padding 0
+                        :margin 0
+                        :display "flex"
+                        :align-items "baseline"
+                        :justify-content "flex-end"
+                        :gap "2em"}}
+
+               (new-* "Organization" default/default-organization)
+               (new-* "Event" default/default-event)
+               (new-* "Offer" default/default-offer)))))
 
 (defn toplevel []
   (util/with-schemaorg
@@ -55,18 +63,13 @@
                 :flex-direction "column"
                 :overflow "hidden"}}
 
-       (menu)
+       (menu schema)
 
-       (routing/html5-history-router
-        {routes/home home/main
-         routes/search (partial search/main schema)
-         routes/create (partial create/main schema)
-         routes/nlp nlp/main
-         routes/edit edit/main})))))
-
+       (search/main schema)))))
 
 (defn ^:dev/after-load start []
   (println "start")
+  (validation/set-checking! true)
   (cmain/run
    (.getElementById js/document "main")
    (toplevel)))

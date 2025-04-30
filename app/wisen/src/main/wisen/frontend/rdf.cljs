@@ -3,6 +3,7 @@
   (:require [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as r]
             [active.clojure.lens :as lens]
+            [clojure.set :as set]
             ["rdflib" :as rdflib])
   (:import goog.object))
 
@@ -65,7 +66,49 @@
      (empty? (ingoing graph node)))
    (subjects graph)))
 
-;; ---
+(defn has-outgoing-edges? [graph subj]
+  (seq (subject-predicates graph subj)))
+
+(defn get-triples-for-subject [graph subj]
+  (let [preds-for-subj (subject-predicates graph subj)]
+    (reduce
+     (fn [triples pred]
+       (let [objects (subject-predicate-objects graph subj pred)]
+         (reduce
+          (fn [acc obj]
+            (conj acc [subj pred obj]))
+          triples
+          objects)))
+     #{}
+     preds-for-subj)))
+
+(defn process-object-nodes
+  [graph objects acc-visited acc-triples collect-fn]
+  (reduce
+   (fn [[acc-v acc-t] obj]
+     (if (has-outgoing-edges? graph obj)
+       (collect-fn obj acc-v acc-t)
+       [acc-v acc-t]))  ; Skip recursion for end nodes
+   [acc-visited acc-triples]
+   objects))
+
+(defn collect-connected-component
+  "Takes a starting subject and collects all triples in its connected component"
+  [graph s]
+  (letfn [(collect-recursive [subj visited triples]
+            (if (contains? visited subj)
+              [visited triples]  ; Return accumulated results if we've seen this subject
+              (let [visited' (conj visited subj)
+                    new-triples (get-triples-for-subject graph subj)
+                    combined-triples (set/union triples new-triples)
+                    objects (distinct (map last new-triples))]
+                (process-object-nodes
+                 graph
+                 objects
+                 visited'
+                 combined-triples
+                 collect-recursive))))]
+    (second (collect-recursive s #{} #{}))))
 
 (extend-type rdflib/NamedNode
   cljs.core/IEquiv
@@ -100,6 +143,10 @@
 
     (blank-node? x)
     (blank-node-uri x)))
+
+(defn node? [x]
+  (or (symbol? x)
+      (blank-node? x)))
 
 ;;
 
@@ -218,6 +265,23 @@
     g))
 
 ;; ---
+
+(defn get-subcomponents
+  "Collects connected subcomponents of a graph"
+  [graph]
+  (let [root-nodes (roots graph)
+        subcomponents-triples (map #(collect-connected-component graph %)
+                                   root-nodes)
+        subcomponents-stms (mapv (fn [triples]
+                                   (mapv (fn [triple]
+                                           (apply make-statement triple))
+                                         triples))
+                                 subcomponents-triples)
+        ]
+    (map statements->graph subcomponents-stms)))
+;; ---
+
+
 
 (defn- schmontains? [coll x]
   (reduce (fn [acc y]

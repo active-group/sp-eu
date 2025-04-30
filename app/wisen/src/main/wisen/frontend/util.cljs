@@ -1,14 +1,16 @@
 (ns wisen.frontend.util
   (:require [reacl-c.core :as c :include-macros true]
             [active.clojure.lens :as lens]
+            [active.data.record :refer [is-a?] :refer-macros [def-record]]
+            [active.data.realm :as realm]
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.promise :as promise]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.spinner :as spinner]
-            [wisen.frontend.or-error :refer [make-success
-                                             success?
-                                             success-value
-                                             make-error]]))
+            [wisen.common.or-error :refer [make-success
+                                           success?
+                                           success-value
+                                           make-error]]))
 
 (c/defn-item load-json-ld
   "Loads some JSON-LD for the given request. Parses the JSON-LD and
@@ -43,6 +45,13 @@
                              (if (success? ac)
                                (c/return :state (success-value ac))
                                (c/return :action ac))))))))
+(c/defn-item load-json-ld-state* [request]
+  (c/with-state-as graph
+    (when (nil? graph)
+      (-> (load-json-ld request)
+          (c/handle-action (fn [_ ac]
+                             (c/return :state ac)))))))
+
 
 (defn load-schemaorg []
   (load-json-ld-state (ajax/GET "/api/schema"
@@ -70,3 +79,15 @@
      (println (pr-str y))
      y
      )))
+
+(defn cond-lens [[rlm1 lns1] [rlm2 lns2] & cases]
+  (let [latter-lens
+        (if (empty? cases)
+          lns2
+          (apply cond-lens [rlm2 lns2] cases))]
+
+    (lens/either
+     (fn [x] (is-a? rlm1 x))
+     (fn [x _] (is-a? rlm1 x))
+     lns1
+     latter-lens)))
