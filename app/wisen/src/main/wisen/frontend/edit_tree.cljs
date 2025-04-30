@@ -691,44 +691,7 @@
     ([enode type]
      (if (= type ((make-edit-node-type-lens default-node-for-type) enode))
        enode
-       (lens/overhaul
-        enode
-        edit-node-properties
-        (fn [old-eprops]
-          (let [old-eprops* (map-values (fn [metrees]
-                                          (map (fn [metree]
-                                                 (if (can-delete? metree)
-                                                   (mark-deleted metree)
-                                                   metree))
-                                               metrees))
-                                        old-eprops)
-                new-eprops (edit-node-properties
-                            (make-added-edit-tree (default-node-for-type type)))]
-            (merge-with
-             (fn [old-metrees new-metrees]
-               ;; set new for now (TODO)
-               (distinct
-                (if (= 1
-                       (count old-metrees)
-                       (count new-metrees))
-                  (let [old-metree (first old-metrees)
-                        new-metree (first new-metrees)]
-                    (cond
-                      (deleted? old-metree)
-                      [(make-maybe-changed
-                        (deleted-original-value old-metree)
-                        (added-result-value new-metree))]
-
-                      (added? old-metree)
-                      [new-metree]
-
-                      (maybe-changed? old-metree)
-                      [(maybe-changed-result-value old-metree
-                                                   (added-result-value new-metree))]))
-                  ;; else choose new metrees (TODO
-                  new-metrees)))
-             old-eprops*
-             new-eprops))))))))
+       (make-added-edit-tree (default-node-for-type type))))))
 
 (defn organization? [node]
   (= "http://schema.org/Organization"
