@@ -270,7 +270,7 @@
                                                             (lens/overhaul property-object (partial over-uri over))))
                                                       props))))))]
 
-  (defn- wrap-ex [ex tree]
+  (defn- wrap-ex [tree ex]
     (make-exists
      (fn [x]
        (over-uri (fn [uri]
