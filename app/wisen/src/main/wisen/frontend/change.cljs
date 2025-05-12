@@ -7,6 +7,7 @@
             [wisen.common.change-api :as change-api]
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.schema :as schema]
+            [wisen.frontend.existential :as existential]
             [clojure.set :as set]))
 
 
@@ -29,7 +30,7 @@
   (is-a? add x))
 
 (def-record with-blank-node
-  [with-blank-node-existential :- tree/existential
+  [with-blank-node-existential :- existential/existential
    with-blank-node-changes])
 
 (defn make-with-blank-node [existential changes]
@@ -43,12 +44,12 @@
 ;; Statements
 
 (def-record statement
-  [statement-subject :- (realm/union tree/existential tree/URI)
-   statement-predicate :- (realm/union tree/existential tree/URI)
+  [statement-subject :- (realm/union existential/existential tree/URI)
+   statement-predicate :- (realm/union existential/existential tree/URI)
    statement-object :- (realm/union tree/literal-string
                                     tree/literal-decimal
                                     tree/literal-boolean
-                                    tree/existential
+                                    existential/existential
                                     tree/URI)])
 
 (defn make-statement [s p o]
@@ -76,14 +77,12 @@
      (if (tree/uri? subject)
        (change-api/make-uri
         (tree/uri-string subject))
-       (change-api/make-existential
-        (tree/existential-index subject)))
+       (change-api/make-existential subject))
 
      (if (tree/uri? predicate)
        (change-api/make-uri
         (tree/uri-string predicate))
-       (change-api/make-existential
-        (tree/existential-index predicate)))
+       (change-api/make-existential predicate))
 
      (let [obj (statement-object s)]
        (cond
@@ -99,9 +98,8 @@
          (change-api/make-literal-boolean
           (tree/literal-boolean-value obj))
 
-         (tree/existential? obj)
-         (change-api/make-existential
-          (tree/existential-index obj))
+         (existential/existential? obj)
+         (change-api/make-existential obj)
 
          (tree/uri? obj)
          (change-api/make-uri

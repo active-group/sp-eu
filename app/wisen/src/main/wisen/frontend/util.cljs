@@ -91,3 +91,22 @@
      (fn [x _] (is-a? rlm1 x))
      lns1
      latter-lens)))
+
+(deftype ^:private F [f m]
+  IFn
+  (-invoke [this arg]
+    (if-let [res (get m arg)]
+      res
+      (f arg))))
+
+(defn fn-at [arg]
+  (lens/lens
+   (fn [f]
+     (f arg))
+   (fn [f res]
+     (if (= (f arg) res)
+       f
+       (let [[f* m*] (if (instance? F f)
+                       [(.-f f) (.-m f)]
+                       [f {}])]
+         (F. f* (assoc m* arg res)))))))

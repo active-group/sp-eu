@@ -5,22 +5,16 @@
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
             [active.clojure.lens :as lens]
-            [wisen.common.prefix :as prefix]))
+            [wisen.common.prefix :as prefix]
+            [wisen.frontend.existential :as existential]))
 
 (declare tree)
-
-(def existential realm/integer)
-
-(def existential-index identity)
-
-(defn existential? [x]
-  (realm/contains? existential x))
 
 (def URI (realm/union
           ;; a global identifier
           realm/string
           ;; a local identifier, bound by a surrounding `exists`
-          existential))
+          existential/existential))
 
 (defn make-uri [s]
   s)
@@ -29,8 +23,8 @@
   (string? s))
 
 (defn uri-string [uri]
-  (if (existential? uri)
-    (str (existential-index uri))
+  (if (existential/existential? uri)
+    (str uri)
     uri))
 
 (def-record ref [ref-uri :- URI])
@@ -44,20 +38,11 @@
 ;;
 
 (def-record exists
-  [exists-binder :- existential
-   exists-tree :- (realm/delay tree)])
-
-(defn make-random-existential! []
-  (rand-int js/Number.MAX_SAFE_INTEGER))
+  [exists-k])
 
 (defn make-exists
   ([k]
-   (let [binder (make-random-existential!)]
-     (exists exists-binder binder
-             exists-tree (k binder))))
-  ([binder tree]
-   (exists exists-binder binder
-           exists-tree tree)))
+   (exists exists-k k)))
 
 (defn exists? [x]
   (record/is-a? exists x))
@@ -199,11 +184,12 @@
 (defn- get-produce-existential [existentials k]
   (if-let [ex (get existentials k)]
     [existentials ex]
-    (let [next-id (make-random-existential!)]
-      [(assoc existentials k next-id)
-       next-id])))
+    (existential/with-fresh-existential
+      (fn [ex]
+        [(assoc existentials k ex)
+         ex]))))
 
-(defn- node->tree [graph links existentials x]
+(defn- node->tree* [graph links existentials x]
   (cond
     (rdf/node? x)
     (let [uri (rdf/symbol-uri x)
@@ -217,7 +203,7 @@
 
               [links** existentials** props]
               (reduce (fn [[links existentials props] prop]
-                        (let [[links* existentials* tree] (node->tree graph links existentials (rdf/property-object prop))]
+                        (let [[links* existentials* tree] (node->tree* graph links existentials (rdf/property-object prop))]
                           [links* existentials* (conj props (property property-predicate (rdf/symbol-uri
                                                                                           (rdf/property-predicate prop))
                                                                       property-object tree))]))
@@ -237,36 +223,78 @@
 
     (rdf/collection? x)
     (let [[links* existentials* trees] (reduce (fn [[links existentials trees] node]
-                                                 (let [[links* existentials* tree] (node->tree graph links existentials node)]
+                                                 (let [[links* existentials* tree] (node->tree* graph links existentials node)]
                                                    [links* existentials* (conj trees tree)]))
                                                [links existentials []]
                                                (rdf/collection-elements x))]
       [links* (many many-trees trees)])))
 
-(defn- comp-n [n f]
-  (apply comp (repeat n f)))
+(defn- node->tree [graph links existentials x]
+  (existential/with-exgen
+    (fn []
+      (node->tree* graph links existentials x))))
 
-(letfn [(wrap-exists [n x]
-          (if (zero? n)
-            x
-            (make-exists n (wrap-exists (dec n) x))
+(letfn [(over-uri [over tree]
+          (cond
+            (many? tree)
+            (many many-trees
+                  (map (fn [tree]
+                         (over-uri over tree))
+                       (many-trees tree)))
 
-            ))]
-  (defn graph->tree [g]
-   (let [[_links existentials trees]
-         (reduce
-          (fn [[links existentials trees] x]
-            (let [[links* existentials* tree] (node->tree g links existentials x)]
-              [links* existentials* (conj trees tree)]))
-          [#{} {} []]
-          ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
-          ;; -> A has no roots.  rather look for "basis", a minimal set of
-          ;; nodes from which every other root is reachable
-          (rdf/roots g))]
-     (wrap-exists (count existentials)
-                  (if (= 1 (count trees))
-                    (first trees)
-                    (many many-trees trees))))))
+            (exists? tree)
+            (make-exists
+             (fn [x*]
+               (let [tree* ((exists-k tree) x*)]
+                 (over-uri over tree*))))
+
+            (ref? tree)
+            (lens/overhaul tree ref-uri over)
+
+            (literal-string? tree)
+            tree
+
+            (literal-decimal? tree)
+            tree
+
+            (literal-boolean? tree)
+            tree
+
+            (node? tree)
+            (-> tree
+                (lens/overhaul node-uri over)
+                (lens/overhaul node-properties (fn [props]
+                                                 (map (fn [prop]
+                                                        (-> prop
+                                                            (lens/overhaul property-predicate over)
+                                                            (lens/overhaul property-object (partial over-uri over))))
+                                                      props))))))]
+
+  (defn- wrap-ex [ex tree]
+    (make-exists
+     (fn [x]
+       (over-uri (fn [uri]
+                   (if (= uri ex)
+                     x
+                     uri))
+                 tree)))))
+
+(defn graph->tree [g]
+  (let [[_links existentials trees]
+        (reduce
+         (fn [[links existentials trees] x]
+           (let [[links* existentials* tree] (node->tree g links existentials x)]
+             [links* existentials* (conj trees tree)]))
+         [#{} {} []]
+         ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
+         ;; -> A has no roots.  rather look for "basis", a minimal set of
+         ;; nodes from which every other root is reachable
+         (rdf/roots g))]
+    (reduce wrap-ex
+            (if (= 1 (count trees))
+              (first trees)
+              (many many-trees trees))
+            existentials)))
 
 ;; schema.org specific
 
@@ -283,13 +311,15 @@
     (ref? type)
     (ref-uri type)))
 
-(defn tree-properties [tree]
+(defn- tree-properties* [tree]
   (cond
     (many? tree)
-    (mapcat tree-properties (many-trees tree))
+    (mapcat tree-properties* (many-trees tree))
 
     (exists? tree)
-    (tree-properties (exists-tree tree))
+    (existential/with-fresh-existential
+      (fn [ex]
+        (tree-properties* ((exists-k tree) ex))))
 
     (ref? tree)
     []
@@ -305,3 +335,8 @@
 
     (node? tree)
     (node-properties tree)))
+
+(defn tree-properties [tree]
+  (existential/with-exgen
+    (fn []
+      (tree-properties* tree))))
