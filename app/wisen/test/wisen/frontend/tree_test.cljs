@@ -32,6 +32,36 @@
              (tree/graph->tree g)))
       (done))))
 
+(deftest graph-tree-test-3
+  (with-graph
+    {"http://schema.org/name" "Klostermühle"
+     "http://schema.org/location" {"http://schema.org/geo" {"http://schema.org/longitude" 9.225}}}
+    (fn [g done]
+      (let [tree (tree/graph->tree g)]
+        (is (tree/exists? tree))
+        (let [tree* ((tree/exists-k tree) 0)]
+          (is (tree/exists? tree*))
+          (let [tree** ((tree/exists-k tree*) 1)]
+            (is (tree/exists? tree**))
+            (let [tree*** ((tree/exists-k tree**) 2)]
+              (is (tree/node? tree***))
+              (is (= tree***
+                     (tree/make-node
+                      0
+                      [(tree/make-property "http://schema.org/location"
+                                           (tree/make-node
+                                            1
+                                            [(tree/make-property "http://schema.org/geo"
+                                                                 (tree/make-node
+                                                                  2
+                                                                  [(tree/make-property "http://schema.org/longitude"
+                                                                                       (tree/make-literal-decimal "9.225"))]))]))
+                       (tree/make-property "http://schema.org/name"
+                                           (tree/make-literal-string "Klostermühle"))])))
+
+              ))))
+      (done))))
+
 (deftest get-produce-existential-text
   (is (= (tree/get-produce-existential {"foo" 0} "foo")
          [{"foo" 0} 0])))
