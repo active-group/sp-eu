@@ -7,7 +7,8 @@
             [active.clojure.functions :as f]
             [active.clojure.lens :as lens]
             [wisen.common.prefix :as prefix]
-            [wisen.frontend.existential :as existential]))
+            [wisen.frontend.existential :as existential]
+            [wisen.common.fnplus :refer-macros [fn+]]))
 
 (declare tree)
 
@@ -235,9 +236,9 @@
 
             (exists? tree)
             (make-exists
-             (fn [x*]
-               (let [tree* ((exists-k tree) x*)]
-                 (over-uri over tree*))))
+             (fn+ [x*]
+                  (let [tree* ((exists-k tree) x*)]
+                    (over-uri over tree*))))
 
             (ref? tree)
             (lens/overhaul tree ref-uri over)
@@ -263,12 +264,12 @@
 
   (defn- wrap-ex [tree ex]
     (make-exists
-     (fn [x]
-       (over-uri (fn [uri]
-                   (if (= uri ex)
-                     x
-                     uri))
-                 tree)))))
+     (fn+ [x]
+          (over-uri (fn+ [uri]
+                         (if (= uri ex)
+                           x
+                           uri))
+                    tree)))))
 
 (defn graph->tree [g]
   (let [[_links existentials trees]
