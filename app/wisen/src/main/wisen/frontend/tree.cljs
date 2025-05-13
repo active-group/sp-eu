@@ -4,6 +4,7 @@
   (:require [wisen.frontend.rdf :as rdf]
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
+            [active.clojure.functions :as f]
             [active.clojure.lens :as lens]
             [wisen.common.prefix :as prefix]
             [wisen.frontend.existential :as existential]))
@@ -181,25 +182,17 @@
 
 ;; The following just does a simple walk through the graph with a `visited` set as context.
 
-(defn- get-produce-existential [existentials k]
-  (if-let [ex (get existentials k)]
-    [existentials ex]
-    (existential/with-fresh-existential
-      (fn [ex]
-        [(assoc existentials k ex)
-         ex]))))
-
 (defn- node->tree* [graph links existentials x]
   (cond
     (rdf/node? x)
     (let [uri (rdf/symbol-uri x)
-          [existentials* real-uri] (if (rdf/blank-node? x)
-                                     (get-produce-existential existentials uri)
-                                     [existentials uri])]
-      (if-let [link (get links real-uri)]
+          existentials* (if (rdf/blank-node? x)
+                          (conj existentials uri)
+                          existentials)]
+      (if-let [link (get links uri)]
         [links existentials* (ref ref-uri link)]
         (let [links*
-              (conj links real-uri)
+              (conj links uri)
 
               [links** existentials** props]
               (reduce (fn [[links existentials props] prop]
@@ -209,7 +202,7 @@
                                                                       property-object tree))]))
                       [links* existentials* []]
                       (rdf/subject-properties graph x))]
-          [links** existentials** (node node-uri real-uri
+          [links** existentials** (node node-uri uri
                                         node-properties props)])))
 
     (rdf/literal-string? x)
@@ -230,9 +223,7 @@
       [links* (many many-trees trees)])))
 
 (defn- node->tree [graph links existentials x]
-  (existential/with-exgen
-    (fn []
-      (node->tree* graph links existentials x))))
+  (node->tree* graph links existentials x))
 
 (letfn [(over-uri [over tree]
           (cond
@@ -285,7 +276,7 @@
          (fn [[links existentials trees] x]
            (let [[links* existentials* tree] (node->tree g links existentials x)]
              [links* existentials* (conj trees tree)]))
-         [#{} {} []]
+         [#{} [] []]
          ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
          ;; -> A has no roots.  rather look for "basis", a minimal set of
          ;; nodes from which every other root is reachable
