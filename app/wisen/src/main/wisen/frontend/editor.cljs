@@ -304,13 +304,15 @@
 (c/defn-item link-organization-with-osm-button [schema osm-uri close-action]
   (c/with-state-as [node local-state :local {:graph nil
                                              :osm-uri osm-uri
+                                             :focus? (wisen.frontend.forms/make-selected 0 0)
                                              :commit-osm-uri nil}]
     (dom/div
      (modal/padded
       (dom/h3 (if osm-uri "Update " "Link with ") "OpenStreetMap")
 
-      (c/focus (lens/>> lens/second :osm-uri)
-               (ds/input
+      (c/focus (lens/pattern [(lens/>> lens/second :osm-uri)
+                              (lens/>> lens/second :focus?)])
+               (ds/input+focus
                 {:type "url"
                  :placeholder "https://www.openstreetmap.org/..."}))
 
