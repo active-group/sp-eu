@@ -5,6 +5,7 @@
             [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
             [active.clojure.lens :as lens]
+            [active.clojure.functions :as f]
             [wisen.frontend.change :as change]
             [wisen.frontend.existential :as existential]
             [wisen.frontend.util :as util]
@@ -265,46 +266,47 @@
 
 (declare edit-tree-original)
 
-(defn- make-edit-tree [tree cns]
-  (cond
-    (tree/many? tree)
-    (many
-     many-edit-trees
-     (map #(make-edit-tree % cns)
-          (tree/many-trees tree)))
+(letfn [(k [make-edit-tree tree cns ex]
+          (make-edit-tree
+           ((tree/exists-k tree) ex)
+           cns))]
+  (defn- make-edit-tree [tree cns]
+    (cond
+      (tree/many? tree)
+      (many
+       many-edit-trees
+       (map #(make-edit-tree % cns)
+            (tree/many-trees tree)))
 
-    (tree/exists? tree)
-    (exists
-     exists-k (fn [ex]
-                (make-edit-tree
-                 ((tree/exists-k tree) ex)
-                 cns)))
+      (tree/exists? tree)
+      (exists
+       exists-k (f/partial k make-edit-tree tree cns))
 
-    (tree/ref? tree)
-    (make-ref (tree/ref-uri tree))
+      (tree/ref? tree)
+      (make-ref (tree/ref-uri tree))
 
-    (tree/literal-string? tree)
-    (make-literal-string (tree/literal-string-value tree))
+      (tree/literal-string? tree)
+      (make-literal-string (tree/literal-string-value tree))
 
-    (tree/literal-decimal? tree)
-    (make-literal-decimal (tree/literal-decimal-value tree))
+      (tree/literal-decimal? tree)
+      (make-literal-decimal (tree/literal-decimal-value tree))
 
-    (tree/literal-boolean? tree)
-    (make-literal-boolean (tree/literal-boolean-value tree))
+      (tree/literal-boolean? tree)
+      (make-literal-boolean (tree/literal-boolean-value tree))
 
-    (tree/node? tree)
-    (edit-node
-     edit-node-uri (tree/node-uri tree)
-     edit-node-properties (reduce (fn [eprops prop]
-                                    (update eprops
-                                            (tree/property-predicate prop)
-                                            conj
-                                            (cns
-                                             (make-edit-tree
-                                              (tree/property-object prop)
-                                              cns))))
-                                  {}
-                                  (tree/node-properties tree)))))
+      (tree/node? tree)
+      (edit-node
+       edit-node-uri (tree/node-uri tree)
+       edit-node-properties (reduce (fn [eprops prop]
+                                      (update eprops
+                                              (tree/property-predicate prop)
+                                              conj
+                                              (cns
+                                               (make-edit-tree
+                                                (tree/property-object prop)
+                                                cns))))
+                                    {}
+                                    (tree/node-properties tree))))))
 
 (defn make-added-edit-tree [tree]
   (make-edit-tree tree mark-added))

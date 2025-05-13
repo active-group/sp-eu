@@ -39,21 +39,21 @@
     (fn [g done]
       (let [tree (tree/graph->tree g)]
         (is (tree/exists? tree))
-        (let [tree* ((tree/exists-k tree) 0)]
+        (let [tree* ((tree/exists-k tree) 102)]
           (is (tree/exists? tree*))
-          (let [tree** ((tree/exists-k tree*) 1)]
+          (let [tree** ((tree/exists-k tree*) 101)]
             (is (tree/exists? tree**))
-            (let [tree*** ((tree/exists-k tree**) 2)]
+            (let [tree*** ((tree/exists-k tree**) 100)]
               (is (tree/node? tree***))
               (is (= tree***
                      (tree/make-node
-                      0
+                      100
                       [(tree/make-property "http://schema.org/location"
                                            (tree/make-node
-                                            1
+                                            101
                                             [(tree/make-property "http://schema.org/geo"
                                                                  (tree/make-node
-                                                                  2
+                                                                  102
                                                                   [(tree/make-property "http://schema.org/longitude"
                                                                                        (tree/make-literal-decimal "9.225"))]))]))
                        (tree/make-property "http://schema.org/name"
