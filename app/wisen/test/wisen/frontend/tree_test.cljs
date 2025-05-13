@@ -62,6 +62,12 @@
               ))))
       (done))))
 
-(deftest get-produce-existential-text
-  (is (= (tree/get-produce-existential {"foo" 0} "foo")
-         [{"foo" 0} 0])))
+(deftest graph-tree-test-equality
+  (with-graph
+    {"http://schema.org/name" "Klostermühle"
+     "http://schema.org/location" {"http://schema.org/geo" {"http://schema.org/longitude" 9.225}}}
+    (fn [g done]
+      (is (= (tree/graph->tree g)
+             (tree/graph->tree g)))
+      (done))))
+
