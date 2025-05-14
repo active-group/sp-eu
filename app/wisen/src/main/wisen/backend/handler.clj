@@ -245,11 +245,16 @@
 (defn- wrap-client-fn-routes
   [handler routes client-fn]
   (fn [request]
-    (or (handler request)
-        (if-let [route (first (filter #(pages.routes/route-matches % request) routes))]
-          ;; TODO: really call client-fn with route?
-          (apply client-fn route (pages.routes/route-matches route request))
-          {:status 404}))))
+    (or
+     ;; try handler first
+     (when-let [response (handler request)]
+       (when-not (= (:status response) 404)
+         response))
+     ;; fallback: try routes
+     (if-let [route (first (filter #(pages.routes/route-matches % request) routes))]
+       ;; TODO: really call client-fn with route?
+       (apply client-fn route (pages.routes/route-matches route request))
+       {:status 404}))))
 
 (defn- wrap-client-routes
   [handler routes client]
