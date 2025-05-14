@@ -25,7 +25,8 @@
             [wisen.frontend.schema :as schema]
             [wisen.frontend.spinner :as spinner]
             [wisen.common.prefix :as prefix]
-            [wisen.frontend.value-node :as value-node]))
+            [wisen.frontend.value-node :as value-node]
+            [wisen.common.wisen-uri :as wisen-uri]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -660,6 +661,29 @@
 
                     ks)))))
 
+(c/defn-item ^:private references-indicator [id]
+  (c/isolate-state
+   nil
+   (c/with-state-as result
+     (cond
+       (nil? result)
+       (c/fragment
+        (spinner/main "Determining references")
+        (ajax/fetch (ajax/GET (str "api/references/" id))))
+
+       (and (ajax/response? result)
+            (ajax/response-ok? result))
+       (let [n (count (ajax/response-value result))]
+         (dom/i
+          (str n)
+          " "
+          (if (= 1 n)
+            "reference"
+            "references")
+          " "
+          "in total"))))))
+
+
 (defn- node-component [schema editable? force-editing? background-color exgen]
   (c/with-state-as [node editing? :local force-editing?]
 
@@ -695,7 +719,10 @@
         (when editable?
           (c/focus lens/second
                    (ds/button-primary {:onClick not}
-                                      (if editing? "Done" "Edit")))))
+                                      (if editing? "Done" "Edit"))))
+
+        (when (wisen-uri/is-wisen-uri? uri)
+          (references-indicator (wisen-uri/wisen-uri-id uri))))
 
        (c/focus
         lens/first

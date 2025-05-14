@@ -146,6 +146,17 @@
    :body schema
    :headers {"Content-type" "application/ld+json"}})
 
+(defn get-references [request]
+  (let [id (get-in request [:path-params :id])
+        uri (r/uri-for-resource-id id)
+        q (str "SELECT DISTINCT ?reference WHERE { ?reference ?p <" uri "> . }")
+        result (triple-store/run-select-query! q)]
+    {:status 200
+     :headers {"Content-type" "application/json"}
+     :body (map (fn [line]
+                  (.toString (get line "reference")))
+                result)}))
+
 (def handler*
   (ring/ring-handler
    (ring/router
@@ -153,7 +164,8 @@
       ["/search" {:post {:handler search}}]
       ["/resource/:id" {:get {:handler get-resource-description}}]
       ["/changes" {:post {:handler add-changes}}]
-      ["/schema" {:get {:handler get-schema}}]]
+      ["/schema" {:get {:handler get-schema}}]
+      ["/references/:id" {:get {:handler get-references}}]]
 
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
