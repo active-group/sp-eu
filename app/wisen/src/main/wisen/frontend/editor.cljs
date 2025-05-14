@@ -504,7 +504,8 @@
 
 (defn- refresh-node-request [uri]
   (ajax/GET uri
-            {:headers {:accept "application/ld+json"}}))
+            {:headers {"accept" "application/ld+json"}
+             :response-format :json}))
 
 (c/defn-item ^:private refresh-node [uri]
   (util/load-json-ld
