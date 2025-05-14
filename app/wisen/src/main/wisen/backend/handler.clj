@@ -22,6 +22,7 @@
             [wisen.backend.overpass :as overpass]
             [wisen.backend.sparql :as sparql]
             [wisen.common.routes :as routes]
+            [reacl-c-basics.pages.routes :as pages.routes]
             [clojure.edn :as edn]
             [wisen.common.change-api :as change-api]
             [wisen.common.prefix :as prefix])
@@ -38,22 +39,30 @@
   {:status 200
    :body {:id (mint-resource-url!)}})
 
+(declare client-response)
+
 (defn get-resource-description [request]
-  (let [id (get-in request [:path-params :id])
-        uri (r/uri-for-resource-id id)
-        ;; TODO: injection!
-        q (str
-           "CONSTRUCT {<"
-           uri
-           "> ?p ?o .}
+  (let [accept (get-in request [:headers "accept"])]
+    (if (or (re-find #"application/ld\+json" accept)
+            (re-find #"application/json" accept))
+      (let [id (get-in request [:path-params :id])
+            uri (r/uri-for-resource-id id)
+            ;; TODO: injection!
+            q (str
+               "CONSTRUCT {<"
+               uri
+               "> ?p ?o .}
           WHERE { <"
-           uri
-           "> ?p ?o . }")
-        result-model
-        (triple-store/run-construct-query! q)]
-    {:status 200
-     :body (with-out-str
-             (.write result-model *out* "JSON-LD"))}))
+               uri
+               "> ?p ?o . }")
+            result-model
+            (triple-store/run-construct-query! q)]
+        {:status 200
+         :body (with-out-str
+                 (.write result-model *out* "JSON-LD"))})
+
+      ;; else show app
+      client-response)))
 
 (defn get-resource [request]
   (try
@@ -162,7 +171,6 @@
    (ring/router
     [["/api"
       ["/search" {:post {:handler search}}]
-      ["/resource/:id" {:get {:handler get-resource-description}}]
       ["/changes" {:post {:handler add-changes}}]
       ["/schema" {:get {:handler get-schema}}]
       ["/references/:id" {:get {:handler get-references}}]]
@@ -175,8 +183,9 @@
 
      ;; URIs a la http://.../resource/abcdefg are identifiers. They
      ;; don't directly resolve to a description. We use 303
-     ;; redirection to move clients over to /api/resource/abcdefg
+     ;; redirection to move clients over to /resource/abcdefg/about
      ["/resource/:id" {:get {:handler get-resource}}]
+     ["/resource/:id/about" {:get {:handler get-resource-description}}]
      ["/describe" {:post {:handler ollama-handler}}]]
 
     ;; router data affecting all routes
@@ -233,6 +242,19 @@
 
 (defonce ^:private session-store (session.memory/memory-store))
 
+(defn- wrap-client-fn-routes
+  [handler routes client-fn]
+  (fn [request]
+    (or (handler request)
+        (if-let [route (first (filter #(pages.routes/route-matches % request) routes))]
+          ;; TODO: really call client-fn with route?
+          (apply client-fn route (pages.routes/route-matches route request))
+          {:status 404}))))
+
+(defn- wrap-client-routes
+  [handler routes client]
+  (wrap-client-fn-routes handler routes (constantly client)))
+
 (defn handler [cfg]
   (let [wrap-session  (fn session-mw [handler]
                         (mw.session/wrap-session handler {:store session-store}))
@@ -246,6 +268,6 @@
     (-> handler*
         (ring.middleware.resource/wrap-resource "/")
         (wrap-caching "max-age=0")
-        (pages.ring/wrap-client-routes routes/routes client-response)
+        (wrap-client-routes routes/routes client-response)
         (wrap-sso)
         (wrap-session))))

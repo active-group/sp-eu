@@ -8,12 +8,13 @@
             [wisen.frontend.create :as create]
             [wisen.frontend.nlp :as nlp]
             [wisen.frontend.edit :as edit]
-            [reacl-c-basics.pages.core :as routing]
+            [reacl-c-basics.pages.routes :as pages.routes]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.util :as util]
             [wisen.frontend.modal :as modal]
             [wisen.frontend.default :as default]
             [active.data.realm.validation :as validation]
+            [wisen.frontend.resource :as resource]
             ["jsonld" :as jsonld]))
 
 (defn menu [schema]
@@ -65,7 +66,10 @@
 
        (menu schema)
 
-       (search/main schema)))))
+       (if-let [resource-id (first
+                             (pages.routes/parse routes/resource (.-href (.-location js/window))))]
+         (resource/main schema resource-id)
+         (search/main schema))))))
 
 (defn ^:dev/after-load start []
   (println "start")

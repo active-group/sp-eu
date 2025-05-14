@@ -4,7 +4,4 @@
 
 (r/defroutes routes
   (r/defroute home "/")
-  (r/defroute search "/search")
-  (r/defroute create "/create")
-  (r/defroute nlp "/nlp")
-  (r/defroute edit "/edit/:id"))
+  (r/defroute resource "/resource/:id/about"))
