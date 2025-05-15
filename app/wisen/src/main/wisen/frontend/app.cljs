@@ -45,13 +45,22 @@
                         :padding 0
                         :margin 0
                         :display "flex"
-                        :align-items "baseline"
-                        :justify-content "flex-end"
+                        :align-items "center"
+                        :justify-content "space-between"
                         :gap "2em"}}
 
-               (new-* "Organization" default/default-organization)
-               (new-* "Event" default/default-event)
-               (new-* "Offer" default/default-offer)))))
+               (dom/a {:style {:font-weight "bold"}
+                       :href (pages.routes/href routes/home)}
+                      "Search")
+
+               (dom/div
+                {:style {:display "flex"
+                         :align-items "baseline"
+                         :justify-content "flex-end"
+                         :gap "2em"}}
+                (new-* "Organization" default/default-organization)
+                (new-* "Event" default/default-event)
+                (new-* "Offer" default/default-offer))))))
 
 (defn toplevel []
   (util/with-schemaorg
