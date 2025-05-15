@@ -114,6 +114,9 @@
     (= type tree/literal-boolean)
     (lit-b true)
 
+    (= type tree/literal-time)
+    (lit-t "10:00")
+
     (= type tree/ref)
     (tree/make-ref "https://wisen.active-group.de/")
 
