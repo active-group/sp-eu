@@ -284,7 +284,7 @@
       (if focused?
         (edit-node-properties etree eprops*)
         ;; else focus on uri
-        (edit-node-focused? etree (forms/make-selected))))))
+        (edit-node-focused? etree (forms/selected))))))
 
 (declare edit-tree-original)
 
