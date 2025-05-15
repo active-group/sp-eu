@@ -106,16 +106,6 @@
 
 ;;
 
-(defn primitive? [x]
-  (or (literal-string? x)
-      (literal-decimal? x)
-      (literal-boolean? x)
-      (literal-time? x)
-      (literal-date? x)
-      (ref? x)))
-
-;;
-
 (def-record property
   [property-predicate :- URI
    property-object #_#_:- (realm/delay tree)
