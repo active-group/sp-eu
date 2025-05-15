@@ -706,7 +706,8 @@
                                ds/plus-icon)))
         (dom/a {:style {:margin-right "1em"}
                 :id (tree/uri-string uri)
-                :href (tree/uri-string uri)}
+                :href (when-not (existential/existential? uri)
+                        (tree/uri-string uri))}
                (pr-uri uri))
 
         (when editing?
