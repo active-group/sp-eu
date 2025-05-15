@@ -4,6 +4,7 @@
             [active.data.realm :as r]
             [active.clojure.lens :as lens]
             [clojure.set :as set]
+            [wisen.common.macros :refer-macros [define-rdf-datatype]]
             ["rdflib" :as rdflib])
   (:import goog.object))
 
@@ -157,71 +158,29 @@
          (= (.-value this) (.-value other))
          (= (.-datatype this) (.-datatype other)))))
 
-(def xsd-string (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#string"))
+(define-rdf-datatype xsd-string
+  "http://www.w3.org/2001/XMLSchema#string"
+  make-literal-string
+  literal-string?
+  literal-string-value)
 
-(defn make-literal-string [string]
-  (rdflib/literal string xsd-string))
+(define-rdf-datatype xsd-decimal
+  "http://www.w3.org/2001/XMLSchema#decimal"
+  make-literal-decimal
+  literal-decimal?
+  literal-decimal-value)
 
-(defn literal-string? [x]
-  (and
-   (instance? rdflib/Literal x)
-   (.equals goog.object
-            (.-datatype x)
-            xsd-string)))
+(define-rdf-datatype xsd-boolean
+  "http://www.w3.org/2001/XMLSchema#boolean"
+  make-literal-boolean
+  literal-boolean?
+  literal-boolean-value)
 
-(defn literal-string-value [x]
-  (.-value x))
-
-;;
-
-(def xsd-decimal (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#decimal"))
-
-(defn make-literal-decimal [string]
-  (rdflib/literal string xsd-decimal))
-
-(defn literal-decimal? [x]
-  (and
-   (instance? rdflib/Literal x)
-   (.equals goog.object
-            (.-datatype x)
-            xsd-decimal)))
-
-(defn literal-decimal-value [x]
-  (.-value x))
-
-;;
-
-(def xsd-boolean (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#boolean"))
-
-(defn make-literal-boolean [string]
-  (rdflib/literal string xsd-boolean))
-
-(defn literal-boolean? [x]
-  (and
-   (instance? rdflib/Literal x)
-   (.equals goog.object
-            (.-datatype x)
-            xsd-boolean)))
-
-(defn literal-boolean-value [x]
-  (.-value x))
-
-;;
-
-(def xsd-time (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#time"))
-
-(defn make-literal-time [string]
-  (rdflib/literal string xsd-time))
-
-(defn literal-time? [x]
-  (and
-   (instance? rdflib/Literal x)
-   (.equals goog.object
-            (.-datatype x)
-            xsd-time)))
-
-(defn literal-time-value [x]
-  (.-value x))
+(define-rdf-datatype xsd-time
+  "http://www.w3.org/2001/XMLSchema#time"
+  make-literal-time
+  literal-time?
+  literal-time-value)
 
 ;;
 
