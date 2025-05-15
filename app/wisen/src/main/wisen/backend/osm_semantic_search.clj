@@ -71,36 +71,89 @@
     (println "First few values:" (take 5 embedding))
     embedding))
 
-;; -- OSM helpers --
+(def osm-tags
+  {:general [
+    ["leisure" #"^(sports_centre|park|fitness_centre|swimming_pool|pitch|playground)$"]
+    ["sport" nil]
+    ["community_centre" nil]
+    ["social_facility" nil]
+    ["amenity" #"^(community_centre|social_centre|library|arts_centre|healthcare|wellness|support_group)$"]
+  ]
 
-(defn fetch-osm-data [min-lat min-lon max-lat max-lon]
-  (let [base-url "https://overpass-api.de/api/interpreter?data="
-        query (str "[out:json];"
-                   "("
-                   "  node[\"leisure\"~\"^(sports_centre|park|fitness_centre|swimming_pool|pitch|playground)$\"]"
-                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"sport\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"club\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"community_centre\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"social_facility\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"amenity\"~\"^(community_centre|social_centre|library|arts_centre|healthcare|wellness)$\"]"
-                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"leisure\"~\"^(sports_centre|park|fitness_centre|swimming_pool|pitch|playground)$\"]"
-                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"sport\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"community_centre\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"social_facility\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"amenity\"~\"^(community_centre|social_centre|library|arts_centre|healthcare|wellness)$\"]"
-                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   ");"
-                   "out body meta;")
-        encoded-query (codec/url-encode query)
-        url (str base-url encoded-query)
-        response (http/get url {:accept :json
-                                :as :json-string-keys})
-        elems (get (:body response) "elements")
-        _ (println (str "number of elements: " (count elems)))]
-     elems))
+   :elderly [
+    ["target_group" #"elderly|senior|older_people"]
+    ["social_facility" #"nursing_home|assisted_living|retirement_home|day_care"]
+    ["amenity" #"senior_centre"]
+    ["description" #"elderly|senior"]
+  ]
+
+   :lgbtq [
+    ["target_group" #"lgbt|trans|queer|gay|lesbian"]
+    ["community" #"lgbt"]
+    ["description" #"lgbt|queer|trans|gay|lesbian"]
+    ["name" #"lgbt|queer"]
+  ]
+
+   :immigrants [
+    ["target_group" #"immigrant|refugee|migrant"]
+    ["community" #"immigrant|refugee|multicultural|intercultural"]
+    ["description" #"language|immigrant|integration|refugee|german_course"]
+    ["amenity" #"language_school|adult_education"]
+  ]
+
+   :mental_health [
+    ["healthcare" #"mental_health|psychotherapy"]
+    ["amenity" #"counselling|support_group"]
+    ["social_facility" #"therapy|day_care"]
+    ["description" #"mental|therapy|stress|wellbeing"]
+  ]
+
+   :culture_creative [
+    ["amenity" #"arts_centre|library|museum"]
+    ["leisure" #"music_venue|theatre"]
+    ["description" #"art|creative|cultural|craft|music"]
+  ]
+
+   :volunteering [
+    ["community" #"volunteer|mutual_aid|charity"]
+    ["description" #"volunteer|helping|supporting|donation"]
+  ]
+
+   :spiritual [
+    ["amenity" #"place_of_worship"]
+    ["description" #"spiritual|faith|religious|mosque|church|temple|synagogue"]
+  ]
+
+   :youth [
+    ["leisure" #"youth_centre|club"]
+    ["amenity" #"youth_centre"]
+    ["target_group" #"youth|teen|young"]
+    ["description" #"youth|teen|young"]
+  ]})
+
+(defn tag->query [[k v] min-lat min-lon max-lat max-lon]
+  (let [key (str "\"" k "\"")
+        match (if v
+                (str "~\"" v "\"")
+                "")
+        bbox (str "(" min-lat "," min-lon "," max-lat "," max-lon ");")]
+    (str
+      "  node[" key match "]" bbox
+      "  way[" key match "]" bbox)))
+
+(defn fetch-osm-data
+  [min-lat min-lon max-lat max-lon]
+  (let [all-tags (apply concat (vals osm-tags))
+        tag-queries (map #(tag->query % min-lat min-lon max-lat max-lon) all-tags)
+        query (str "[out:json];(" (str/join "\n" tag-queries) ");out body geom qt;")
+        response (http/post "https://overpass-api.de/api/interpreter"
+                    {:headers {"Content-Type" "application/x-www-form-urlencoded"}
+                     :form-params {"data" query}
+                     :accept :json
+                     :as :json-string-keys})
+        elems (get (:body response) "elements")]
+    (println (str "Fetched " (count elems) " OSM elements"))
+    elems))
 
 (defn extract-features [element]
   (let [tags (get element "tags" {})
