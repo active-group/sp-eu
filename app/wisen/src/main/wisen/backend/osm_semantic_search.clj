@@ -1,37 +1,69 @@
 (ns wisen.backend.osm-semantic-search
   (:require [clj-http.client :as http]
-            [clojure.string :as str]
             [clojure.core.cache :as cache]
-            [ring.util.codec :as codec])
-  (:import [ai.djl.repository.zoo Criteria ModelZoo]
-           [ai.djl.huggingface.translator TextEmbeddingTranslatorFactory]))
+            [clojure.string :as str])
+  (:import [ai.djl.huggingface.tokenizers HuggingFaceTokenizer]
+           ;; [ai.djl.huggingface.translator TextEmbeddingTranslatorFactory]
+           [ai.djl.ndarray NDList]
+           [ai.djl.repository.zoo Criteria ModelZoo]
+           [ai.djl.translate Translator]
+           [java.nio.file Paths]))
 
 ;; Cache for embeddings (to avoid re-computing)
 (def embedding-cache (atom (cache/ttl-cache-factory {} :ttl (* 24 60 60 1000)))) ;; 24 hours
 
-;; DJL model + tokenizer
-;; TODO: should be configurable
-(def model-name "BAAI/bge-m3")
+(def model-name (System/getenv "TS_MODEL_NAME"))
+
+(def model-path (System/getenv "TS_MODEL_PATH"))
+
+(def tokenizer-path (System/getenv "TS_TOKENIZER_PATH"))
+
+(defn normalize-vector [v]
+  (let [norm-squared (reduce + (map (fn [x] (* x x)) v))
+        norm (Math/sqrt norm-squared)]
+    (if (> norm 0.0)
+      (map #(/ % norm) v)
+      v)))
+
+
+(defn custom-translator [tokenizer-path]
+  (let [tokenizer (HuggingFaceTokenizer/newInstance (Paths/get tokenizer-path (make-array String 0)))]
+    (reify Translator
+      (processInput [_ ctx input]
+        (let [encoding (.encode tokenizer input)
+              manager (.getNDManager ctx)
+              input-ids (.getIds encoding)
+              attention-mask (.getAttentionMask encoding)
+              input-array (.create manager (int-array input-ids))
+              attention-array (.create manager (int-array attention-mask))
+              input-batched (.expandDims input-array 0)
+              attention-batched (.expandDims attention-array 0)]
+          (NDList. (into-array [input-batched attention-batched]))))
+
+      (processOutput [_ _ctx output]
+        (let [embedding (.head output)
+              pooled (-> embedding
+                        ;; Mean pooling across token dimension (dimension 1)
+                        (.mean (int-array [1]))
+                        (.toFloatArray))
+              ;; L2 normalize the embedding (important for cosine similarity)
+              normalized (normalize-vector pooled)]
+          normalized))
+
+      (getBatchifier [_] nil))))
 
 (defn initialize-model []
-  (println "Initializing embedding model...")
+  (println "Initializing embedding model:" model-name)
+  (println "Model path:" model-path)
+  (println "Tokenizer path:" tokenizer-path)
 
-  (let [cls (Class/forName "ai.djl.repository.zoo.DefaultModelZoo")
-        logger-field (.getDeclaredField cls "logger")]
-    (.setAccessible logger-field true)
-    (println "Current logger value:" (.get logger-field nil)))
-
-  (System/setProperty "ai.djl.huggingface.tokenizers.cache.dir"
-                      (str (System/getProperty "user.home") "/.cache/huggingface/hub"))
-  (System/setProperty "ai.djl.repository.zoo.location"
-                      (str (System/getProperty "user.home") "/.cache/huggingface/hub"))
-  (let [model-path (str (System/getProperty "user.home")
-                        "/.cache/huggingface/hub/models--BAAI--bge-m3/bge-m3.pt")
+  (let [translator (custom-translator tokenizer-path)
         criteria (-> (Criteria/builder)
                      (.setTypes String (Class/forName "[F"))
-                     (.optModelPath (java.nio.file.Paths/get (java.net.URI. (str "file://" model-path))))
-                     (.optTranslatorFactory (TextEmbeddingTranslatorFactory.))
-                     (.optArgument "tokenizer", "BAAI/bge-m3")
+                     (.optModelPath (Paths/get (java.net.URI. (str "file://" model-path))))
+                     ;; Somehow, using the built .optTranslatorFactory and providing the local tokenizer file
+                     ;; does not work, so we use a custom-translator here.
+                     (.optTranslator translator)
                      (.optEngine "PyTorch")
                      (.build))
         model (ModelZoo/loadModel criteria)]
@@ -50,8 +82,6 @@
     (.close predictor)
     (.close model)
     (reset! model-state nil)))
-
-;; -- Embedding helpers --
 
 (defn get-embedding [text]
   (if (cache/has? @embedding-cache text)
@@ -193,8 +223,6 @@
       0.0
       (/ dot (* norm1 norm2)))))
 
-;; -- Main semantic search --
-
 (defn rank-osm-results [query-embedding osm-elements]
   (let [elements (map #(assoc % :features (extract-features %))
                       (filter #(seq (get % "tags")) osm-elements))
@@ -208,18 +236,6 @@
                                        embeddings)
         valid-elements (filter :similarity elements-with-embeddings)]
     (reverse (sort-by :similarity valid-elements))))
-
-#_(defn format-result [element]
-  (let [tags (get element "tags" {})
-        id (get element "id")
-        type (get element "type")
-        name (or (get tags "name") (str type " " id))
-        similarity (:similarity element)]
-    {:id id
-     :type type
-     :name name
-     :tags tags
-     :similarity similarity}))
 
 (defn semantic-osm-search
   "Semantic search over OSM area for a natural language description."
