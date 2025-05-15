@@ -104,16 +104,21 @@
 
 (defn extract-features [element]
   (let [tags (get element "tags" {})
-        fields [(get tags "name")
-                (get tags "name:en")
-                (get tags "description")
-                (get tags "amenity")
-                (get tags "shop")
-                (get tags "tourism")
-                (get tags "leisure")
-                (get tags "historic")
-                (get tags "cuisine")]]
-    (str/join " " (remove str/blank? fields))))
+        extract [ "name" "name:en" "official_name" "short_name"
+                  "description" "operator" "brand" "cuisine"
+                  "amenity" "shop" "leisure" "tourism"
+                  "historic" "religion" "denomination"
+                  "sport" "healthcare" "social_facility"
+                  "community_centre" "craft" "man_made" "office"
+                  "club" "public_transport" "education" ]
+        values (->> extract
+                    (map #(get tags %))
+                    (filter some?)
+                    (mapcat #(str/split % #"\s*;\s*")) ;; split semi-colon lists
+                    (map str/trim)
+                    (remove str/blank?)
+                    distinct)]
+    (str/join " " values)))
 
 (defn cosine-similarity [vec1 vec2]
   (let [dot (reduce + (map * vec1 vec2))
