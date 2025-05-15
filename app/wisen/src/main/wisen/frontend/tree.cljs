@@ -95,11 +95,23 @@
 
 ;;
 
+(def-record literal-date
+  [literal-date-value :- realm/string])
+
+(defn make-literal-date [s]
+  (literal-date literal-date-value s))
+
+(defn literal-date? [x]
+  (record/is-a? literal-date x))
+
+;;
+
 (defn primitive? [x]
   (or (literal-string? x)
       (literal-decimal? x)
       (literal-boolean? x)
       (literal-time? x)
+      (literal-date? x)
       (ref? x)))
 
 ;;
@@ -190,6 +202,7 @@
            literal-decimal
            literal-boolean
            literal-time
+           literal-date
            node
            many
            exists))
@@ -227,6 +240,9 @@
 
     (rdf/literal-boolean? x)
     [links existentials (make-literal-boolean (rdf/literal-boolean-value x))]
+
+    (rdf/literal-date? x)
+    [links existentials (make-literal-date (rdf/literal-date-value x))]
 
     (rdf/literal-time? x)
     [links existentials (make-literal-time (rdf/literal-time-value x))]
@@ -269,6 +285,9 @@
             tree
 
             (literal-time? tree)
+            tree
+
+            (literal-date? tree)
             tree
 
             (node? tree)
@@ -345,6 +364,9 @@
     []
 
     (literal-time? tree)
+    []
+
+    (literal-date? tree)
     []
 
     (node? tree)

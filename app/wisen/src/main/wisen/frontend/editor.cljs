@@ -137,6 +137,9 @@
     (= kind tree/literal-time)
     "Time"
 
+    (= kind tree/literal-date)
+    "Date"
+
     (= kind tree/ref)
     "Node"
 
@@ -1020,6 +1023,13 @@
         (c/focus (lens/pattern [edit-tree/literal-time-value
                                 edit-tree/literal-time-focused?])
                  (ds/input+focus {:type "time"
+                                  :disabled (when-not force-editing?
+                                              "disabled")}))
+
+        (edit-tree/literal-date? etree)
+        (c/focus (lens/pattern [edit-tree/literal-date-value
+                                edit-tree/literal-date-focused?])
+                 (ds/input+focus {:type "date"
                                   :disabled (when-not force-editing?
                                               "disabled")}))
 
