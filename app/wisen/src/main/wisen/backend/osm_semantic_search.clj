@@ -1,37 +1,69 @@
 (ns wisen.backend.osm-semantic-search
   (:require [clj-http.client :as http]
-            [clojure.string :as str]
             [clojure.core.cache :as cache]
-            [ring.util.codec :as codec])
-  (:import [ai.djl.repository.zoo Criteria ModelZoo]
-           [ai.djl.huggingface.translator TextEmbeddingTranslatorFactory]))
+            [clojure.string :as str])
+  (:import [ai.djl.huggingface.tokenizers HuggingFaceTokenizer]
+           ;; [ai.djl.huggingface.translator TextEmbeddingTranslatorFactory]
+           [ai.djl.ndarray NDList]
+           [ai.djl.repository.zoo Criteria ModelZoo]
+           [ai.djl.translate Translator]
+           [java.nio.file Paths]))
 
 ;; Cache for embeddings (to avoid re-computing)
 (def embedding-cache (atom (cache/ttl-cache-factory {} :ttl (* 24 60 60 1000)))) ;; 24 hours
 
-;; DJL model + tokenizer
-;; TODO: should be configurable
-(def model-name "BAAI/bge-m3")
+(def model-name (System/getenv "TS_MODEL_NAME"))
+
+(def model-path (System/getenv "TS_MODEL_PATH"))
+
+(def tokenizer-path (System/getenv "TS_TOKENIZER_PATH"))
+
+(defn normalize-vector [v]
+  (let [norm-squared (reduce + (map (fn [x] (* x x)) v))
+        norm (Math/sqrt norm-squared)]
+    (if (> norm 0.0)
+      (map #(/ % norm) v)
+      v)))
+
+
+(defn custom-translator [tokenizer-path]
+  (let [tokenizer (HuggingFaceTokenizer/newInstance (Paths/get tokenizer-path (make-array String 0)))]
+    (reify Translator
+      (processInput [_ ctx input]
+        (let [encoding (.encode tokenizer input)
+              manager (.getNDManager ctx)
+              input-ids (.getIds encoding)
+              attention-mask (.getAttentionMask encoding)
+              input-array (.create manager (int-array input-ids))
+              attention-array (.create manager (int-array attention-mask))
+              input-batched (.expandDims input-array 0)
+              attention-batched (.expandDims attention-array 0)]
+          (NDList. (into-array [input-batched attention-batched]))))
+
+      (processOutput [_ _ctx output]
+        (let [embedding (.head output)
+              pooled (-> embedding
+                        ;; Mean pooling across token dimension (dimension 1)
+                        (.mean (int-array [1]))
+                        (.toFloatArray))
+              ;; L2 normalize the embedding (important for cosine similarity)
+              normalized (normalize-vector pooled)]
+          normalized))
+
+      (getBatchifier [_] nil))))
 
 (defn initialize-model []
-  (println "Initializing embedding model...")
+  (println "Initializing embedding model:" model-name)
+  (println "Model path:" model-path)
+  (println "Tokenizer path:" tokenizer-path)
 
-  (let [cls (Class/forName "ai.djl.repository.zoo.DefaultModelZoo")
-        logger-field (.getDeclaredField cls "logger")]
-    (.setAccessible logger-field true)
-    (println "Current logger value:" (.get logger-field nil)))
-
-  (System/setProperty "ai.djl.huggingface.tokenizers.cache.dir"
-                      (str (System/getProperty "user.home") "/.cache/huggingface/hub"))
-  (System/setProperty "ai.djl.repository.zoo.location"
-                      (str (System/getProperty "user.home") "/.cache/huggingface/hub"))
-  (let [model-path (str (System/getProperty "user.home")
-                        "/.cache/huggingface/hub/models--BAAI--bge-m3/bge-m3.pt")
+  (let [translator (custom-translator tokenizer-path)
         criteria (-> (Criteria/builder)
                      (.setTypes String (Class/forName "[F"))
-                     (.optModelPath (java.nio.file.Paths/get (java.net.URI. (str "file://" model-path))))
-                     (.optTranslatorFactory (TextEmbeddingTranslatorFactory.))
-                     (.optArgument "tokenizer", "BAAI/bge-m3")
+                     (.optModelPath (Paths/get (java.net.URI. (str "file://" model-path))))
+                     ;; Somehow, using the built .optTranslatorFactory and providing the local tokenizer file
+                     ;; does not work, so we use a custom-translator here.
+                     (.optTranslator translator)
                      (.optEngine "PyTorch")
                      (.build))
         model (ModelZoo/loadModel criteria)]
@@ -51,8 +83,6 @@
     (.close model)
     (reset! model-state nil)))
 
-;; -- Embedding helpers --
-
 (defn get-embedding [text]
   (if (cache/has? @embedding-cache text)
     (cache/lookup @embedding-cache text)
@@ -71,49 +101,119 @@
     (println "First few values:" (take 5 embedding))
     embedding))
 
-;; -- OSM helpers --
+(def osm-tags
+  {:general [
+    ["leisure" #"^(sports_centre|park|fitness_centre|swimming_pool|pitch|playground)$"]
+    ["sport" nil]
+    ["community_centre" nil]
+    ["social_facility" nil]
+    ["amenity" #"^(community_centre|social_centre|library|arts_centre|healthcare|wellness|support_group)$"]
+  ]
 
-(defn fetch-osm-data [min-lat min-lon max-lat max-lon]
-  (let [base-url "https://overpass-api.de/api/interpreter?data="
-        query (str "[out:json];"
-                   "("
-                   "  node[\"leisure\"~\"^(sports_centre|park|fitness_centre|swimming_pool|pitch|playground)$\"]"
-                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"sport\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"club\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"community_centre\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"social_facility\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  node[\"amenity\"~\"^(community_centre|social_centre|library|arts_centre|healthcare|wellness)$\"]"
-                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"leisure\"~\"^(sports_centre|park|fitness_centre|swimming_pool|pitch|playground)$\"]"
-                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"sport\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"community_centre\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"social_facility\"](" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   "  way[\"amenity\"~\"^(community_centre|social_centre|library|arts_centre|healthcare|wellness)$\"]"
-                   "    (" min-lat "," min-lon "," max-lat "," max-lon ");"
-                   ");"
-                   "out body meta;")
-        encoded-query (codec/url-encode query)
-        url (str base-url encoded-query)
-        response (http/get url {:accept :json
-                                :as :json-string-keys})
-        elems (get (:body response) "elements")
-        _ (println (str "number of elements: " (count elems)))]
-     elems))
+   :elderly [
+    ["target_group" #"elderly|senior|older_people"]
+    ["social_facility" #"nursing_home|assisted_living|retirement_home|day_care"]
+    ["amenity" #"senior_centre"]
+    ["description" #"elderly|senior"]
+  ]
+
+   :lgbtq [
+    ["target_group" #"lgbt|trans|queer|gay|lesbian"]
+    ["community" #"lgbt"]
+    ["description" #"lgbt|queer|trans|gay|lesbian"]
+    ["name" #"lgbt|queer"]
+  ]
+
+   :immigrants [
+    ["target_group" #"immigrant|refugee|migrant"]
+    ["community" #"immigrant|refugee|multicultural|intercultural"]
+    ["description" #"language|immigrant|integration|refugee|german_course"]
+    ["amenity" #"language_school|adult_education"]
+  ]
+
+   :mental_health [
+    ["healthcare" #"mental_health|psychotherapy"]
+    ["amenity" #"counselling|support_group"]
+    ["social_facility" #"therapy|day_care"]
+    ["description" #"mental|therapy|stress|wellbeing"]
+  ]
+
+   :culture_creative [
+    ["amenity" #"arts_centre|library|museum"]
+    ["leisure" #"music_venue|theatre"]
+    ["description" #"art|creative|cultural|craft|music"]
+  ]
+
+   :volunteering [
+    ["community" #"volunteer|mutual_aid|charity"]
+    ["description" #"volunteer|helping|supporting|donation"]
+  ]
+
+   :spiritual [
+    ["amenity" #"place_of_worship"]
+    ["description" #"spiritual|faith|religious|mosque|church|temple|synagogue"]
+  ]
+
+   :youth [
+    ["leisure" #"youth_centre|club"]
+    ["amenity" #"youth_centre"]
+    ["target_group" #"youth|teen|young"]
+    ["description" #"youth|teen|young"]
+  ]})
+
+(defn tag->query [[k v] min-lat min-lon max-lat max-lon]
+  (let [key (str "\"" k "\"")
+        match (if v
+                (str "~\"" v "\"")
+                "")
+        bbox (str "(" min-lat "," min-lon "," max-lat "," max-lon ");")]
+    (str
+      "  node[" key match "]" bbox
+      "  way[" key match "]" bbox)))
+
+(defn fetch-osm-data
+  [min-lat min-lon max-lat max-lon]
+  (let [all-tags (apply concat (vals osm-tags))
+        tag-queries (map #(tag->query % min-lat min-lon max-lat max-lon) all-tags)
+        query (str "[out:json];(" (str/join "\n" tag-queries) ");out body geom qt;")
+        response (http/post "https://overpass-api.de/api/interpreter"
+                    {:headers {"Content-Type" "application/x-www-form-urlencoded"}
+                     :form-params {"data" query}
+                     :accept :json
+                     :as :json-string-keys})
+        elems (get (:body response) "elements")]
+    (println (str "Fetched " (count elems) " OSM elements"))
+    elems))
+
+(defn assign-centroid [element]
+  (if (and (not (contains? element "lat"))
+           (contains? element "geometry"))
+    (let [coords (get element "geometry")
+          count (count coords)
+          sum-lat (reduce + (map #(get % "lat") coords))
+          sum-lon (reduce + (map #(get % "lon") coords))]
+      (assoc element
+             "lat" (/ sum-lat count)
+             "lon" (/ sum-lon count)))
+    element))
 
 (defn extract-features [element]
   (let [tags (get element "tags" {})
-        fields [(get tags "name")
-                (get tags "name:en")
-                (get tags "description")
-                (get tags "amenity")
-                (get tags "shop")
-                (get tags "tourism")
-                (get tags "leisure")
-                (get tags "historic")
-                (get tags "cuisine")]]
-    (str/join " " (remove str/blank? fields))))
+        extract [ "name" "name:en" "official_name" "short_name"
+                  "description" "operator" "brand" "cuisine"
+                  "amenity" "shop" "leisure" "tourism"
+                  "historic" "religion" "denomination"
+                  "sport" "healthcare" "social_facility"
+                  "community_centre" "craft" "man_made" "office"
+                  "club" "public_transport" "education" ]
+        values (->> extract
+                    (map #(get tags %))
+                    (filter some?)
+                    (mapcat #(str/split % #"\s*;\s*")) ;; split semi-colon lists
+                    (map str/trim)
+                    (remove str/blank?)
+                    distinct)]
+    (str/join " " values)))
 
 (defn cosine-similarity [vec1 vec2]
   (let [dot (reduce + (map * vec1 vec2))
@@ -122,8 +222,6 @@
     (if (zero? (* norm1 norm2))
       0.0
       (/ dot (* norm1 norm2)))))
-
-;; -- Main semantic search --
 
 (defn rank-osm-results [query-embedding osm-elements]
   (let [elements (map #(assoc % :features (extract-features %))
@@ -139,18 +237,6 @@
         valid-elements (filter :similarity elements-with-embeddings)]
     (reverse (sort-by :similarity valid-elements))))
 
-#_(defn format-result [element]
-  (let [tags (get element "tags" {})
-        id (get element "id")
-        type (get element "type")
-        name (or (get tags "name") (str type " " id))
-        similarity (:similarity element)]
-    {:id id
-     :type type
-     :name name
-     :tags tags
-     :similarity similarity}))
-
 (defn semantic-osm-search
   "Semantic search over OSM area for a natural language description."
   [description min-lat min-lon max-lat max-lon & {:keys [limit] :or {limit 20}}]
@@ -163,4 +249,4 @@
     {:query description
      :bbox {:min_lat min-lat :min_lon min-lon :max_lat max-lat :max_lon max-lon}
      :total_matches (count ranked)
-     :results top-results}))
+     :results (map assign-centroid top-results)}))
