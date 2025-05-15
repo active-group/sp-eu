@@ -669,7 +669,7 @@
        (nil? result)
        (c/fragment
         (spinner/main "Determining references")
-        (ajax/fetch (ajax/GET (str "api/references/" id))))
+        (ajax/fetch (ajax/GET (str "/api/references/" id))))
 
        (and (ajax/response? result)
             (ajax/response-ok? result))
