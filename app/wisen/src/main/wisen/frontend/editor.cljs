@@ -190,11 +190,11 @@
       (= predicate "http://schema.org/byDay")
       (day-of-week-component schema editable? editing?)
 
-      (and
-       (= predicate "http://schema.org/openingHoursSpecification")
-       (edit-tree/edit-node? etree)
-       (= (tree/type-uri (edit-node-type etree)) "http://schema.org/OpeningHoursSpecification")
-       (edit-node-is-opening-hours-specification-value? etree))
+      #_#_(and
+           (= predicate "http://schema.org/openingHoursSpecification")
+           (edit-tree/edit-node? etree)
+           (= (tree/type-uri (edit-node-type etree)) "http://schema.org/OpeningHoursSpecification")
+           (edit-node-is-opening-hours-specification-value? etree))
       (value-node/as-value-node
        (opening-hours-specification-component schema editable? editing?))
 
@@ -983,7 +983,7 @@
         (value-node/as-value-node
          (postal-address-component schema editable? force-editing?))
 
-        (and (= type-uri "http://schema.org/OpeningHoursSpecification")
+        #_#_(and (= type-uri "http://schema.org/OpeningHoursSpecification")
              (edit-node-is-opening-hours-specification-value? enode))
         (value-node/as-value-node
          (opening-hours-specification-component schema editable? force-editing?))
