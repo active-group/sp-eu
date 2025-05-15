@@ -6,42 +6,55 @@
             [active.data.realm :as realm]
             [reacl-c-basics.forms.core :as forms]))
 
-(def-record selection
-  [selection-start
-   selection-end])
+(def-record selected [])
+
+(def-record text-selection
+  [text-selection-start
+   text-selection-end])
 
 (defn make-selected [& [start end]]
-  (selection selection-start (or start 0)
-             selection-end (or end start 0)))
+  (text-selection text-selection-start (or start 0)
+                  text-selection-end (or end start 0)))
 
 (defn selected? [x]
-  (is-a? selection x))
+  (or (is-a? selected x)
+      (is-a? text-selection x)))
 
 (def unselected nil)
 
 (def unselected? nil?)
 
 (def selection-info
-  (realm/optional selection))
+  (realm/optional (realm/union
+                   selected
+                   text-selection)))
 
 ;;
 
 (defn- adjust! [elem sel]
-  (if (selected? sel)
+  (cond
+    (is-a? text-selection sel)
     (do
       (.setSelectionRange elem
-                          (selection-start sel)
-                          (selection-end sel))
+                          (text-selection-start sel)
+                          (text-selection-end sel))
       
       (.focus elem))
+
+    (is-a? selected sel)
+    (.focus elem)
+
+    (unselected? sel)
     (.blur elem)))
 
 (defn- current-selection-info! [elem]
   (if (= elem (.-activeElement js/document))
     (let [start (.-selectionStart elem)
           end (.-selectionEnd elem)]
-      (selection selection-start start
-                 selection-end end))
+      (if (and start end)
+        (text-selection text-selection-start start
+                        text-selection-end end)
+        (selected)))
     ;; else
     unselected))
 
@@ -83,7 +96,7 @@
               :onBlur handler})
             children)
 
-           (when (is-a? selection sel-info)
+           (when (selected? sel-info)
              (-> (selection-sub ref)
                  (c/handle-action handler)))
 
