@@ -155,6 +155,18 @@
     (println (str "Fetched " (count elems) " OSM elements"))
     elems))
 
+(defn assign-centroid [element]
+  (if (and (not (contains? element "lat"))
+           (contains? element "geometry"))
+    (let [coords (get element "geometry")
+          count (count coords)
+          sum-lat (reduce + (map #(get % "lat") coords))
+          sum-lon (reduce + (map #(get % "lon") coords))]
+      (assoc element
+             "lat" (/ sum-lat count)
+             "lon" (/ sum-lon count)))
+    element))
+
 (defn extract-features [element]
   (let [tags (get element "tags" {})
         extract [ "name" "name:en" "official_name" "short_name"
@@ -221,4 +233,4 @@
     {:query description
      :bbox {:min_lat min-lat :min_lon min-lon :max_lat max-lat :max_lon max-lon}
      :total_matches (count ranked)
-     :results top-results}))
+     :results (map assign-centroid top-results)}))
