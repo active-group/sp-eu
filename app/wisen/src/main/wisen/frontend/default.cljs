@@ -93,7 +93,6 @@
    (property "offers" default-offer)))
 
 (def default-person
-  (def person
   (make-node
    "Person"
    (property "name" (lit-s "John Doe"))
@@ -101,7 +100,7 @@
    (property "telephone" (lit-s "+1-123-456-7890"))
    (property "birthDate" (lit-s "1980-01-01"))
    (property "gender" (lit-s "Male"))
-   (property "address" default-postal-address))))
+   (property "address" default-postal-address)))
 
 (defn default-tree-for-sort [type]
   (cond
