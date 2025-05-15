@@ -58,6 +58,12 @@
             result-model
             (triple-store/run-construct-query! q)]
         {:status 200
+         ;; We have to take the "Accept" header of the request
+         ;; into account for the cache key in the
+         ;; browser. Otherwise, a client might show a JSON-LD
+         ;; response when the user clicks the back-button for
+         ;; example.
+         :headers {"Vary" "Accept"}
          :body (with-out-str
                  (.write result-model *out* "JSON-LD"))})
 

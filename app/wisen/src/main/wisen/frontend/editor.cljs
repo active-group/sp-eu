@@ -704,9 +704,10 @@
                                         :height "100%"
                                         :color "green"}}
                                ds/plus-icon)))
-        (dom/span {:style {:margin-right "1em"}
-                   :id (tree/uri-string uri)}
-                  (pr-uri uri))
+        (dom/a {:style {:margin-right "1em"}
+                :id (tree/uri-string uri)
+                :href (tree/uri-string uri)}
+               (pr-uri uri))
 
         (when editing?
           (c/fragment
