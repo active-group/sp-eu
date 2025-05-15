@@ -182,6 +182,12 @@
   literal-time?
   literal-time-value)
 
+(define-rdf-datatype xsd-date
+  "http://www.w3.org/2001/XMLSchema#date"
+  make-literal-date
+  literal-date?
+  literal-date-value)
+
 ;;
 
 (defn make-collection [nodes]
@@ -212,6 +218,9 @@
 
     (literal-time? x)
     (literal-time-value x)
+
+    (literal-date? x)
+    (literal-date-value x)
 
     (collection? x)
     (pr-str x)))
