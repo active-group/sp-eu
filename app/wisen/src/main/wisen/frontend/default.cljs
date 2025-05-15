@@ -6,6 +6,7 @@
 (def ^:private lit-s tree/make-literal-string)
 (def ^:private lit-d tree/make-literal-decimal)
 (def ^:private lit-b tree/make-literal-boolean)
+(def ^:private lit-t tree/make-literal-time)
 
 (defn- schema [s]
   (str "http://schema.org/" s))
@@ -48,8 +49,8 @@
   (make-value
    "OpeningHoursSpecification"
    (property "dayOfWeek" (tree/make-node (schema "Monday")))
-   (property "opens" (lit-s "10:00:00"))
-   (property "closes" (lit-s "17:00:00"))))
+   (property "opens" (lit-t "10:00:00"))
+   (property "closes" (lit-t "17:00:00"))))
 
 (def default-place
   (make-node

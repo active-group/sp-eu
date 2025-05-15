@@ -208,6 +208,23 @@
 
 ;;
 
+(def xsd-time (rdflib/namedNode "http://www.w3.org/2001/XMLSchema#time"))
+
+(defn make-literal-time [string]
+  (rdflib/literal string xsd-time))
+
+(defn literal-time? [x]
+  (and
+   (instance? rdflib/Literal x)
+   (.equals goog.object
+            (.-datatype x)
+            xsd-time)))
+
+(defn literal-time-value [x]
+  (.-value x))
+
+;;
+
 (defn make-collection [nodes]
   (rdflib/Collection. (clj->js nodes)))
 
@@ -233,6 +250,9 @@
 
     (literal-boolean? x)
     (literal-boolean-value x)
+
+    (literal-time? x)
+    (literal-time-value x)
 
     (collection? x)
     (pr-str x)))

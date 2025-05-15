@@ -121,6 +121,9 @@
     "http://www.w3.org/2001/XMLSchema#boolean"
     tree/literal-boolean
 
+    "http://www.w3.org/2001/XMLSchema#time"
+    tree/literal-time
+
     "http://www.w3.org/ns/shacl#IRI"
     tree/literal-string
 
