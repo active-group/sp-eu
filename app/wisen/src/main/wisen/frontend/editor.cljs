@@ -134,6 +134,9 @@
     (= kind tree/literal-boolean)
     "Boolean"
 
+    (= kind tree/literal-time)
+    "Time"
+
     (= kind tree/ref)
     "Node"
 
@@ -1007,6 +1010,13 @@
         (c/focus (lens/pattern [edit-tree/literal-boolean-value
                                 edit-tree/literal-boolean-focused?])
                  (ds/input+focus {:type "checkbox"
+                                  :disabled (when-not force-editing?
+                                              "disabled")}))
+
+        (edit-tree/literal-time? etree)
+        (c/focus (lens/pattern [edit-tree/literal-time-value
+                                edit-tree/literal-time-focused?])
+                 (ds/input+focus {:type "time"
                                   :disabled (when-not force-editing?
                                               "disabled")}))
 

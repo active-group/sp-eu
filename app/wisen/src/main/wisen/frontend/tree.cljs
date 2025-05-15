@@ -84,10 +84,22 @@
 
 ;;
 
+(def-record literal-time
+  [literal-time-value :- realm/string])
+
+(defn make-literal-time [s]
+  (literal-time literal-time-value s))
+
+(defn literal-time? [x]
+  (record/is-a? literal-time x))
+
+;;
+
 (defn primitive? [x]
   (or (literal-string? x)
       (literal-decimal? x)
       (literal-boolean? x)
+      (literal-time? x)
       (ref? x)))
 
 ;;
@@ -177,6 +189,7 @@
            literal-string
            literal-decimal
            literal-boolean
+           literal-time
            node
            many
            exists))
@@ -215,6 +228,9 @@
     (rdf/literal-boolean? x)
     [links existentials (make-literal-boolean (rdf/literal-boolean-value x))]
 
+    (rdf/literal-time? x)
+    [links existentials (make-literal-time (rdf/literal-time-value x))]
+
     (rdf/collection? x)
     (let [[links* existentials* trees] (reduce (fn [[links existentials trees] node]
                                                  (let [[links* existentials* tree] (node->tree* graph links existentials node)]
@@ -250,6 +266,9 @@
             tree
 
             (literal-boolean? tree)
+            tree
+
+            (literal-time? tree)
             tree
 
             (node? tree)
@@ -323,6 +342,9 @@
     []
 
     (literal-boolean? tree)
+    []
+
+    (literal-time? tree)
     []
 
     (node? tree)

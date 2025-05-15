@@ -193,11 +193,29 @@
 
 ;;
 
+(def-record literal-time
+  [literal-time-value :- realm/string
+   literal-time-focused? :- forms/selection-info])
+
+(defn make-literal-time
+  ([s]
+   (literal-time literal-time-value s
+                 literal-time-focused? forms/unselected))
+  ([s focused?]
+   (literal-time literal-time-value s
+                 literal-time-focused? focused?)))
+
+(defn literal-time? [x]
+  (is-a? literal-time x))
+
+;;
+
 (def edit-tree (realm/union
                 ref
                 literal-string
                 literal-decimal
                 literal-boolean
+                literal-time
                 exists
                 edit-node))
 
@@ -207,6 +225,7 @@
    [literal-string literal-string-focused?]
    [literal-decimal literal-decimal-focused?]
    [literal-boolean literal-boolean-focused?]
+   [literal-time literal-time-focused?]
    [many many-focused?]
    [edit-node edit-node-focused?]))
 
@@ -215,7 +234,7 @@
   [etree]
   (cond
     (ref? etree)
-    (edit-tree-focused? etree (forms/make-selected))
+    (edit-tree-focused? etree (forms/selected))
 
     (literal-string? etree)
     (edit-tree-focused? etree (forms/make-selected))
@@ -224,7 +243,10 @@
     (edit-tree-focused? etree (forms/make-selected))
 
     (literal-boolean? etree)
-    (edit-tree-focused? etree (forms/make-selected))
+    (edit-tree-focused? etree (forms/selected))
+
+    (literal-time? etree)
+    (edit-tree-focused? etree (forms/selected))
 
     (is-a? many etree)
     (lens/overhaul etree (lens/>> many-edit-trees lens/first) focus)
@@ -294,6 +316,9 @@
       (tree/literal-boolean? tree)
       (make-literal-boolean (tree/literal-boolean-value tree))
 
+      (tree/literal-time? tree)
+      (make-literal-time (tree/literal-time-value tree))
+
       (tree/node? tree)
       (edit-node
        edit-node-uri (tree/node-uri tree)
@@ -355,6 +380,9 @@
     (literal-boolean? etree)
     (tree/make-literal-boolean (literal-boolean-value etree))
 
+    (literal-time? etree)
+    (tree/make-literal-time (literal-time-value etree))
+
     (is-a? many etree)
     (tree/make-many (map edit-tree-result-tree (many-edit-trees etree)))
 
@@ -391,6 +419,9 @@
     (literal-boolean? etree)
     [(constructor (change/make-statement subject predicate (tree/make-literal-boolean (literal-boolean-value etree))))]
 
+    (literal-time? etree)
+    [(constructor (change/make-statement subject predicate (tree/make-literal-time (literal-time-value etree))))]
+
     (many? etree)
     (apply concat
            (map (partial edit-tree-changeset** constructor subject predicate)
@@ -425,6 +456,9 @@
     []
 
     (literal-boolean? etree)
+    []
+
+    (literal-time? etree)
     []
 
     (many? etree)
@@ -502,6 +536,9 @@
     etree
 
     (literal-boolean? etree)
+    etree
+
+    (literal-time? etree)
     etree
 
     (many? etree)
@@ -653,6 +690,9 @@
        (literal-boolean? etree)
        tree/literal-boolean
 
+       (literal-time? etree)
+       tree/literal-time
+
        (ref? etree)
        tree/ref
 
@@ -738,6 +778,11 @@
                 (literal-boolean? res))
            (= (literal-boolean-value orig)
               (literal-boolean-value res))
+
+           (and (literal-time? orig)
+                (literal-time? res))
+           (= (literal-time-value orig)
+              (literal-time-value res))
 
            (and (many? orig)
                 (many? res))

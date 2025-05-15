@@ -6,7 +6,6 @@
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.editor :as editor]
             [wisen.frontend.tree :as tree]
-            [wisen.frontend.rdf :as rdf]
             [wisen.frontend.design-system :as ds]
             [wisen.common.or-error :refer [success?
                                            success-value]]))
