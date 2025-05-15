@@ -142,6 +142,9 @@
       "http://schema.org/Person"
       default-person
 
+      "http://schema.org/DayOfWeek"
+      (tree/make-node "http://schema.org/Monday")
+
       (make-node (tree/node-uri type)))))
 
 (defn default-type-for-predicate [pred]

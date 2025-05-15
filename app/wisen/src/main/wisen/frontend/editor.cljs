@@ -166,6 +166,9 @@
       (c/with-state-as node
         (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
+      (= predicate "http://schema.org/dayOfWeek")
+      (day-of-week-component schema editable? editing?)
+
       (= predicate "http://schema.org/name")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
