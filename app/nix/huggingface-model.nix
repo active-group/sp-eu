@@ -29,9 +29,9 @@ in pkgs.stdenv.mkDerivation {
     python ./convert_model.py --model-name "${modelName}" --model-revision "${modelRevision}"
   '';
 
-  # outputHashMode = "recursive";
-  # outputHashAlgo = "sha256";
-  # outputHash = "sha256-iwV9YchzrzSnF95E5ZqDI2gI6oS2dA3KZQ3b8DCvk+I=";
+  outputHashMode = "recursive";
+  outputHashAlgo = "sha256";
+  outputHash = "sha256-4BEu8Gu0j9HzEPLZUJFEJjPkkYYWKmSxPTfjwOR99w8";
 
   meta = with pkgs.lib; {
     description = "TorchScript version of ${modelName} for use with DJL";

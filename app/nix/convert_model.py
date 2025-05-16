@@ -51,15 +51,6 @@ def convert_model(output_dir=None, model_name=None, model_revision=None):
     tokenizer.save_pretrained(tokenizer_path)
     print(f"Saved tokenizer to {tokenizer_path}")
 
-    with open(os.path.join(output_dir, "models", "model_info.json"), "w") as f:
-        json.dump({
-            "model_name": model_name,
-            "safe_model_name": safe_model_name,
-            "model_revision": model_revision or "latest",
-            "pytorch_version": torch.__version__,
-            "transformers_version": tokenizer.__class__.__module__.split('.')[0]
-        }, f, indent=2)
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert Hugging Face model to TorchScript")
     parser.add_argument("--output-dir", type=str, help="Output directory for the converted model")
@@ -71,5 +62,8 @@ if __name__ == "__main__":
     output_dir = args.output_dir
     if output_dir is None and "out" in os.environ:
         output_dir = os.environ["out"]
+
+    torch.use_deterministic_algorithms(True)
+    torch.manual_seed(0)
 
     convert_model(output_dir, args.model_name, args.model_revision)
