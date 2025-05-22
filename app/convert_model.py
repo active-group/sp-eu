@@ -6,12 +6,10 @@ import sys
 import json
 
 
-def convert_model(output_dir=None, model_name=None, model_revision=None):
+def convert_model(output_dir=None, model_name=None, model_revision=None, traced_filename=None, tokenizer_dirname=None):
 
     if model_name is None:
         model_name = "BAAI/bge-m3"
-
-    safe_model_name = model_name.replace("/", "-")
 
     print(f"Loading model {model_name}" +
           (f" at revision {model_revision}" if model_revision else ""))
@@ -29,7 +27,6 @@ def convert_model(output_dir=None, model_name=None, model_revision=None):
         output_dir = os.getcwd()
 
     os.makedirs(output_dir, exist_ok=True)
-    os.makedirs(os.path.join(output_dir, "models"), exist_ok=True)
 
     print("Creating dummy input for tracing...")
     inputs = tokenizer("This is a test sentence", return_tensors="pt", padding=True, truncation=True)
@@ -43,11 +40,11 @@ def convert_model(output_dir=None, model_name=None, model_revision=None):
         check_trace=False
     )
 
-    model_path = os.path.join(output_dir, "models", f"{safe_model_name}-traced.pt")
+    model_path = os.path.join(output_dir, traced_filename)
     traced.save(model_path)
     print(f"Saved traced model to {model_path}")
 
-    tokenizer_path = os.path.join(output_dir, "models", "tokenizer")
+    tokenizer_path = os.path.join(output_dir, tokenizer_dirname)
     tokenizer.save_pretrained(tokenizer_path)
     print(f"Saved tokenizer to {tokenizer_path}")
 
@@ -56,6 +53,8 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=str, help="Output directory for the converted model")
     parser.add_argument("--model-name", type=str, help="Hugging Face model name")
     parser.add_argument("--model-revision", type=str, help="Specific model revision/commit to use")
+    parser.add_argument("--traced-filename", type=str, help="Filename for traced model")
+    parser.add_argument("--tokenizer-dirname", type=str, help="Directory name for tokenizer")
     args = parser.parse_args()
 
     # If running in Nix build environment, use $out if available
@@ -66,4 +65,4 @@ if __name__ == "__main__":
     torch.use_deterministic_algorithms(True)
     torch.manual_seed(0)
 
-    convert_model(output_dir, args.model_name, args.model_revision)
+    convert_model(output_dir, args.model_name, args.model_revision, args.traced_filename, args.tokenizer_dirname)
