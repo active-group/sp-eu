@@ -95,37 +95,49 @@
 
         portableService = pkgs.stdenv.mkDerivation {
           name = "wisen-portable-service";
-          src = null;
-          unpackPhase = "true";
 
-          buildPhase = ''
-            mkdir -p $out/usr/bin
-            mkdir -p $out/usr/lib/wisen
-            mkdir -p $out/usr/share/wisen/models
-            mkdir -p $out/etc/systemd/system
-            mkdir -p $out/usr/lib/portable/profile
+          dontUnpack = true;
+
+          installPhase = ''
+            mkdir -p $out/usr/bin                    # Executables
+            mkdir -p $out/usr/lib/wisen              # Application libraries (app.jar)
+            mkdir -p $out/usr/lib/wisen/jre          # Bundled Java runtime
+            mkdir -p $out/usr/share/wisen/models     # Model files
+            mkdir -p $out/etc/systemd/system         # Service definition
+            mkdir -p $out/usr/lib/portable/profile   # Portable service metadata
 
             cp ${uberJar}/lib/app.jar $out/usr/lib/wisen/app.jar
-
             cp ${tsModelPath} $out/usr/share/wisen/models/
             cp -r ${tsTokenizerPath} $out/usr/share/wisen/models/
+            cp -r ${pkgs.jdk}/* $out/usr/lib/wisen/jre/
+            chmod -R +rX $out/usr/lib/wisen/jre/
 
-            cat > $out/usr/bin/start-app.sh <<EOF
+            cat > $out/usr/bin/wisen <<EOF
             #!/bin/sh
             export TS_MODEL_NAME="${modelConfig.name}"
-            export ts_model_path=/usr/share/wisen/models/$(basename ${tsModelPath})
-            export TS_TOKENIZER_PATH=/usr/share/wisen/models/tokenizer
-            java -jar /usr/lib/wisen/app.jar
+            export TS_MODEL_PATH="/usr/share/wisen/models/${modelConfig.traced-model-filename}"
+            export TS_TOKENIZER_PATH="/usr/share/wisen/models/tokenizer"
+            exec /usr/lib/wisen/jre/bin/java -jar /usr/lib/wisen/app.jar
             EOF
-            chmod +x $out/usr/bin/start-app.sh
+            chmod +x $out/usr/bin/wisen
 
             cat > $out/etc/systemd/system/wisen.service <<EOF
             [Unit]
             Description=SP-EU Wisen Service
+            After=network.target
 
             [Service]
-            ExecStart=/usr/bin/start-app.sh
+            Type=simple
+            ExecStart=/usr/bin/wisen
             Restart=always
+            RestartSec=10
+
+            # Security hardening
+            ProtectSystem=strict
+            ProtectHome=yes
+            PrivateTmp=yes
+            NoNewPrivileges=yes
+            StateDirectory=wisen
 
             [Install]
             WantedBy=multi-user.target
@@ -134,10 +146,10 @@
             cat > $out/usr/lib/portable/profile/wisen.conf <<EOF
             [PortableService]
             PrimaryUnit=wisen.service
+            PortableState=persistent
+            PortableFlags=trusted
             EOF
           '';
-
-          installPhase = "true";
         };
 
       in {
@@ -165,6 +177,9 @@
           };
         };
 
-      packages.default = portableService;
+        packages = {
+          default = portableService;
+          embeddingModel = embeddingModel;
+        };
       });
 }
