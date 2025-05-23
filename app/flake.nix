@@ -52,9 +52,8 @@
           buildPhase = ''
             export HF_HOME="$TMPDIR/hf_home"
             mkdir -p $HF_HOME
-            cp ${./convert_model.py} ./convert_model.py
 
-            python ./convert_model.py \
+            python ${./convert_model.py} \
               --model-name "${modelConfig.name}" \
               --model-revision "${modelConfig.revision}" \
               --traced-filename "${modelConfig.traced-model-filename}" \
@@ -63,7 +62,7 @@
 
           outputHashMode = "recursive";
           outputHashAlgo = "sha256";
-          outputHash = "sha256-iNtlHgyPbAIAM3e+h29ZOc2nRhD9pIyIUD1E0SnuNmU=";
+          outputHash = "sha256-k59QI19kwPEcYWsuNF0ZzjbQhus1+HYR4SzcYHx3obk=";
 
           meta = with pkgs.lib; {
             description = "TorchScript version of ${modelConfig.name} for use with DJL";
