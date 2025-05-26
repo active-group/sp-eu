@@ -12,6 +12,11 @@
                                            success-value
                                            make-error]]))
 
+(defn json-ld-string->graph [s k]
+  (promise/call-with-promise-result
+   (rdf/json-ld-string->graph-promise s)
+   k))
+
 (c/defn-item load-json-ld
   "Loads some JSON-LD for the given request. Parses the JSON-LD and
   returns either a success action with the graph (rdf) or an error
@@ -26,8 +31,8 @@
 
       (when-let [current-response (get responses request)]
         (if (ajax/response-ok? current-response)
-          (promise/call-with-promise-result
-           (rdf/json-ld-string->graph-promise (ajax/response-value current-response))
+          (json-ld-string->graph
+           (ajax/response-value current-response)
            (fn [response-graph]
              (c/once
               (fn [_]
