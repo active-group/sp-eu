@@ -497,18 +497,19 @@
 (defn- set-reference [close-action]
   (c/with-state-as node
     (c/local-state
-     (edit-tree/tree-uri node)
+     (let [uri (edit-tree/tree-uri node)]
+       [uri (wisen.frontend.forms/make-selected 0 (count uri))])
      (dom/div
       (modal/padded
        (dom/h3 "Set as reference to another node")
 
-       (c/focus lens/second (ds/input {:size 80})))
+       (c/focus lens/second (ds/input+focus {:size 80})))
 
       (modal/toolbar
        (ds/button-secondary {:onClick #(c/return :action close-action)}
                             "Cancel")
        (ds/button-primary {:onClick
-                           (fn [[_ uri]]
+                           (fn [[_ [uri _]]]
                              (c/return :state [(edit-tree/make-ref uri) uri]))}
                           "Set reference"))))))
 
