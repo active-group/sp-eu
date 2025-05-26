@@ -168,7 +168,8 @@
       (c/with-state-as node
         (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
-      (= predicate "http://schema.org/dayOfWeek")
+      (and (= predicate "http://schema.org/dayOfWeek")
+           (edit-tree/edit-node? etree))
       (day-of-week-component schema editable? editing?)
 
       (= predicate "http://schema.org/name")
