@@ -709,28 +709,35 @@
                  :display "flex"
                  :align-items "center"
                  :gap "1em"}}
-        (the-circle (when (and (existential/existential? uri)
-                               editing?)
-                      (dom/div {:style {:display "flex"
-                                        :justify-content "center"
-                                        :align-items "center"
-                                        :height "100%"
-                                        :color "green"}}
-                               ds/plus-icon)))
-        (dom/a {:style {:margin-right "1em"}
-                :id (tree/uri-string uri)
-                :href (when-not (existential/existential? uri)
-                        (tree/uri-string uri))}
-               (pr-uri uri))
 
-        (ds/button-primary
-         {:onClick #(c/return :action (copy-to-clipboard! uri))}
-         "Copy reference URI")
+        (dom/div {:style {:border "1px solid #777"
+                          :padding ".5ex 1em .5ex .5ex"
+                          :border-radius "25px"
+                          :display "flex"
+                          :gap "0.8em"
+                          :align-items "center"}}
+                 (the-circle (when (and (existential/existential? uri)
+                                        editing?)
+                               (dom/div {:style {:display "flex"
+                                                 :justify-content "center"
+                                                 :align-items "center"
+                                                 :height "100%"
+                                                 :color "green"}}
+                                        ds/plus-icon)))
+                 (dom/a
+                  {:id (tree/uri-string uri)
+                   :href (when-not (existential/existential? uri)
+                           (tree/uri-string uri))}
+                  (pr-uri uri))
 
-        (when editing?
-          (c/fragment
-           (c/focus lens/first
-                    (modal/modal-button "Set reference" set-reference))))
+                 (ds/button-primary
+                  {:onClick #(c/return :action (copy-to-clipboard! uri))}
+                  "Copy")
+
+                 (when editing?
+                   (c/fragment
+                    (c/focus lens/first
+                             (modal/modal-button "Set reference" set-reference)))))
 
         (when (edit-tree/can-refresh? node)
           (c/focus lens/first (refresh-button)))
