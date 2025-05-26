@@ -49,6 +49,8 @@
    statement-object :- (realm/union tree/literal-string
                                     tree/literal-decimal
                                     tree/literal-boolean
+                                    tree/literal-time
+                                    tree/literal-date
                                     existential/existential
                                     tree/URI)])
 
