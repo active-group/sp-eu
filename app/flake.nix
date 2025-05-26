@@ -20,6 +20,7 @@
           inherit system;
           config.allowUnfree = true; # For google-chrome in devShells.
         };
+        inherit (pkgs) lib stdenv;
 
         modelConfig = {
           name = "BAAI/bge-m3";
@@ -42,7 +43,7 @@
           pkgs.chromedriver
         ];
 
-        embeddingModel = pkgs.stdenv.mkDerivation {
+        embeddingModel = stdenv.mkDerivation {
           pname = "${modelConfig.safe-name}-torchscript";
           version = "1.0.0";
 
@@ -70,7 +71,11 @@
 
           outputHashMode = "recursive";
           outputHashAlgo = "sha256";
-          outputHash = "sha256-k59QI19kwPEcYWsuNF0ZzjbQhus1+HYR4SzcYHx3obk=";
+          outputHash =
+            if stdenv.isDarwin then
+              "sha256-k59QI19kwPEcYWsuNF0ZzjbQhus1+HYR4SzcYHx3obk="
+            else
+              "sha256-soZ8bGWlA/7gf9UbNSAQtUpj4hxPMhRCqUkXMkUg+xA=";
 
           meta = with pkgs.lib; {
             description = "TorchScript version of ${modelConfig.name} for use with DJL";
@@ -82,7 +87,7 @@
         tsModelPath = "${embeddingModel}/${modelConfig.traced-model-filename}";
         tsTokenizerPath = "${embeddingModel}/${modelConfig.tokenizer-dirname}";
 
-        uberJar = pkgs.stdenv.mkDerivation {
+        uberJar = stdenv.mkDerivation {
           name = "wisen-uber-jar";
 
           src = ./wisen;
@@ -104,7 +109,7 @@
           '';
         };
 
-        portableService = pkgs.stdenv.mkDerivation {
+        portableService = stdenv.mkDerivation {
           name = "wisen-portable-service";
 
           dontUnpack = true;
@@ -185,7 +190,7 @@
             buildInputs = basePackages ++ testPackages;
             # Needed in order to be able to start Chromium
             FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
-            CHROME_BIN = "${pkgs.lib.getExe pkgs.chromium}";
+            CHROME_BIN = "${lib.getExe pkgs.chromium}";
           };
         };
 
