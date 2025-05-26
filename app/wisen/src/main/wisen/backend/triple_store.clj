@@ -86,34 +86,29 @@
   ([base-model model-to-add]
    (.add base-model (skolem/skolemize-model model-to-add "foobar"))))
 
+(defn- unwrap! [model obj]
+  (cond
+    (change-api/literal-string? obj)
+    (.createLiteral model (change-api/literal-string-value obj))
+
+    (change-api/literal-decimal? obj)
+    (.createTypedLiteral model (change-api/literal-decimal-value obj) XSDDatatype/XSDdecimal)
+
+    (change-api/uri? obj)
+    (.createResource model (change-api/uri-value obj))))
+
 (defn add-statement! [^Model model stmt]
   (let [obj (change-api/statement-object stmt)
         s (.createResource model (change-api/statement-subject stmt))
         p (.createProperty model (change-api/statement-predicate stmt))
-        o (cond
-            (change-api/literal-string? obj)
-            (.createLiteral model (change-api/literal-string-value obj))
-
-            (change-api/literal-decimal? obj)
-            (.createTypedLiteral model (change-api/literal-decimal-value obj) XSDDatatype/XSDdecimal)
-
-            (change-api/uri? obj)
-            (.createResource model (change-api/uri-value obj)))]
+        o (unwrap! model obj)]
     (.add ^Model model s p o)))
 
 (defn remove-statement! [^Model model stmt]
   (let [obj (change-api/statement-object stmt)
         s (.createResource model (change-api/statement-subject stmt))
         p (.createProperty model (change-api/statement-predicate stmt))
-        o (cond
-            (change-api/literal-string? obj)
-            (.createLiteral model (change-api/literal-string-value obj))
-
-            (change-api/literal-decimal? obj)
-            (.createTypedLiteral model (change-api/literal-decimal-value obj) XSDDatatype/XSDdecimal)
-
-            (change-api/uri? obj)
-            (.createResource model (change-api/uri-value obj)))]
+        o (unwrap! model obj)]
     (.remove ^Model model s p o)))
 
 (defn edit-model!
