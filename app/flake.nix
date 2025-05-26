@@ -12,7 +12,6 @@
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true; # For google-chrome in devShells.
-          # config.allowUnsupportedSystem = true;
         };
 
         modelConfig = {
