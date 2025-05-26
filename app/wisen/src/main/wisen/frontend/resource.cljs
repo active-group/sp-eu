@@ -16,6 +16,7 @@
 
 (c/defn-item main [schema resource-id]
   (ds/padded-2
+   {:style {:overflow-y "auto"}}
    (c/isolate-state
     nil
     (c/with-state-as result
