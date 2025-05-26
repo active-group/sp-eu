@@ -694,6 +694,8 @@
           " "
           "in total"))))))
 
+(c/defn-effect copy-to-clipboard! [s]
+  (.writeText (.-clipboard js/navigator) s))
 
 (defn- node-component [schema editable? force-editing? background-color exgen]
   (c/with-state-as [node editing? :local force-editing?]
@@ -720,6 +722,10 @@
                 :href (when-not (existential/existential? uri)
                         (tree/uri-string uri))}
                (pr-uri uri))
+
+        (ds/button-primary
+         {:onClick #(c/return :action (copy-to-clipboard! uri))}
+         "Copy reference URI")
 
         (when editing?
           (c/fragment
