@@ -3,204 +3,232 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-      ...
-    }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          config.allowUnfree = true; # For google-chrome in devShells.
-        };
-        inherit (pkgs) lib stdenv;
+    { nixpkgs, flake-parts, ... }@inputs:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "x86_64-linux"
+        "aarch64-darwin"
+      ];
 
-        modelConfig = {
-          name = "BAAI/bge-m3";
-          revision = "5617a9f61b028005a4858fdac845db406aefb181";
-          safe-name = "BAAI-bge-m3";
-          traced-model-filename = "BAAI-bge-m3-traced.pt";
-          tokenizer-dirname = "tokenizer";
-        };
-
-        basePackages = [
-          pkgs.clojure
-          pkgs.nodejs
-          pkgs.jdk
-          pkgs.process-compose
-          pkgs.ollama
-          self.formatter.${system}
-        ];
-
-        testPackages = [
-          pkgs.chromium
-          pkgs.chromedriver
-        ];
-
-        embeddingModel = stdenv.mkDerivation {
-          pname = "${modelConfig.safe-name}-torchscript";
-          version = "1.0.0";
-
-          dontUnpack = true;
-
-          nativeBuildInputs = [
-            (pkgs.python3.withPackages (
-              ps: with ps; [
-                torch
-                transformers
-              ]
-            ))
-          ];
-
-          buildPhase = ''
-            export HF_HOME="$TMPDIR/hf_home"
-            mkdir -p $HF_HOME
-
-            python ${./convert_model.py} \
-              --model-name "${modelConfig.name}" \
-              --model-revision "${modelConfig.revision}" \
-              --traced-filename "${modelConfig.traced-model-filename}" \
-              --tokenizer-dirname "${modelConfig.tokenizer-dirname}"
-          '';
-
-          outputHashMode = "recursive";
-          outputHashAlgo = "sha256";
-          outputHash =
-            if stdenv.isDarwin then
-              "sha256-k59QI19kwPEcYWsuNF0ZzjbQhus1+HYR4SzcYHx3obk="
-            else
-              "sha256-soZ8bGWlA/7gf9UbNSAQtUpj4hxPMhRCqUkXMkUg+xA=";
-
-          meta = with pkgs.lib; {
-            description = "TorchScript version of ${modelConfig.name} for use with DJL";
-            homepage = "https://huggingface.co/${modelConfig.name}";
-            license = licenses.mit;
+      perSystem =
+        { system, self', ... }:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfree = true; # For google-chrome in devShells.
           };
-        };
+          inherit (pkgs) lib stdenv;
 
-        tsModelPath = "${embeddingModel}/${modelConfig.traced-model-filename}";
-        tsTokenizerPath = "${embeddingModel}/${modelConfig.tokenizer-dirname}";
+          modelConfig = {
+            name = "BAAI/bge-m3";
+            revision = "5617a9f61b028005a4858fdac845db406aefb181";
+            safe-name = "BAAI-bge-m3";
+            traced-model-filename = "BAAI-bge-m3-traced.pt";
+            tokenizer-dirname = "tokenizer";
+          };
 
-        uberJar = stdenv.mkDerivation {
-          name = "wisen-uber-jar";
-
-          src = ./wisen;
-
-          buildInputs = self.devShells.${system}.default.buildInputs ++ [
-            pkgs.git
-            pkgs.cacert
+          basePackages = [
+            pkgs.clojure
+            pkgs.nodejs
+            pkgs.jdk
+            pkgs.process-compose
+            pkgs.ollama
+            self'.formatter
           ];
 
-          buildPhase = ''
-            export HOME=$(pwd)
-            export JAVA_TOOL_OPTIONS="-Duser.home=$HOME"
-            clj -T:build uber
-          '';
+          testPackages = [
+            pkgs.chromium
+            pkgs.chromedriver
+          ];
 
-          installPhase = ''
-            mkdir -p $out/lib
-            cp ./target/uber/*-standalone.jar $out/lib/app.jar
-          '';
-        };
+          embeddingModel = stdenv.mkDerivation {
+            pname = "${modelConfig.safe-name}-torchscript";
+            version = "1.0.0";
 
-        portableService = stdenv.mkDerivation {
-          name = "wisen-portable-service";
+            dontUnpack = true;
 
-          dontUnpack = true;
+            nativeBuildInputs = [
+              (pkgs.python3.withPackages (
+                ps: with ps; [
+                  torch
+                  transformers
+                ]
+              ))
+            ];
 
-          installPhase = ''
-            mkdir -p $out/usr/bin                    # Executables
-            mkdir -p $out/usr/lib/wisen              # Application libraries (app.jar)
-            mkdir -p $out/usr/lib/wisen/jre          # Bundled Java runtime
-            mkdir -p $out/usr/share/wisen/models     # Model files
-            mkdir -p $out/etc/systemd/system         # Service definition
-            mkdir -p $out/usr/lib/portable/profile   # Portable service metadata
+            buildPhase = ''
+              export HF_HOME="$TMPDIR/hf_home"
+              mkdir -p $HF_HOME
 
-            cp ${uberJar}/lib/app.jar $out/usr/lib/wisen/app.jar
-            cp ${tsModelPath} $out/usr/share/wisen/models/
-            cp -r ${tsTokenizerPath} $out/usr/share/wisen/models/
-            cp -r ${pkgs.jdk}/* $out/usr/lib/wisen/jre/
-            chmod -R +rX $out/usr/lib/wisen/jre/
-
-            cat > $out/usr/bin/wisen <<EOF
-            #!/bin/sh
-            export TS_MODEL_NAME="${modelConfig.name}"
-            export TS_MODEL_PATH="/usr/share/wisen/models/${modelConfig.traced-model-filename}"
-            export TS_TOKENIZER_PATH="/usr/share/wisen/models/tokenizer"
-            exec /usr/lib/wisen/jre/bin/java -jar /usr/lib/wisen/app.jar
-            EOF
-            chmod +x $out/usr/bin/wisen
-
-            cat > $out/etc/systemd/system/wisen.service <<EOF
-            [Unit]
-            Description=SP-EU Wisen Service
-            After=network.target
-
-            [Service]
-            Type=simple
-            ExecStart=/usr/bin/wisen
-            Restart=always
-            RestartSec=10
-
-            # Security hardening
-            ProtectSystem=strict
-            ProtectHome=yes
-            PrivateTmp=yes
-            NoNewPrivileges=yes
-            StateDirectory=wisen
-
-            [Install]
-            WantedBy=multi-user.target
-            EOF
-
-            cat > $out/usr/lib/portable/profile/wisen.conf <<EOF
-            [PortableService]
-            PrimaryUnit=wisen.service
-            PortableState=persistent
-            PortableFlags=trusted
-            EOF
-          '';
-        };
-
-      in
-      {
-        devShells = {
-
-          default = pkgs.mkShell {
-            buildInputs = basePackages ++ [ embeddingModel ];
-
-            shellHook = ''
-              export TS_MODEL_NAME="${modelConfig.name}"
-              export TS_MODEL_PATH=${tsModelPath}
-              export TS_TOKENIZER_PATH=${tsTokenizerPath}
-
-              # process-compose would use port 8080 by default, which we want to use instead
-              export PC_PORT_NUM=8081
+              python ${./convert_model.py} \
+                --model-name "${modelConfig.name}" \
+                --model-revision "${modelConfig.revision}" \
+                --traced-filename "${modelConfig.traced-model-filename}" \
+                --tokenizer-dirname "${modelConfig.tokenizer-dirname}"
             '';
 
+            outputHashMode = "recursive";
+            outputHashAlgo = "sha256";
+            outputHash =
+              if stdenv.isDarwin then
+                "sha256-k59QI19kwPEcYWsuNF0ZzjbQhus1+HYR4SzcYHx3obk="
+              else
+                "sha256-soZ8bGWlA/7gf9UbNSAQtUpj4hxPMhRCqUkXMkUg+xA=";
+
+            meta = with pkgs.lib; {
+              description = "TorchScript version of ${modelConfig.name} for use with DJL";
+              homepage = "https://huggingface.co/${modelConfig.name}";
+              license = licenses.mit;
+            };
           };
 
-          testWeb = pkgs.mkShell {
-            buildInputs = basePackages ++ testPackages;
-            # Needed in order to be able to start Chromium
-            FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
-            CHROME_BIN = "${lib.getExe pkgs.chromium}";
+          tsModelPath = "${embeddingModel}/${modelConfig.traced-model-filename}";
+          tsTokenizerPath = "${embeddingModel}/${modelConfig.tokenizer-dirname}";
+
+          uberJar = stdenv.mkDerivation {
+            name = "wisen-uber-jar";
+
+            src = ./wisen;
+
+            buildInputs = self'.devShells.default.buildInputs ++ [
+              pkgs.git
+              pkgs.cacert
+            ];
+
+            buildPhase = ''
+              export HOME=$(pwd)
+              export JAVA_TOOL_OPTIONS="-Duser.home=$HOME"
+              clj -T:build uber
+            '';
+
+            installPhase = ''
+              mkdir -p $out/lib
+              cp ./target/uber/*-standalone.jar $out/lib/app.jar
+            '';
           };
+
+          portableService = stdenv.mkDerivation {
+            name = "wisen-portable-service";
+
+            dontUnpack = true;
+
+            installPhase = ''
+              mkdir -p $out/usr/bin                    # Executables
+              mkdir -p $out/usr/lib/wisen              # Application libraries (app.jar)
+              mkdir -p $out/usr/lib/wisen/jre          # Bundled Java runtime
+              mkdir -p $out/usr/share/wisen/models     # Model files
+              mkdir -p $out/etc/systemd/system         # Service definition
+              mkdir -p $out/usr/lib/portable/profile   # Portable service metadata
+
+              cp ${uberJar}/lib/app.jar $out/usr/lib/wisen/app.jar
+              cp ${tsModelPath} $out/usr/share/wisen/models/
+              cp -r ${tsTokenizerPath} $out/usr/share/wisen/models/
+              cp -r ${pkgs.jdk}/* $out/usr/lib/wisen/jre/
+              chmod -R +rX $out/usr/lib/wisen/jre/
+
+              cat > $out/usr/bin/wisen <<EOF
+              #!/bin/sh
+              export TS_MODEL_NAME="${modelConfig.name}"
+              export TS_MODEL_PATH="/usr/share/wisen/models/${modelConfig.traced-model-filename}"
+              export TS_TOKENIZER_PATH="/usr/share/wisen/models/tokenizer"
+              exec /usr/lib/wisen/jre/bin/java -jar /usr/lib/wisen/app.jar
+              EOF
+              chmod +x $out/usr/bin/wisen
+
+              cat > $out/etc/systemd/system/wisen.service <<EOF
+              [Unit]
+              Description=SP-EU Wisen Service
+              After=network.target
+
+              [Service]
+              Type=simple
+              ExecStart=/usr/bin/wisen
+              Restart=always
+              RestartSec=10
+
+              # Security hardening
+              ProtectSystem=strict
+              ProtectHome=yes
+              PrivateTmp=yes
+              NoNewPrivileges=yes
+              StateDirectory=wisen
+
+              [Install]
+              WantedBy=multi-user.target
+              EOF
+
+              cat > $out/usr/lib/portable/profile/wisen.conf <<EOF
+              [PortableService]
+              PrimaryUnit=wisen.service
+              PortableState=persistent
+              PortableFlags=trusted
+              EOF
+            '';
+          };
+
+        in
+        {
+          devShells = {
+            default = pkgs.mkShell {
+              buildInputs = basePackages ++ [ embeddingModel ];
+
+              shellHook = ''
+                export TS_MODEL_NAME="${modelConfig.name}"
+                export TS_MODEL_PATH=${tsModelPath}
+                export TS_TOKENIZER_PATH=${tsTokenizerPath}
+
+                # process-compose would use port 8080 by default, which we want to use instead
+                export PC_PORT_NUM=8081
+              '';
+
+            };
+
+            testWeb = pkgs.mkShell {
+              buildInputs = basePackages ++ testPackages;
+              # Needed in order to be able to start Chromium
+              FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
+              CHROME_BIN = "${lib.getExe pkgs.chromium}";
+            };
+          };
+
+          packages = {
+            default = portableService;
+            embeddingModel = embeddingModel;
+          };
+
+          formatter = pkgs.nixfmt-rfc-style;
         };
 
-        packages = {
-          default = portableService;
-          embeddingModel = embeddingModel;
+      flake =
+        let
+          inherit (nixpkgs) lib;
+          system = "x86_64-linux";
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        {
+          # nixosConfigurations = {
+          #   foo = lib.nixosSystem {
+          #     inherit pkgs system;
+          #     modules = [
+          #       (
+          #         { pkgs, lib, ... }:
+          #         {
+          #           environment.systemPackages = [ pkgs.git ];
+          #           users.users.alice = {
+          #             isNormalUser = true;
+          #             description = "Alice Foobar";
+          #             password = "foobar";
+          #             uid = 1000;
+          #           };
+          #         }
+          #       )
+          #     ];
+          #   };
+          # };
         };
-
-        formatter = pkgs.nixfmt-rfc-style;
-      }
-    );
+    };
 }
