@@ -10,114 +10,114 @@
 
 (deftest edit-tree-changeset-test
 
-  ;; all same
-  (is (= []
-         (et/edit-tree-changeset
-          (et/edit-node
-           et/edit-node-uri "http://example.org/a"
-           et/edit-node-properties {"http://schema.org/name"
-                                    [(et/mark-same (et/make-literal-string "Foobar"))]
-                                    "http://schema.org/description"
-                                    [(et/mark-same (et/make-literal-string "Descr"))]}))))
+  (testing "all same"
+    (is (= []
+           (et/edit-tree-changeset
+            (et/edit-node
+             et/edit-node-uri "http://example.org/a"
+             et/edit-node-properties {"http://schema.org/name"
+                                      [(et/mark-same (et/make-literal-string "Foobar"))]
+                                      "http://schema.org/description"
+                                      [(et/mark-same (et/make-literal-string "Descr"))]})))))
 
-  ;; literal added
-  (is (= [(change/make-add
-           (change/make-statement "http://example.org/a"
-                                  "http://schema.org/name"
-                                  (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changeset
-          (et/edit-node
-           et/edit-node-uri "http://example.org/a"
-           et/edit-node-properties {"http://schema.org/name"
-                                    [(et/mark-added (et/make-literal-string "Foobar"))]}))))
+  (testing "literal added"
+    (is (= [(change/make-add
+             (change/make-statement "http://example.org/a"
+                                    "http://schema.org/name"
+                                    (tree/make-literal-string "Foobar")))]
+           (et/edit-tree-changeset
+            (et/edit-node
+             et/edit-node-uri "http://example.org/a"
+             et/edit-node-properties {"http://schema.org/name"
+                                      [(et/mark-added (et/make-literal-string "Foobar"))]})))))
 
-  ;; literal removed
-  (is (= [(change/make-delete
-           (change/make-statement "http://example.org/a"
-                                  "http://schema.org/name"
-                                  (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changeset
-          (et/edit-node
-           et/edit-node-uri "http://example.org/a"
-           et/edit-node-properties {"http://schema.org/name"
-                                    [(et/make-deleted (et/make-literal-string "Foobar"))]}))))
+  (testing "literal removed"
+    (is (= [(change/make-delete
+             (change/make-statement "http://example.org/a"
+                                    "http://schema.org/name"
+                                    (tree/make-literal-string "Foobar")))]
+           (et/edit-tree-changeset
+            (et/edit-node
+             et/edit-node-uri "http://example.org/a"
+             et/edit-node-properties {"http://schema.org/name"
+                                      [(et/make-deleted (et/make-literal-string "Foobar"))]})))))
 
-  ;; literal changed
-  (is (= (et/edit-tree-changeset
-          (et/edit-node
-           et/edit-node-uri "http://example.org/a"
-           et/edit-node-properties {"http://schema.org/name"
-                                    [(et/make-maybe-changed
-                                      (et/make-literal-string "Foobar")
-                                      (et/make-literal-string "Barfoo"))]}))
-         [(change/make-delete
-           (change/make-statement "http://example.org/a"
-                                  "http://schema.org/name"
-                                  (tree/make-literal-string "Foobar")))
-          (change/make-add
-           (change/make-statement "http://example.org/a"
-                                  "http://schema.org/name"
-                                  (tree/make-literal-string "Barfoo")))]))
+  (testing "literal changed"
+    (is (= (et/edit-tree-changeset
+            (et/edit-node
+             et/edit-node-uri "http://example.org/a"
+             et/edit-node-properties {"http://schema.org/name"
+                                      [(et/make-maybe-changed
+                                        (et/make-literal-string "Foobar")
+                                        (et/make-literal-string "Barfoo"))]}))
+           [(change/make-delete
+             (change/make-statement "http://example.org/a"
+                                    "http://schema.org/name"
+                                    (tree/make-literal-string "Foobar")))
+            (change/make-add
+             (change/make-statement "http://example.org/a"
+                                    "http://schema.org/name"
+                                    (tree/make-literal-string "Barfoo")))])))
 
-  ;; nested added
-  (is (= [(change/make-add
-           (change/make-statement "http://example.org/b"
-                                  "http://schema.org/name"
-                                  (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changeset
-          (et/edit-node
-           et/edit-node-uri "http://example.org/a"
-           et/edit-node-properties {"http://example.org/foo"
-                                    [(et/make-maybe-changed
-                                      ;; before
-                                      (et/edit-node
-                                       et/edit-node-uri "http://example.org/b"
-                                       et/edit-node-properties {})
-                                      ;; after
-                                      (et/edit-node
-                                       et/edit-node-uri "http://example.org/b"
-                                       et/edit-node-properties {"http://schema.org/name"
-                                                                [(et/mark-added (et/make-literal-string "Foobar"))]}))]}))))
+  (testing "nested added"
+    (is (= [(change/make-add
+             (change/make-statement "http://example.org/b"
+                                    "http://schema.org/name"
+                                    (tree/make-literal-string "Foobar")))]
+           (et/edit-tree-changeset
+            (et/edit-node
+             et/edit-node-uri "http://example.org/a"
+             et/edit-node-properties {"http://example.org/foo"
+                                      [(et/make-maybe-changed
+                                        ;; before
+                                        (et/edit-node
+                                         et/edit-node-uri "http://example.org/b"
+                                         et/edit-node-properties {})
+                                        ;; after
+                                        (et/edit-node
+                                         et/edit-node-uri "http://example.org/b"
+                                         et/edit-node-properties {"http://schema.org/name"
+                                                                  [(et/mark-added (et/make-literal-string "Foobar"))]}))]})))))
 
-  ;; nested delete
-  (is (= [(change/make-delete
-           (change/make-statement "http://example.org/b"
-                                  "http://schema.org/name"
-                                  (tree/make-literal-string "Foobar")))]
-         (et/edit-tree-changeset
-          (et/edit-node
-           et/edit-node-uri "http://example.org/a"
-           et/edit-node-properties {"http://example.org/foo"
-                                    [(et/make-maybe-changed
-                                      ;; before
-                                      (et/edit-node
-                                       et/edit-node-uri "http://example.org/b"
-                                       et/edit-node-properties {"http://schema.org/name"
-                                                                [(et/mark-same (et/make-literal-string "Foobar"))]})
-                                      ;; after
-                                      (et/edit-node
-                                       et/edit-node-uri "http://example.org/b"
-                                       et/edit-node-properties {"http://schema.org/name"
-                                                                [(et/make-deleted (et/make-literal-string "Foobar"))]}))]}))))
+  (testing "nested deleted"
+    (is (= [(change/make-delete
+             (change/make-statement "http://example.org/b"
+                                    "http://schema.org/name"
+                                    (tree/make-literal-string "Foobar")))]
+           (et/edit-tree-changeset
+            (et/edit-node
+             et/edit-node-uri "http://example.org/a"
+             et/edit-node-properties {"http://example.org/foo"
+                                      [(et/make-maybe-changed
+                                        ;; before
+                                        (et/edit-node
+                                         et/edit-node-uri "http://example.org/b"
+                                         et/edit-node-properties {"http://schema.org/name"
+                                                                  [(et/mark-same (et/make-literal-string "Foobar"))]})
+                                        ;; after
+                                        (et/edit-node
+                                         et/edit-node-uri "http://example.org/b"
+                                         et/edit-node-properties {"http://schema.org/name"
+                                                                  [(et/make-deleted (et/make-literal-string "Foobar"))]}))]})))))
 
-  ;; delete inside delete
-  (is (= (set [(change/make-delete
-                (change/make-statement "http://example.org/a"
-                                       "http://example.org/foo"
-                                       "http://example.org/b"))
-               (change/make-delete
-                (change/make-statement "http://example.org/b"
-                                       "http://schema.org/name"
-                                       (tree/make-literal-string "Foobar")))])
-         (set (et/edit-tree-changeset
-               (et/edit-node
-                et/edit-node-uri "http://example.org/a"
-                et/edit-node-properties {"http://example.org/foo"
-                                         [(et/make-deleted
-                                           (et/edit-node
-                                            et/edit-node-uri "http://example.org/b"
-                                            et/edit-node-properties {"http://schema.org/name"
-                                                                     [(et/make-deleted (et/make-literal-string "Foobar"))]}))]})))))
+  (testing "delete inside delete"
+    (is (= (set [(change/make-delete
+                  (change/make-statement "http://example.org/a"
+                                         "http://example.org/foo"
+                                         "http://example.org/b"))
+                 (change/make-delete
+                  (change/make-statement "http://example.org/b"
+                                         "http://schema.org/name"
+                                         (tree/make-literal-string "Foobar")))])
+           (set (et/edit-tree-changeset
+                 (et/edit-node
+                  et/edit-node-uri "http://example.org/a"
+                  et/edit-node-properties {"http://example.org/foo"
+                                           [(et/make-deleted
+                                             (et/edit-node
+                                              et/edit-node-uri "http://example.org/b"
+                                              et/edit-node-properties {"http://schema.org/name"
+                                                                       [(et/make-deleted (et/make-literal-string "Foobar"))]}))]}))))))
   (is (= (set [(change/make-add
                 (change/make-statement "http://example.org/a"
                                        "http://example.org/foo"
@@ -136,53 +136,53 @@
                                             et/edit-node-properties {"http://schema.org/name"
                                                                      [(et/mark-added (et/make-literal-string "Foobar"))]}))]})))))
 
-  ;; add inside add with blank nodes
-  (is (= (et/edit-tree-changeset
-          (et/exists
-           et/exists-k
-           (fn [ex]
-             (et/edit-node
-              et/edit-node-uri "A"
-              et/edit-node-properties {"http://example.org/foo"
-                                       [(et/mark-added
-                                         (et/edit-node
-                                          et/edit-node-uri ex
-                                          et/edit-node-properties {"http://schema.org/name"
-                                                                   [(et/mark-added (et/make-literal-string "Foobar"))]}))]}))))
-         [(change/make-with-blank-node
-           0
-           [(change/make-add
-             (change/make-statement "A"
-                                    "http://example.org/foo"
-                                    0))
-            (change/make-add
-             (change/make-statement 0
-                                    "http://schema.org/name"
-                                    (tree/make-literal-string "Foobar")))])]))
+  (testing "add inside add with blank nodes"
+    (is (= (et/edit-tree-changeset
+            (et/exists
+             et/exists-k
+             (fn [ex]
+               (et/edit-node
+                et/edit-node-uri "A"
+                et/edit-node-properties {"http://example.org/foo"
+                                         [(et/mark-added
+                                           (et/edit-node
+                                            et/edit-node-uri ex
+                                            et/edit-node-properties {"http://schema.org/name"
+                                                                     [(et/mark-added (et/make-literal-string "Foobar"))]}))]}))))
+           [(change/make-with-blank-node
+             0
+             [(change/make-add
+               (change/make-statement "A"
+                                      "http://example.org/foo"
+                                      0))
+              (change/make-add
+               (change/make-statement 0
+                                      "http://schema.org/name"
+                                      (tree/make-literal-string "Foobar")))])])))
 
-  ;; add with blank node inside add
-  (is (= (et/edit-tree-changeset
-          (et/edit-node
-           et/edit-node-uri "A"
-           et/edit-node-properties {"http://example.org/foo"
-                                    [(et/mark-added
-                                      (et/exists
-                                       et/exists-k
-                                       (fn [ex]
-                                         (et/edit-node
-                                          et/edit-node-uri ex
-                                          et/edit-node-properties {"http://schema.org/name"
-                                                                   [(et/mark-added (et/make-literal-string "Foobar"))]}))))]}))
-         [(change/make-with-blank-node
-           0
-           [(change/make-add
-             (change/make-statement "A"
-                                    "http://example.org/foo"
-                                    0))
-            (change/make-add
-             (change/make-statement 0
-                                    "http://schema.org/name"
-                                    (tree/make-literal-string "Foobar")))])])))
+  (testing "add with blank node inside add"
+    (is (= (et/edit-tree-changeset
+            (et/edit-node
+             et/edit-node-uri "A"
+             et/edit-node-properties {"http://example.org/foo"
+                                      [(et/mark-added
+                                        (et/exists
+                                         et/exists-k
+                                         (fn [ex]
+                                           (et/edit-node
+                                            et/edit-node-uri ex
+                                            et/edit-node-properties {"http://schema.org/name"
+                                                                     [(et/mark-added (et/make-literal-string "Foobar"))]}))))]}))
+           [(change/make-with-blank-node
+             0
+             [(change/make-add
+               (change/make-statement "A"
+                                      "http://example.org/foo"
+                                      0))
+              (change/make-add
+               (change/make-statement 0
+                                      "http://schema.org/name"
+                                      (tree/make-literal-string "Foobar")))])]))))
 
 (deftest insert-properties-test
   (is (= (et/insert-properties (et/edit-node et/edit-node-uri "uri"
