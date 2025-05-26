@@ -35,7 +35,28 @@
                                                 initial-tree
                                                 (ds/button-secondary
                                                  {:onClick #(c/return :action close-action)}
-                                                 "Close"))))))]
+                                                 "Close"))))))
+
+          (new-graph []
+            (dom/li
+             (modal/modal-button (dom/div
+                                  {:style {:display "flex"
+                                           :align-items "center"
+                                           :gap "0.3em"
+                                           :font-weight "normal"}}
+
+                                  (dom/span {:style {:font-size "1.6em"}}
+                                            "+ ")
+
+                                  "RDF")
+                                 (fn [close-action]
+                                   (dom/div
+                                    {:style {:min-width "95vw"
+                                             :display "flex"
+                                             :overflow "auto"}}
+                                    (create/from-rdf {:style {:flex 1}}
+                                                     schema
+                                                     ""))))))]
 
     (ds/padded-2
      {:style {:border-bottom ds/border
@@ -60,7 +81,8 @@
                          :gap "2em"}}
                 (new-* "Organization" default/default-organization)
                 (new-* "Event" default/default-event)
-                (new-* "Offer" default/default-offer))))))
+                (new-* "Offer" default/default-offer)
+                (new-graph))))))
 
 (defn toplevel []
   (util/with-schemaorg
