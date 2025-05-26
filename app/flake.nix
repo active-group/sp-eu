@@ -36,6 +36,7 @@
           pkgs.jdk
           pkgs.process-compose
           pkgs.ollama
+          self.formatter.${system}
         ];
 
         testPackages = [
