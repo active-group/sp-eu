@@ -94,6 +94,15 @@
     (change-api/literal-decimal? obj)
     (.createTypedLiteral model (change-api/literal-decimal-value obj) XSDDatatype/XSDdecimal)
 
+    (change-api/literal-boolean? obj)
+    (.createTypedLiteral model (change-api/literal-boolean-value obj) XSDDatatype/XSDboolean)
+
+    (change-api/literal-time? obj)
+    (.createTypedLiteral model (change-api/literal-time-value obj) XSDDatatype/XSDtime)
+
+    (change-api/literal-date? obj)
+    (.createTypedLiteral model (change-api/literal-date-value obj) XSDDatatype/XSDdate)
+
     (change-api/uri? obj)
     (.createResource model (change-api/uri-value obj))))
 
