@@ -175,7 +175,8 @@
       (= predicate "http://schema.org/name")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
-               (ds/input+focus {:disabled (when-not editing? "disabled")}))
+               (ds/input+focus {:disabled (when-not editing? "disabled")
+                                :style {:font-size "2em"}}))
 
       (= predicate "http://schema.org/description")
       (c/focus (lens/pattern [edit-tree/literal-string-value
