@@ -100,6 +100,14 @@
          (change-api/make-literal-boolean
           (tree/literal-boolean-value obj))
 
+         (tree/literal-time? obj)
+         (change-api/make-literal-time
+          (tree/literal-time-value obj))
+
+         (tree/literal-date? obj)
+         (change-api/make-literal-date
+          (tree/literal-date-value obj))
+
          (existential/existential? obj)
          (change-api/make-existential obj)
 
