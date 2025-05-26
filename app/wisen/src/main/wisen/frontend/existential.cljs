@@ -25,8 +25,15 @@
     (f)))
 
 (defn with-fresh-existential [f]
-  (if exgen
-    (let [[ex exgen*] (next-existential+generator @exgen)]
-      (reset! exgen exgen*)
-      (f ex))
-    [99 100]))
+  (assert exgen)
+  (let [[ex exgen*] (next-existential+generator @exgen)]
+    (reset! exgen exgen*)
+    (f ex)))
+
+(defn with-exgen-2 [f]
+  (f existential-generator))
+
+(defn with-fresh-existential-2 [exgen f]
+  (assert exgen)
+  (let [[ex exgen*] (next-existential+generator exgen)]
+    (f ex exgen*)))
