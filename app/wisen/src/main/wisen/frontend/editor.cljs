@@ -1069,6 +1069,9 @@
                       "Nothing to display")
                      (apply
                       dom/div
+                      {:style {:display "flex"
+                               :flex-direction "column"
+                               :gap "4ex"}}
                       (first
                        (reduce
                         (fn [[items exgen] [idx etree]]
