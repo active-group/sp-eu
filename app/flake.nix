@@ -6,8 +6,15 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs {
           inherit system;
@@ -42,10 +49,12 @@
           dontUnpack = true;
 
           nativeBuildInputs = [
-            (pkgs.python3.withPackages (ps: with ps; [
-              torch
-              transformers
-            ]))
+            (pkgs.python3.withPackages (
+              ps: with ps; [
+                torch
+                transformers
+              ]
+            ))
           ];
 
           buildPhase = ''
@@ -78,7 +87,10 @@
 
           src = ./wisen;
 
-          buildInputs = self.devShells.${system}.default.buildInputs ++ [ pkgs.git pkgs.cacert ];
+          buildInputs = self.devShells.${system}.default.buildInputs ++ [
+            pkgs.git
+            pkgs.cacert
+          ];
 
           buildPhase = ''
             export HOME=$(pwd)
@@ -151,20 +163,21 @@
           '';
         };
 
-      in {
+      in
+      {
         devShells = {
 
           default = pkgs.mkShell {
-            buildInputs = basePackages ++ [ embeddingModel ] ;
+            buildInputs = basePackages ++ [ embeddingModel ];
 
             shellHook = ''
-            export TS_MODEL_NAME="${modelConfig.name}"
-            export TS_MODEL_PATH=${tsModelPath}
-            export TS_TOKENIZER_PATH=${tsTokenizerPath}
+              export TS_MODEL_NAME="${modelConfig.name}"
+              export TS_MODEL_PATH=${tsModelPath}
+              export TS_TOKENIZER_PATH=${tsTokenizerPath}
 
-            # process-compose would use port 8080 by default, which we want to use instead
-            export PC_PORT_NUM=8081
-          '';
+              # process-compose would use port 8080 by default, which we want to use instead
+              export PC_PORT_NUM=8081
+            '';
 
           };
 
@@ -180,5 +193,8 @@
           default = portableService;
           embeddingModel = embeddingModel;
         };
-      });
+
+        formatter = pkgs.nixfmt-rfc-style;
+      }
+    );
 }
