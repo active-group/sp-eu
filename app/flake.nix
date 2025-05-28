@@ -210,25 +210,35 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         {
-          # nixosConfigurations = {
-          #   foo = lib.nixosSystem {
-          #     inherit pkgs system;
-          #     modules = [
-          #       (
-          #         { pkgs, lib, ... }:
-          #         {
-          #           environment.systemPackages = [ pkgs.git ];
-          #           users.users.alice = {
-          #             isNormalUser = true;
-          #             description = "Alice Foobar";
-          #             password = "foobar";
-          #             uid = 1000;
-          #           };
-          #         }
-          #       )
-          #     ];
-          #   };
-          # };
+          nixosConfigurations = {
+            foo = lib.nixosSystem {
+              inherit pkgs system;
+              modules = [
+                (
+                  { pkgs, lib, ... }:
+                  {
+                    environment.systemPackages = [ pkgs.git ];
+                    virtualisation.vmVariant = {
+                      virtualisation.forwardPorts = [
+                        {
+                          from = "host";
+                          host.port = 2222;
+                          guest.port = 22;
+                        }
+                      ];
+                    };
+                    services.openssh.enable = true;
+                    users.users.alice = {
+                      isNormalUser = true;
+                      description = "Alice Foobar";
+                      password = "foobar";
+                      uid = 1000;
+                    };
+                  }
+                )
+              ];
+            };
+          };
         };
     };
 }
