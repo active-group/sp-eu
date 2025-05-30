@@ -35,8 +35,6 @@
             pkgs.clojure
             pkgs.nodejs
             pkgs.jdk
-            pkgs.process-compose
-            pkgs.ollama
             self'.formatter
           ];
 
@@ -52,6 +50,7 @@
           devShells = {
             default = pkgs.mkShell {
               buildInputs = basePackages ++ [
+                pkgs.ollama
                 pkgs.process-compose
                 self'.packages.embeddingModel
               ];
