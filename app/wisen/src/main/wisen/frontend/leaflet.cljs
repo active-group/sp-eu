@@ -46,7 +46,8 @@
             font-weight: bold;
             padding: 5px 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-            border-top-left-radius: 0;"
+            border-top-left-radius: 0;
+            text-decoration: none;"
            "background: " color ";"))
     (when href
       (set! (.-href elem) href))
@@ -80,7 +81,7 @@
                                     (pin-href pin))
                   marker (.marker leaflet
                                   (clj->js (pin-coordinates pin))
-                                  #js {:riseOnHover true :title "Schmeitel"
+                                  #js {:riseOnHover true
                                        :icon (.divIcon leaflet #js {:html html})})]
               (.addLayer markers marker)))
           pins))
