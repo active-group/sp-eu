@@ -202,7 +202,10 @@
 (defn- node->tree* [graph links existentials x]
   (cond
     (rdf/node? x)
-    (let [uri (rdf/symbol-uri x)
+    (let [raw-uri (rdf/symbol-uri x)
+          uri (if (rdf/blank-node? x)
+                (existential/coerce-existential raw-uri)
+                raw-uri)
           existentials* (if (rdf/blank-node? x)
                           (conj existentials uri)
                           existentials)]
