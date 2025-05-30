@@ -261,13 +261,31 @@
    (unwrap-rdf-literal-decimal long)])
 
 (defn- color-for-coordinates [coords]
-  ;; TODO: properly turn hashes into colors
-  (case (mod (hash coords) 4)
-    0 "blue"
-    1 "red"
-    2 "green"
-    3 "purple"
-    ))
+  (let [hash-value (hash coords)
+        num-colors 20
+        color-index (mod hash-value num-colors)]
+    (case color-index
+      0 "#2c2c2c"
+      1 "#1a1a1a"
+      2 "#333333"
+      3 "#4d4d4d"
+      4 "#660000"
+      5 "#003300"
+      6 "#000066"
+      7 "#330033"
+      8 "#663300"
+      9 "#336633"
+      10 "#663366"
+      11 "#333300"
+      12 "#000033"
+      13 "#330000"
+      14 "#003333"
+      15 "#330033"
+      16 "#663333"
+      17 "#336600"
+      18 "#006666"
+      19 "#663366"
+      )))
 
 (defn- map-label-for-uri [uri]
   (let [ascii-int (+ (.charCodeAt \A 0)
