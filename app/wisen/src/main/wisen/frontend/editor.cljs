@@ -523,19 +523,33 @@
    (refresh-node-request uri)))
 
 (defn- refresh-button []
-  (c/with-state-as [node refresh? :local false]
-    (c/fragment
-     (c/focus lens/second
-              (ds/button-primary {:onClick #(c/return :state true)}
-                                 "Refresh"))
-     (when refresh?
-       (-> (refresh-node (edit-tree/tree-uri node))
-           (c/handle-action (fn [[enode _] ac]
-                              (if (success? ac)
-                                (let [new-graph (success-value ac)
-                                      new-node (tree/graph->tree new-graph)]
-                                  [(edit-tree/set-edit-node-original enode new-node) false])
-                                (assert false "TODO: implement error handling")))))))))
+  (c/with-state-as [node refresh-state :local ::idle]
+    (case refresh-state
+      ::idle
+      (c/focus lens/second
+               (ds/button-primary {:onClick #(c/return :state ::run)}
+                                  "Refresh"))
+
+      ::run
+      (-> (refresh-node (edit-tree/tree-uri node))
+          (c/handle-action (fn [[enode _] ac]
+                             (cond
+                               (success? ac)
+                               (let [new-graph (success-value ac)
+                                     new-node (tree/graph->tree new-graph)]
+                                 [(edit-tree/set-edit-node-original enode new-node) ::idle])
+
+                               (error? ac)
+                               [enode (error-value ac)]))))
+
+      ;; failure
+      (dom/span {:style {:color "red"}
+                 :title (pr-str refresh-state)}
+                "Refresh failed"
+                " "
+                (c/focus lens/second
+                         (ds/button-primary {:onClick #(c/return :state ::run)}
+                                            "(Retry)"))))))
 
 (defn- the-circle [& children]
   (apply dom/div
