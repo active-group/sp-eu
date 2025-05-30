@@ -44,7 +44,7 @@ in
       serviceConfig = {
         User = "root";
         WorkingDirectory = "/root/wisen";
-        ExecStart = "${pkgs.jdk}/bin/java -jar /root/wisen/app.jar";
+        ExecStart = "${pkgs.jdk}/bin/java -jar ${pkgs.active-group.wisen}/lib/app.jar";
         TimeoutStartSec = "0";
       };
     };

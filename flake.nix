@@ -8,6 +8,29 @@
 
   outputs =
     { nixpkgs, flake-parts, ... }@inputs:
+    let
+      modelConfig = {
+        name = "BAAI/bge-m3";
+        revision = "5617a9f61b028005a4858fdac845db406aefb181";
+        safe-name = "BAAI-bge-m3";
+        traced-model-filename = "BAAI-bge-m3-traced.pt";
+        tokenizer-dirname = "tokenizer";
+      };
+      mkPkgs =
+        system:
+        import nixpkgs {
+          inherit system;
+          config.allowUnfree = true; # For google-chrome in devShells.
+          overlays = [
+            (final: prev: {
+              active-group = {
+                wisen = final.callPackage ./nix/packages/wisen-uberjar.nix { };
+                embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
+              };
+            })
+          ];
+        };
+    in
     flake-parts.lib.mkFlake { inherit inputs; } {
       systems = [
         "x86_64-linux"
@@ -17,19 +40,8 @@
       perSystem =
         { system, self', ... }:
         let
-          pkgs = import nixpkgs {
-            inherit system;
-            config.allowUnfree = true; # For google-chrome in devShells.
-          };
+          pkgs = mkPkgs system;
           inherit (pkgs) lib stdenv;
-
-          modelConfig = {
-            name = "BAAI/bge-m3";
-            revision = "5617a9f61b028005a4858fdac845db406aefb181";
-            safe-name = "BAAI-bge-m3";
-            traced-model-filename = "BAAI-bge-m3-traced.pt";
-            tokenizer-dirname = "tokenizer";
-          };
 
           basePackages = [
             pkgs.clojure
@@ -74,8 +86,8 @@
           };
 
           packages = {
-            default = pkgs.callPackage ./nix/packages/wisen-uberjar.nix { };
-            embeddingModel = pkgs.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
+            inherit (pkgs.active-group) wisen embeddingModel;
+            default = self'.packages.wisen;
           };
 
           formatter = pkgs.nixfmt-rfc-style;
@@ -85,7 +97,7 @@
         let
           inherit (nixpkgs) lib;
           system = "x86_64-linux";
-          pkgs = nixpkgs.legacyPackages.${system};
+          pkgs = mkPkgs system;
         in
         {
           nixosConfigurations = {
