@@ -29,6 +29,20 @@
                    selected
                    text-selection)))
 
+(defn selection-simplify
+  ([sel]
+   (cond
+     (is-a? text-selection sel)
+     (selected)
+
+     (is-a? selected sel)
+     sel
+
+     (unselected? sel)
+     sel))
+  ([sel new-sel]
+   new-sel))
+
 ;;
 
 (defn- adjust! [elem sel]
