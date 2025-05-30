@@ -25,11 +25,8 @@ test-backend:
     - nix develop -c clj -T:build test-clj
 
 deploy:
-  image: debian@sha256:a726325fb0180a84cf1cb540df42959f413bf190aa2e6090d111222f3ddf8a06
-  variables:
-    GIT_STRATEGY: none
+  image: $NIX_IMAGE
   before_script:
-    - apt-get update && apt-get install -y ssh-client
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
@@ -39,7 +36,7 @@ deploy:
     - scp ./wisen/target/uber/*-standalone.jar root@sp-eu.ci.active-group.de:/root/wisen/app.jar
     - scp ./wisen/public/schema/schemaorg.jsonld root@sp-eu.ci.active-group.de:/root/wisen/public/schema/schemaorg.jsonld
     - scp ./wisen/src/main/datashapesorg.ttl root@sp-eu.ci.active-group.de:/root/wisen/datashapesorg.ttl
-    - ssh root@sp-eu.ci.active-group.de 'systemctl restart sp-eu.service'
+    - nix shell nixpkgs#nixos-rebuild -c nixos-rebuild switch --flake .#prod --target-host root@sp-eu.ci.active-group.de
   needs:
     - build
     - test-frontend
