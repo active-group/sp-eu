@@ -1,6 +1,8 @@
-image: nixpkgs/nix-flakes@sha256:95bce4317c15dfab3babac5a6d19d3ed41e31a02a8aaf3d4f6639778cb763b0a
+variables:
+  NIX_IMAGE: nixpkgs/nix-flakes@sha256:95bce4317c15dfab3babac5a6d19d3ed41e31a02a8aaf3d4f6639778cb763b0a
 
 build:
+  image: $NIX_IMAGE
   script:
     - cd ./wisen
     - nix develop -c clj -T:build uber
@@ -11,14 +13,16 @@ build:
     - ./wisen/src/main/datashapesorg.ttl
 
 test-frontend:
+  image: $NIX_IMAGE
   script:
     - cd ./wisen
     - nix develop .#testWeb -c clj -T:build test-cljs
 
 test-backend:
+  image: $NIX_IMAGE
   script:
     - cd ./wisen
-    - nix develop -c bash -c "clj -T:build test-clj"
+    - nix develop -c clj -T:build test-clj
 
 deploy:
   image: debian@sha256:a726325fb0180a84cf1cb540df42959f413bf190aa2e6090d111222f3ddf8a06
