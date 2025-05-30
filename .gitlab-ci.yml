@@ -1,28 +1,12 @@
 variables:
   NIX_IMAGE: nixpkgs/nix-flakes@sha256:95bce4317c15dfab3babac5a6d19d3ed41e31a02a8aaf3d4f6639778cb763b0a
 
-build:
-  image: $NIX_IMAGE
-  script:
-    - cd ./wisen
-    - nix develop -c clj -T:build uber
-  artifacts:
-    paths:
-    - ./wisen/target/uber/*-standalone.jar
-    - ./wisen/public/schema/schemaorg.jsonld
-    - ./wisen/src/main/datashapesorg.ttl
-
-test-frontend:
-  image: $NIX_IMAGE
-  script:
-    - cd ./wisen
-    - nix develop .#testWeb -c clj -T:build test-cljs
-
-test-backend:
+test:
   image: $NIX_IMAGE
   script:
     - cd ./wisen
     - nix develop -c clj -T:build test-clj
+    - nix develop .#testWeb -c clj -T:build test-cljs
 
 deploy:
   image: $NIX_IMAGE
@@ -30,16 +14,11 @@ deploy:
     - eval $(ssh-agent -s)
     - mkdir -p ~/.ssh
     - chmod 700 ~/.ssh
-  script:
     - echo "$SP_EU_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - echo "$SP_EU_SSH_SERVER_HOSTKEY" >> ~/.ssh/known_hosts
-    - scp ./wisen/target/uber/*-standalone.jar root@sp-eu.ci.active-group.de:/root/wisen/app.jar
+  script:
     - scp ./wisen/public/schema/schemaorg.jsonld root@sp-eu.ci.active-group.de:/root/wisen/public/schema/schemaorg.jsonld
     - scp ./wisen/src/main/datashapesorg.ttl root@sp-eu.ci.active-group.de:/root/wisen/datashapesorg.ttl
     - nix shell nixpkgs#nixos-rebuild -c nixos-rebuild switch --flake .#prod --target-host root@sp-eu.ci.active-group.de
   needs:
-    - build
-    - test-frontend
-    - test-backend
-  dependencies:
-    - build
+    - test
