@@ -410,7 +410,7 @@
                                    (edit-tree/node-type node))))
 
           (c/focus (lens/>> lens/second :prompt)
-                   (ds/textarea)))
+                   (ds/textarea {:style {:min-height "20em"}})))
 
          (when commit-prompt
            (c/focus (lens/>> lens/second :results (lens/member commit-prompt))
