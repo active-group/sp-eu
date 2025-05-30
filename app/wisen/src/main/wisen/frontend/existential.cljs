@@ -8,6 +8,11 @@
 (defn existential? [x]
   (realm/contains? existential x))
 
+(defn coerce-existential [uri]
+  (if (existential? uri)
+    uri
+    (hash uri)))
+
 (def existential-generator 0)
 
 (defn next-existential+generator [ex]

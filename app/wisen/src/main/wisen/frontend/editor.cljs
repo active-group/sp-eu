@@ -724,11 +724,12 @@
                                                  :height "100%"
                                                  :color "green"}}
                                         ds/plus-icon)))
-                 (dom/a
-                  {:id (tree/uri-string uri)
-                   :href (when-not (existential/existential? uri)
-                           (tree/uri-string uri))}
-                  (pr-uri uri))
+                 (if (existential/existential? uri)
+                   (pr-uri uri)
+                   (dom/a
+                    {:id (tree/uri-string uri)
+                     :href (tree/uri-string uri)}
+                    (pr-uri uri)))
 
                  (ds/button-primary
                   {:onClick #(c/return :action (copy-to-clipboard! uri))}
