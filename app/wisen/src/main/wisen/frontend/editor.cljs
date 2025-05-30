@@ -237,7 +237,8 @@
 
       (= predicate "https://wisen.active-group.de/target-group")
       (c/focus (lens/pattern [edit-tree/literal-string-value
-                              edit-tree/edit-tree-focused?])
+                              (lens/>> edit-tree/literal-string-focused?
+                                       wisen.frontend.forms/selection-simplify)])
                (ds/select+focus
                 {:disabled (when-not editing? "disabled")}
                 (forms/option {:value "elderly"} "Elderly")
