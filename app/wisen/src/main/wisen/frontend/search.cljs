@@ -269,6 +269,11 @@
     3 "purple"
     ))
 
+(defn- map-label-for-uri [uri]
+  (let [ascii-int (+ (.charCodeAt \A 0)
+                     (mod (hash uri) 26))]
+    (char ascii-int)))
+
 (c/defn-item map-search [schema loading? pins]
   (c/isolate-state
    {:type :organization
@@ -291,6 +296,62 @@
     (c/focus :location
              (leaflet/main {:style {:height 460}} pins)))))
 
+(declare tree-geo-positions)
+
+(letfn [(unwrap [obj]
+          (cond
+            (tree/literal-decimal? obj)
+            (parse-double (tree/literal-decimal-value obj))
+
+            (tree/literal-string? obj)
+            (parse-double (tree/literal-string-value obj))
+            ))]
+  (defn- node-geo-position [node]
+    (let [lat ((tree/node-object-for-predicate "http://schema.org/latitude") node)
+          long ((tree/node-object-for-predicate "http://schema.org/longitude") node)]
+      (when-let [lt (unwrap lat)]
+        (when-let [lng (unwrap long)]
+          (let [node-uri (tree/node-uri node)]
+            [[lt lng] node-uri]))))))
+
+(defn- node-geo-positions [node]
+  (let [poss (mapcat (fn [prop]
+                       (tree-geo-positions
+                        (tree/property-object prop)))
+                     (tree/node-properties node))]
+    (if-let [pos (node-geo-position node)]
+      (conj poss pos)
+      poss)))
+
+(defn- tree-geo-positions [etree]
+  (cond
+    (tree/ref? etree)
+    []
+
+    (tree/literal-string? etree)
+    []
+
+    (tree/literal-decimal? etree)
+    []
+
+    (tree/literal-boolean? etree)
+    []
+
+    (tree/literal-time? etree)
+    []
+
+    (tree/literal-date? etree)
+    []
+
+    (tree/many? etree)
+    (mapcat tree-geo-positions (tree/many-trees etree))
+
+    (tree/exists? etree)
+    []
+
+    (tree/node? etree)
+    (node-geo-positions etree)))
+
 (c/defn-item main* [schema]
   (c/with-state-as state
     (c/fragment
@@ -311,16 +372,17 @@
                      :flex 1
                      :scroll-behavior "smooth"}}
 
-            (map-search schema
-                        (some? (:last-focus-query state))
-                        (when-let [graph (:graph state)]
-                          (map (fn [position]
-                                 (let [coords (unwrap-rdf-literal-decimal-tuple position)]
+            (c/with-state-as etree
+              (map-search schema
+                          (some? (:last-focus-query state))
+                          (when etree
+                            (map (fn [[coords uri]]
                                    (leaflet/make-pin
-                                    "A"
+                                    (map-label-for-uri uri)
                                     (color-for-coordinates coords)
-                                    coords)))
-                               (rdf/geo-positions graph))))
+                                    coords
+                                    (str "#" uri)))
+                                 (tree-geo-positions (edit-tree/edit-tree-result-tree etree))))))
 
             ;; display when we have a graph
             (c/with-state-as state
