@@ -716,8 +716,7 @@
                           :display "flex"
                           :gap "0.8em"
                           :align-items "center"}}
-                 (the-circle (when (and (existential/existential? uri)
-                                        editing?)
+                 (the-circle (when (existential/existential? uri)
                                (dom/div {:style {:display "flex"
                                                  :justify-content "center"
                                                  :align-items "center"
@@ -731,9 +730,11 @@
                      :href (tree/uri-string uri)}
                     (pr-uri uri)))
 
-                 (ds/button-primary
-                  {:onClick #(c/return :action (copy-to-clipboard! uri))}
-                  "Copy")
+                 (when (or (not (existential/existential? uri))
+                           force-editing?)
+                   (ds/button-primary
+                    {:onClick #(c/return :action (copy-to-clipboard! uri))}
+                    "Copy"))
 
                  (when editing?
                    (c/fragment
