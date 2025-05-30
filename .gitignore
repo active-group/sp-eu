@@ -1,3 +1,8 @@
 *~
 ~*
-/app/result
+
+# nix symlinks
+/result*
+
+# QEMU images
+*.qcow2
