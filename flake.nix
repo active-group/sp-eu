@@ -89,32 +89,9 @@
         in
         {
           nixosConfigurations = {
-            foo = lib.nixosSystem {
+            prod = lib.nixosSystem {
               inherit pkgs system;
-              modules = [
-                (
-                  { pkgs, lib, ... }:
-                  {
-                    environment.systemPackages = [ pkgs.git ];
-                    virtualisation.vmVariant = {
-                      virtualisation.forwardPorts = [
-                        {
-                          from = "host";
-                          host.port = 2222;
-                          guest.port = 22;
-                        }
-                      ];
-                    };
-                    services.openssh.enable = true;
-                    users.users.alice = {
-                      isNormalUser = true;
-                      description = "Alice Foobar";
-                      password = "foobar";
-                      uid = 1000;
-                    };
-                  }
-                )
-              ];
+              modules = [ (import ./nix/nixos-configurations/prod.nix) ];
             };
           };
         };
