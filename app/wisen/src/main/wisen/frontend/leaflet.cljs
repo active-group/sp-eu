@@ -33,8 +33,8 @@
   [(.-lat latLng)
    (.-lng latLng)])
 
-(defn- pin-element [label color]
-  (let [elem (js/document.createElement "div")]
+(defn- pin-element [label color href]
+  (let [elem (js/document.createElement "a")]
     (set! (.-textContent elem) label)
     (set! (.-style elem)
           (str
@@ -48,16 +48,20 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.5);
             border-top-left-radius: 0;"
            "background: " color ";"))
+    (when href
+      (set! (.-href elem) href))
     elem))
 
 (def-record pin [pin-label :- realm/string
                  pin-color :- realm/string
-                 pin-coordinates :- [realm/number realm/number]])
+                 pin-coordinates :- [realm/number realm/number]
+                 pin-href :- (realm/optional realm/string)])
 
-(defn make-pin [label color coordinates]
+(defn make-pin [label color coordinates & [href]]
   (pin pin-label label
        pin-color color
-       pin-coordinates coordinates))
+       pin-coordinates coordinates
+       pin-href href))
 
 (defn pin? [this]
   (is-a? pin this))
@@ -72,7 +76,8 @@
     (doall
      (map (fn [pin]
             (let [html (pin-element (pin-label pin)
-                                    (pin-color pin))
+                                    (pin-color pin)
+                                    (pin-href pin))
                   marker (.marker leaflet
                                   (clj->js (pin-coordinates pin))
                                   #js {:riseOnHover true :title "Schmeitel"
