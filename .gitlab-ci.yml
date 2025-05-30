@@ -2,23 +2,22 @@ image: nixpkgs/nix-flakes@sha256:95bce4317c15dfab3babac5a6d19d3ed41e31a02a8aaf3d
 
 build:
   script:
-    - cd app/wisen
-    - nix develop -c bash -c "clj -T:build uber"
-    - ls -lisah
+    - cd ./wisen
+    - nix develop -c clj -T:build uber
   artifacts:
     paths:
-    - app/wisen/target/uber/*-standalone.jar
-    - app/wisen/public/schema/schemaorg.jsonld
-    - app/wisen/src/main/datashapesorg.ttl
+    - ./wisen/target/uber/*-standalone.jar
+    - ./wisen/public/schema/schemaorg.jsonld
+    - ./wisen/src/main/datashapesorg.ttl
 
 test-frontend:
   script:
-    - cd app/wisen
-    - nix develop .#testWeb -c bash -c "clj -T:build test-cljs"
+    - cd ./wisen
+    - nix develop .#testWeb -c clj -T:build test-cljs
 
 test-backend:
   script:
-    - cd app/wisen
+    - cd ./wisen
     - nix develop -c bash -c "clj -T:build test-clj"
 
 deploy:
@@ -33,9 +32,9 @@ deploy:
   script:
     - echo "$SP_EU_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - echo "$SP_EU_SSH_SERVER_HOSTKEY" >> ~/.ssh/known_hosts
-    - scp app/wisen/target/uber/*-standalone.jar root@sp-eu.ci.active-group.de:/root/wisen/app.jar
-    - scp app/wisen/public/schema/schemaorg.jsonld root@sp-eu.ci.active-group.de:/root/wisen/public/schema/schemaorg.jsonld
-    - scp app/wisen/src/main/datashapesorg.ttl root@sp-eu.ci.active-group.de:/root/wisen/datashapesorg.ttl
+    - scp ./wisen/target/uber/*-standalone.jar root@sp-eu.ci.active-group.de:/root/wisen/app.jar
+    - scp ./wisen/public/schema/schemaorg.jsonld root@sp-eu.ci.active-group.de:/root/wisen/public/schema/schemaorg.jsonld
+    - scp ./wisen/src/main/datashapesorg.ttl root@sp-eu.ci.active-group.de:/root/wisen/datashapesorg.ttl
     - ssh root@sp-eu.ci.active-group.de 'systemctl restart sp-eu.service'
   needs:
     - build
