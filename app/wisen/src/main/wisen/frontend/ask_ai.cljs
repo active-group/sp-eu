@@ -15,6 +15,16 @@
 
 (def prompt-background "#eee")
 
+;; actions
+
+(def-record insert-action
+  [insert-action-graph])
+
+(def-record replace-action
+  [replace-action-graph])
+
+;; state
+
 (def pending nil)
 
 (def-record history-item
@@ -96,7 +106,8 @@
       {:style {:background prompt-background
                :align-self "flex-end"
                :padding "1ex 1em"
-               :border-radius "1em"}}
+               :border-radius "1em"
+               :white-space "pre-wrap"}}
       (history-item-prompt history-item))
 
      (dom/div
@@ -112,15 +123,28 @@
                    :else
                    (if (and (ajax/response? answer)
                             (ajax/response-ok? answer))
-                     (dom/div
-                      {:style {:padding "1ex 1em"
-                               :background "#eee"
-                               :border "1px solid gray"
-                               :border-radius "8px"}}
-                      (dom/h3 "Result")
-                      (call-with-graph
-                       (ajax/response-value answer)
-                       #(readonly-graph schema %)))
+                     (call-with-graph
+                      (ajax/response-value answer)
+                      (fn [graph]
+                        (dom/div
+                         {:style {:padding "1ex 1em"
+                                  :background "#eee"
+                                  :border "1px solid gray"
+                                  :border-radius "8px"}}
+                         (dom/div
+                          {:style {:display "flex"
+                                   :justify-content "space-between"}}
+                          (dom/h3 "Result")
+                          (dom/div
+                           {:style {:display "flex"
+                                    :gap "1em"}}
+                           (ds/button-primary {:onClick (fn []
+                                                          (c/return :action (insert-action insert-action-graph graph)))}
+                                              "Insert")
+                           (ds/button-primary {:onClick (fn []
+                                                          (c/return :action (replace-action replace-action-graph graph)))}
+                                              "Replace")))
+                         (readonly-graph schema graph))))
                      (dom/div
                       (dom/h3 "Error")
                       (dom/pre (pr-str (error-value answer)))))
@@ -128,44 +152,63 @@
 
 (c/defn-item main [schema readonly-graph close-action]
   (c/with-state-as node
-    (c/local-state
+    (-> (c/local-state
 
-     (make-state
-      (prompt-prefix
-       (tree/node-uri
-        (edit-tree/node-type node))))
+         (make-state
+          (prompt-prefix
+           (tree/node-uri
+            (edit-tree/node-type node))))
 
-     (c/focus lens/second
-              (dom/div
-               {:style {:display "flex"
-                        :flex-direction "column"
-                        :gap "2ex"}}
-               (c/focus state-history
-                        (c/with-state-as history
-                          (apply
-                           dom/div
-                           {:style {:display "flex"
-                                    :flex-direction "column"
-                                    :gap "2ex"}}
+         (c/focus lens/second
+                  (dom/div
+                   {:style {:display "flex"
+                            :flex-direction "column"
+                            :gap "2ex"}}
+                   (c/focus state-history
+                            (c/with-state-as history
+                              (apply
+                               dom/div
+                               {:style {:display "flex"
+                                        :flex-direction "column"
+                                        :gap "2ex"}}
 
-                           (map-indexed
-                            (fn [idx _hit]
-                              (c/focus (lens/at-index idx)
-                                       (history-item-component schema readonly-graph (take (inc idx) history))))
-                            history))))
+                               (map-indexed
+                                (fn [idx _hit]
+                                  (c/focus (lens/at-index idx)
+                                           (history-item-component schema readonly-graph (take (inc idx) history))))
+                                history))))
 
-               (dom/div
-                {:style {:background prompt-background
-                         :border-radius "2ex"
-                         :padding "1ex 1em"}}
-                (c/focus state-current-prompt
-                         (ds/textarea {:style {:min-height "10em"
-                                               :width "100%"
-                                               :background prompt-background
-                                               :border "none"
-                                               :outline "none"}}))
-                (dom/div
-                 {:style {:display "flex"
-                          :justify-content "flex-end"}}
-                 (ds/button-primary {:onClick state-run-prompt}
-                                    "Submit"))))))))
+                   (dom/div
+                    {:style {:background prompt-background
+                             :border-radius "2ex"
+                             :padding "1ex 1em"}}
+                    (c/focus state-current-prompt
+                             (ds/textarea {:style {:min-height "10em"
+                                                   :width "100%"
+                                                   :background prompt-background
+                                                   :border "none"
+                                                   :outline "none"}}))
+                    (dom/div
+                     {:style {:display "flex"
+                              :justify-content "flex-end"}}
+                     (ds/button-primary {:onClick state-run-prompt}
+                                        "Submit"))))))
+
+        (c/handle-action
+         (fn [enode ac]
+           (cond
+             (is-a? replace-action ac)
+             (c/return :state
+                       (edit-tree/graph->addit-tree (replace-action-graph ac))
+                       :action
+                       close-action)
+
+             (is-a? insert-action ac)
+             (c/return :state
+                       (edit-tree/insert-properties enode (tree/tree-properties
+                                                           (tree/graph->tree (insert-action-graph ac))))
+                       :action
+                       close-action)
+
+             :else
+             (c/return :action ac)))))))
