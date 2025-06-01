@@ -70,11 +70,6 @@
 (defn- prompt-prefix [type]
   (str "The type is <" type ">."))
 
-(defn- prepare-prompt [schema-type prompt]
-  (str (prompt-prefix schema-type)
-       " "
-       prompt))
-
 (c/defn-item call-with-graph [answer k]
   (c/isolate-state
    nil
