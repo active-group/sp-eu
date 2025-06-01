@@ -151,8 +151,8 @@
                                     (:semantic-area-search-bbox params))))
 
 (defn ollama-handler [request]
-  (let [body (slurp (get request :body))]
-    (llm/ollama-request! body)))
+  (let [params (:body-params request)]
+    (llm/ollama-request! params)))
 
 (def schema (slurp "public/schema/schemaorg.jsonld"))
 
@@ -192,7 +192,7 @@
      ;; redirection to move clients over to /resource/abcdefg/about
      ["/resource/:id" {:get {:handler get-resource}}]
      ["/resource/:id/about" {:get {:handler get-resource-description}}]
-     ["/describe" {:post {:handler ollama-handler}}]]
+     ["/ask" {:post {:handler ollama-handler}}]]
 
     ;; router data affecting all routes
     {:data {:muuntaja muuntaja.core/instance

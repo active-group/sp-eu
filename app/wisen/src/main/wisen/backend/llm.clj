@@ -5,7 +5,8 @@
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.skolem :as skolem]
             [wisen.backend.rdf-validator :as validator]
-            [wisen.common.or-error :as error])
+            [wisen.common.or-error :as error]
+            [cheshire.core :as cheshire])
   (:import (com.fasterxml.jackson.core JsonFactory JsonParser$Feature)
            (com.fasterxml.jackson.databind ObjectMapper)))
 
@@ -62,7 +63,7 @@
 
 (def ollama-request-url
   (str (or (System/getenv "OLLAMA_HOST")  "http://localhost:11434")
-        "/api/generate"))
+        "/api/chat"))
 
 (defn try-parse-json-ld-string [json-ld-str]
   (try
@@ -74,23 +75,76 @@
     (catch Exception e
       (error/make-error (pr-str e)))))
 
-(defn ollama-request! [prompt]
-  (let [response
-        (client/post ollama-request-url {:content-type :json
-                                         :accept :json
-                                         :as :json
-                                         :body (make-ollama-request-string
-                                                 (format-ollama-prompt prompt))})]
-    (case (:status response)
-      200 (let [parsed-response (-> response
-                                    (get-in [:body :response])
-                                    (prepare-llm-response)
-                                    (try-parse-json-ld-string))]
-            (if (error/success? parsed-response)
-              {:status 200
-               :body (error/success-value parsed-response)}
-              {:status 500
-               :body {:error (error/error-value parsed-response)
-                      :ai-response response}}))
-      ;; TODO: error handling
-      {:status 500 :body (pr-str response)})))
+(defn- make-chat-item [role content]
+  {:role role
+   :content content})
+
+(defn- chat-item-role [x]
+  (:role x))
+
+(defn- chat-item-content [x]
+  (:content x))
+
+(defn- chat-history-item-f [acc it]
+  (let [role (get it :role)
+        content (get it :content)]
+    (if (and (string? content)
+             (or (= role "system")
+                 (= role "user")
+                 (= role "assistant")))
+      (conj acc (make-chat-item role content))
+      (reduced nil))))
+
+(defn- deserialize-chat-history [params]
+  (when-let [hist (get params :history)]
+    (reduce chat-history-item-f [] hist)))
+
+(defn- history-item->ollama [it]
+  {:role (chat-item-role it)
+   :content (chat-item-content it)})
+
+(defn- chat-history->ollama [history]
+  (map history-item->ollama history))
+
+(defn- prepend-system-prompt [history]
+  (concat
+   [(make-chat-item
+     "system"
+     (format
+      "You convert natural language descriptions into JSON-LD using only Schema.org vocabulary. Ensure that: %s %s"
+      ensurances
+      guidelines))]
+   history))
+
+(defn ollama-request! [params]
+  (println (pr-str params))
+  (if-let [chat-history (deserialize-chat-history params)]
+    (let [_ (println "sending: " (pr-str (chat-history->ollama
+                                          (prepend-system-prompt
+                                           chat-history))))
+          response
+          (client/post ollama-request-url {:content-type :json
+                                           :accept :json
+                                           :as :json
+                                           :body (cheshire/generate-string
+                                                  {:model ollama-model
+                                                   :stream false
+                                                   :messages (chat-history->ollama
+                                                              (prepend-system-prompt
+                                                               chat-history))})})]
+      (println " --- " (pr-str response))
+      (case (:status response)
+        200 (let [parsed-response (-> response
+                                      (get-in [:body :message :content])
+                                      (prepare-llm-response)
+                                      (try-parse-json-ld-string))]
+              (if (error/success? parsed-response)
+                {:status 200
+                 :body (error/success-value parsed-response)}
+                {:status 500
+                 :body {:error (error/error-value parsed-response)
+                        :ai-response response}}))
+        ;; TODO: error handling
+        {:status 500 :body (pr-str response)}))
+    {:status 400
+     :body "could not parse chat history"}))
