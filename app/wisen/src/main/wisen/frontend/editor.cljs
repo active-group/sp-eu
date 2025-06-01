@@ -25,7 +25,8 @@
             [wisen.frontend.spinner :as spinner]
             [wisen.common.prefix :as prefix]
             [wisen.frontend.value-node :as value-node]
-            [wisen.common.wisen-uri :as wisen-uri]))
+            [wisen.common.wisen-uri :as wisen-uri]
+            [wisen.frontend.ask-ai :as ask-ai]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -355,119 +356,23 @@
                                  :action close-action)))}
          "Add properties as 'location'"))))))
 
-;; LLM
-
-(defn llm-query [prompt]
-  (ajax/map-ok-response
-   (ajax/POST "/describe" {:body prompt
-                           :headers {:content-type "text/plain"}})
-   :json-ld-string))
-
-(defn- prompt-prefix [type]
-  (str "The type is <" type ">."))
-
-(defn- prepare-prompt [schema-type prompt]
-  (str (prompt-prefix schema-type)
-       " "
-       prompt))
-
-(c/defn-item ask-ai [schema close-action]
-  (c/with-state-as [node local-state :local {:results nil ;; prompt -> results
-                                             :commit-prompt nil
-                                             :prompt "Just come up with something!"}]
-    (let [prompt (:prompt local-state)
-          commit-prompt (:commit-prompt local-state)
-          current-result (get (:results local-state) prompt)
-          loading? (and (some? commit-prompt)
-                        (nil? current-result))]
-
-      (dom/div
-       {:style {:display "flex"
-                :flex-direction "column"
-                :overflow "auto"}}
-
-       (modal/padded
-        {:style {:display "flex"
-                 :gap "1em"
-                 :overflow "auto"}}
-
-        (dom/div {:style {:padding "24px"
-                          :color "#444"}}
-                 (ds/lightbulb-icon "64"))
-
-        (dom/div
-         {:style {:flex 1
-                  :display "flex"
-                  :flex-direction "column"
-                  :gap "2ex"}}
-
-         (dom/h3 "Ask an AI to fill out this form")
-
-         (dom/div
-          {:style {:display "flex"
-                   :flex-direction "column"
-                   :gap "1ex"}}
-          (dom/div (prompt-prefix (tree/node-uri
-                                   (edit-tree/node-type node))))
-
-          (c/focus (lens/>> lens/second :prompt)
-                   (ds/textarea {:style {:min-height "20em"}})))
-
-         (when commit-prompt
-           (c/focus (lens/>> lens/second :results (lens/member commit-prompt))
-                    (util/load-json-ld-state* (llm-query (prepare-prompt (tree/node-uri
-                                                                         (edit-tree/node-type node))
-                                                                        commit-prompt)))))
-
-         (when current-result
-           (if (success? current-result)
-             (dom/div
-              {:style {:padding "1ex 1em"
-                       :background "#eee"
-                       :border "1px solid gray"
-                       :border-radius "8px"}}
-              (dom/h3 "Result")
-              (readonly-graph schema (success-value current-result)))
-             (dom/div
-              (dom/h3 "Error")
-              (dom/pre (pr-str (error-value current-result))))))))
-
-       (modal/toolbar
-
-        (ds/button-secondary {:onClick #(c/return :action close-action)}
-                             "Cancel")
-
-        (when-not commit-prompt
-          (c/focus lens/second
-                   (ds/button-primary {:onClick (fn [ls]
-                                                  (assoc ls :commit-prompt (:prompt ls)))}
-                                      "Ask AI!")))
-
-        (when loading?
-          (spinner/main))
-
-        (when (success? current-result)
-          (c/fragment
-           (ds/button-primary
-            {:onClick (fn [[node local-state]]
-                        (let [ai-node (edit-tree/graph->addit-tree (success-value current-result))]
-                          (c/return :state [ai-node
-                                            {}]
-                                    :action close-action)))}
-            "Replace")
-           (when-not (empty? (edit-tree/edit-node-properties node))
-             (ds/button-primary
-              {:onClick (fn [[node local-state]]
-                          (let [ai-node (tree/graph->tree (success-value current-result))]
-                            (c/return :state [(edit-tree/insert-properties node (tree/tree-properties ai-node))
-
-                                              {}]
-                                      :action close-action)))}
-              "Add properties")))))))))
-
 ;; ---
 
 (declare the-circle)
+
+(defn- ask-ai [schema close-action]
+  (dom/div
+   {:style {:display "flex"
+            :flex-direction "column"
+            :overflow "auto"}}
+
+   (modal/padded
+    {:style {:overflow "auto"}}
+    (ask-ai/main schema readonly-graph close-action))
+
+   (modal/toolbar
+    (ds/button-secondary {:onClick #(c/return :action close-action)}
+                         "Cancel"))))
 
 (defn- set-properties [schema]
   (c/with-state-as node
