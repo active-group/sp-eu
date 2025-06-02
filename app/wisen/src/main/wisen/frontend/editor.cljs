@@ -711,9 +711,10 @@
     (and
      (check-prop "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                  (fn [x]
-                   (and (edit-tree/edit-node? x)
+                   (and (or (edit-tree/edit-node? x)
+                            (edit-tree/ref? x))
                         (= "http://schema.org/GeoCoordinates"
-                           (edit-tree/edit-node-uri x))))
+                           (edit-tree/tree-uri x))))
                  etree)
      (check-prop "http://schema.org/latitude" edit-tree/literal-decimal? etree)
      (check-prop "http://schema.org/longitude" edit-tree/literal-decimal? etree)))
