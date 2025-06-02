@@ -1,9 +1,9 @@
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
 pkgs.stdenv.mkDerivation {
   name = "wisen-uber-jar";
 
-  src = ../../wisen;
+  src = lib.cleanSource ../..;
 
   buildInputs = [
     pkgs.clojure
