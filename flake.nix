@@ -4,6 +4,10 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    clj-nix = {
+      url = "github:jlesquembre/clj-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -41,7 +45,12 @@
       ];
 
       perSystem =
-        { system, self', ... }:
+        {
+          system,
+          self',
+          inputs',
+          ...
+        }:
         let
           pkgs = mkPkgs system;
           inherit (pkgs) lib stdenv;
@@ -75,8 +84,6 @@
                 inherit (pkgs) nodejs;
                 npmRoot = ./.;
               };
-
-              shellHook = '''';
             };
 
             testWeb = pkgs.mkShell {
@@ -93,6 +100,7 @@
           packages = {
             inherit (pkgs.active-group) wisen embeddingModel;
             default = self'.packages.wisen;
+            update-clj-lockfile = inputs'.clj-nix.packages.deps-lock;
           };
 
           formatter = pkgs.nixfmt-rfc-style;
