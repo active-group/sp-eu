@@ -3,7 +3,7 @@
 pkgs.stdenv.mkDerivation {
   pname = "${modelConfig.safe-name}-torchscript";
   version = "1.0.0";
-
+  src = null;
   dontUnpack = true;
 
   nativeBuildInputs = [
