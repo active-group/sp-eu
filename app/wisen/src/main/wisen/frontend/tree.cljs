@@ -369,3 +369,42 @@
   (existential/with-exgen
     (fn []
       (tree-properties* tree))))
+
+(defn- skolemize* [tree]
+  (cond
+    (many? tree)
+    (lens/overhaul tree many-trees #(map skolemize* %))
+
+    (exists? tree)
+    (existential/with-fresh-existential
+      (fn [ex]
+        (skolemize* ((exists-k tree) ex))))
+
+    (ref? tree)
+    tree
+
+    (literal-string? tree)
+    tree
+
+    (literal-decimal? tree)
+    tree
+
+    (literal-boolean? tree)
+    tree
+
+    (literal-time? tree)
+    tree
+
+    (literal-date? tree)
+    tree
+
+    (node? tree)
+    (lens/overhaul tree node-properties (fn [props]
+                                          (map (fn [prop]
+                                                 (lens/overhaul prop property-object skolemize*))
+                                               props)))))
+
+(defn skolemize [tree]
+  (existential/with-exgen
+    (fn []
+      (skolemize* tree))))
