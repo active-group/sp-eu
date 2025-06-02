@@ -273,6 +273,12 @@
     (is-a? many etree)
     (lens/overhaul etree (lens/>> many-edit-trees lens/first) focus)
 
+    (is-a? exists etree)
+    (exists exists-k
+            (fn [ex]
+              (focus
+               ((exists-k etree) ex))))
+
     (is-a? edit-node etree)
     ;; focus the left-most neighbour
     (let [eprops (edit-node-properties etree)
