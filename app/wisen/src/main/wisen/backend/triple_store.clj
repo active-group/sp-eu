@@ -194,7 +194,8 @@
            (let [lat (osm/search-success-latitude osm-result)
                  long (osm/search-success-longitude osm-result)
                  geo-uri (prefix/resource (random-uuid))
-                 geo (.createResource base-model geo-uri)]
+                 geo (.createResource base-model geo-uri)
+                 geo-coordinates-type (.createResource base-model "http://schema.org/GeoCoordinates")]
 
              ;; place has geo
              (.add base-model
@@ -202,6 +203,12 @@
                    place
                    (.createProperty base-model "http://schema.org/geo")
                    geo)
+
+             ;; geo has type GeoCoordinates
+             (.add base-model
+                   geo
+                   (.createProperty base-model "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                   geo-coordinates-type)
 
              ;; geo has longitude
              (.add base-model
