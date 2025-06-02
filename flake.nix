@@ -27,9 +27,6 @@
           config.allowUnfree = true;
           overlays = [
             (final: prev: {
-              # Pin NodeJS here, so every downstream usage of pkgs.nodejs will
-              # use our fixed version
-              nodejs = prev.nodejs_24;
               active-group = {
                 wisen = final.callPackage ./nix/packages/wisen-uberjar.nix { };
                 embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
