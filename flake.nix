@@ -101,6 +101,9 @@
           };
 
           formatter = pkgs.nixfmt-rfc-style;
+
+          # For the REPL and interactive debugging. Use `nix repl .#pkgs`.
+          legacyPackages = pkgs;
         };
 
       flake =
