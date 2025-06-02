@@ -4,6 +4,7 @@
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
+            [wisen.frontend.forms :as wisen.forms]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.tree :as tree]
             [wisen.frontend.edit-tree :as edit-tree]
@@ -35,7 +36,7 @@
 
 (def-record state
   [state-history :- (realm/sequence-of history-item)
-   state-current-prompt :- realm/string])
+   state-current-prompt :- [realm/string wisen.forms/selection-info]])
 
 (defn- serialize-history-item [hit]
   (let [user {:role "user"
@@ -56,7 +57,10 @@
 
 (defn make-state [initial-prompt]
   (state state-history []
-         state-current-prompt initial-prompt))
+         state-current-prompt
+         (let [len (count initial-prompt)]
+           [initial-prompt
+            (wisen.forms/make-selected len len)])))
 
 (defn- state-pending? [st]
   (first (filter #(= pending (history-item-answer %))
@@ -67,9 +71,9 @@
     (-> st
         (lens/overhaul state-history
                        (fn [hist]
-                         (conj hist (history-item history-item-prompt current-prompt
+                         (conj hist (history-item history-item-prompt (first current-prompt)
                                                   history-item-answer pending))))
-        (state-current-prompt ""))))
+        (state-current-prompt ["" (wisen.forms/make-selected 0 0)]))))
 
 (defn llm-query [history]
   (ajax/map-ok-response
@@ -183,11 +187,11 @@
                              :border-radius "2ex"
                              :padding "1ex 1em"}}
                     (c/focus state-current-prompt
-                             (ds/textarea {:style {:min-height "10em"
-                                                   :width "100%"
-                                                   :background prompt-background
-                                                   :border "none"
-                                                   :outline "none"}}))
+                             (ds/textarea+focus {:style {:min-height "10em"
+                                                         :width "100%"
+                                                         :background prompt-background
+                                                         :border "none"
+                                                         :outline "none"}}))
                     (dom/div
                      {:style {:display "flex"
                               :justify-content "flex-end"}}
