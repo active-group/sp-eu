@@ -20,9 +20,12 @@
         system:
         import nixpkgs {
           inherit system;
-          config.allowUnfree = true; # For google-chrome in devShells.
+          config.allowUnfree = true;
           overlays = [
             (final: prev: {
+              # Pin NodeJS here, so every downstream usage of pkgs.nodejs will
+              # use our fixed version
+              nodejs = prev.nodejs_24;
               active-group = {
                 wisen = final.callPackage ./nix/packages/wisen-uberjar.nix { };
                 embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
@@ -50,35 +53,37 @@
             self'.formatter
           ];
 
-          testPackages = [
-            pkgs.chromium
-            pkgs.chromedriver
-          ];
-
           tsModelPath = "${self'.packages.embeddingModel}/${modelConfig.traced-model-filename}";
           tsTokenizerPath = "${self'.packages.embeddingModel}/${modelConfig.tokenizer-dirname}";
         in
         {
           devShells = {
             default = pkgs.mkShell {
+              TS_MODEL_NAME = "${modelConfig.name}";
+              TS_MODEL_PATH = "${tsModelPath}";
+              TS_TOKENIZER_PATH = "${tsTokenizerPath}";
+              PC_PORT_NUM = "8081";
+
               buildInputs = basePackages ++ [
+                pkgs.importNpmLock.hooks.linkNodeModulesHook
                 pkgs.ollama
                 pkgs.process-compose
                 self'.packages.embeddingModel
               ];
 
-              shellHook = ''
-                export TS_MODEL_NAME="${modelConfig.name}"
-                export TS_MODEL_PATH=${tsModelPath}
-                export TS_TOKENIZER_PATH=${tsTokenizerPath}
+              npmDeps = pkgs.importNpmLock.buildNodeModules {
+                inherit (pkgs) nodejs;
+                npmRoot = ./.;
+              };
 
-                # process-compose would use port 8080 by default, which we want to use instead
-                export PC_PORT_NUM=8081
-              '';
+              shellHook = '''';
             };
 
             testWeb = pkgs.mkShell {
-              buildInputs = basePackages ++ testPackages;
+              buildInputs = basePackages ++ [
+                pkgs.chromium
+                pkgs.chromedriver
+              ];
               # Needed in order to be able to start Chromium
               FONTCONFIG_FILE = pkgs.makeFontsConf { fontDirectories = [ ]; };
               CHROME_BIN = "${lib.getExe pkgs.chromium}";
