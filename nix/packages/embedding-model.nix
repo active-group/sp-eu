@@ -32,7 +32,7 @@ pkgs.stdenv.mkDerivation {
     if pkgs.stdenv.isDarwin then
       "sha256-k59QI19kwPEcYWsuNF0ZzjbQhus1+HYR4SzcYHx3obk="
     else
-      "sha256-soZ8bGWlA/7gf9UbNSAQtUpj4hxPMhRCqUkXMkUg+xA=";
+      "sha256-fNHV+7/UDeIE5duWdeBut/zcB/nacAyXPDQTqA7CE14=";
 
   meta = with pkgs.lib; {
     description = "TorchScript version of ${modelConfig.name} for use with DJL";
