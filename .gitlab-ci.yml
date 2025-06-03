@@ -16,6 +16,5 @@ deploy:
     - echo "$SP_EU_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - echo "$SP_EU_SSH_SERVER_HOSTKEY" >> ~/.ssh/known_hosts
   script:
-    - nix build -j auto -L .#active-group.cljDeps
-    - nix build -j auto -L
+    - nix build -j auto -L .#active-group.cljDeps --no-sandbox
     - nix shell nixpkgs#nixos-rebuild -c nixos-rebuild switch -j auto --flake .#prod --target-host root@sp-eu.ci.active-group.de
