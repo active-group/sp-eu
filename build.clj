@@ -16,24 +16,32 @@
 (def cljs-basis (delay (b/create-basis {:project "deps.edn"
                                         :aliases [:shadow-cljs]})))
 
-
 (defn clean [_]
   (b/delete {:path class-dir})
   (b/delete {:path output-dir})
   (b/delete {:path uber-dir})
   (b/delete {:path ".shadow-cljs"}))
 
+(defn- process
+  "Start a sub-process with `args` (like `clojure.tools.build.api/process`), but
+  fail whenever its exit code signals failure."
+  [args]
+  (let [{exit :exit :as process-result} (b/process args)]
+    (when (> exit 0)
+      (println "Process failed:" process-result)
+      (System/exit exit))))
+
 (defn shadow-cljs [opts]
   (let [target (:target opts)
-        task (:task opts)
-        cmds (b/java-command {:basis @cljs-basis
-                              :main 'clojure.main
-                              :main-args ["-m"
-                                          "shadow.cljs.devtools.cli"
-                                          task
-                                          target]})]
-    (b/process {:command-args ["npm" "i"]})
-    (b/process cmds)))
+        task (:task opts)]
+    (process {:command-args ["npm" "i"]})
+    (process
+     (b/java-command {:basis @cljs-basis
+                      :main 'clojure.main
+                      :main-args ["-m"
+                                  "shadow.cljs.devtools.cli"
+                                  task
+                                  target]}))))
 
 (defn compile-clj [_]
   (b/compile-clj {:basis @basis
@@ -57,26 +65,15 @@
   (compile-clj nil)
   (make-uber nil))
 
-(defn test-cljs* [_]
+(defn test-cljs [_]
   (shadow-cljs {:task "compile" :target "karma-test"})
-  (b/process {:command-args ["npx" "karma" "start" "--single-run"]}))
+  (process {:command-args ["npx" "karma" "start" "--single-run"]}))
 
-(defn test-clj* [_]
-  (b/process {:command-args ["clojure" "-M:test:backend"]
-                           :dir "."
-                           :out :inherit
-                           :err :inherit}))
-
-(defn with-exit-code [f args]
-  (let [result (f args)]
-    (when-not (zero? (:exit result))
-      (System/exit (:exit result)))))
-
-(defn test-clj [opts]
-  (with-exit-code test-clj* opts))
-
-(defn test-cljs [opts]
-  (with-exit-code test-cljs* opts))
+(defn test-clj [_]
+  (process {:command-args ["clojure" "-M:test:backend"]
+            :dir "."
+            :out :inherit
+            :err :inherit}))
 
 (defn cljs-watch [_]
   (shadow-cljs {:task "watch" :target "frontend"}))
