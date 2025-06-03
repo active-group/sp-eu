@@ -49,7 +49,7 @@
                   :class-dir class-dir}))
 
 (defn copy-dirs [_]
-  (b/copy-dir {:src-dirs ["src" "public"]
+  (b/copy-dir {:src-dirs ["src" "public" "resources"]
                :target-dir class-dir}))
 
 (defn make-uber [_]
