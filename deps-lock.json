@@ -11,11 +11,10 @@
     },
     {
       "lib": "io.github.cognitect-labs/test-runner",
-      "url": "https://github.com/cognitect-labs/test-runner.git",
-      "rev": "dfb30dd6605cb6c0efc275e1df1736f6e90d4d73",
-      "tag": "v0.5.1",
+      "url": "https://github.com/cognitect-labs/test-runner",
+      "rev": "3f288f1f16d167723ad87cc35b1dfee3c1681e10",
       "git-dir": "https/github.com/cognitect-labs/test-runner",
-      "hash": "sha256-PUNd+dHJNPTKno59YI27wpehyULYPvSyCQDjVIadKJ4="
+      "hash": "sha256-yyo857hVxEHmdMWo2zuTOX3ZPZw9OiMFJnaNDf/kW/U="
     }
   ],
   "mvn-deps": [
