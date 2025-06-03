@@ -2,7 +2,7 @@
   (:require [clojure.tools.build.api :as b]))
 
 (def lib 'wisen/wisen)
-(def version (format "0.1.%s" (b/git-count-revs nil)))
+(def version (format "0.2.0"))
 (def class-dir "target/classes")
 (def output-dir "public/js")
 (def uber-dir "target/uber")
