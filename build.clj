@@ -34,7 +34,6 @@
 (defn shadow-cljs [opts]
   (let [target (:target opts)
         task (:task opts)]
-    (process {:command-args ["npm" "i"]})
     (process
      (b/java-command {:basis @cljs-basis
                       :main 'clojure.main
