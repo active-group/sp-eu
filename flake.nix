@@ -26,10 +26,18 @@
           inherit system;
           config.allowUnfree = true;
           overlays = [
+            inputs.clj-nix.overlays.default
             (final: prev: {
               active-group = {
                 wisen = final.callPackage ./nix/packages/wisen-uberjar.nix { };
                 embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
+                npmDeps = final.importNpmLock.buildNodeModules {
+                  inherit (final) nodejs;
+                  npmRoot = ./.;
+                };
+                cljDeps = final.mk-deps-cache {
+                  lockfile = ./deps-lock.json;
+                };
               };
             })
           ];
@@ -65,6 +73,8 @@
         {
           devShells = {
             default = pkgs.mkShell {
+              inherit (pkgs.active-group) npmDeps;
+
               TS_MODEL_NAME = "${modelConfig.name}";
               TS_MODEL_PATH = "${tsModelPath}";
               TS_TOKENIZER_PATH = "${tsTokenizerPath}";
@@ -76,11 +86,6 @@
                 pkgs.process-compose
                 self'.packages.embeddingModel
               ];
-
-              npmDeps = pkgs.importNpmLock.buildNodeModules {
-                inherit (pkgs) nodejs;
-                npmRoot = ./.;
-              };
             };
 
             testWeb = pkgs.mkShell {
