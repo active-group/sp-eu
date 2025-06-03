@@ -16,8 +16,6 @@ deploy:
     - echo "$SP_EU_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
     - echo "$SP_EU_SSH_SERVER_HOSTKEY" >> ~/.ssh/known_hosts
   script:
-    - scp ./public/schema/schemaorg.jsonld root@sp-eu.ci.active-group.de:/root/wisen/public/schema/schemaorg.jsonld
-    - scp ./src/main/datashapesorg.ttl root@sp-eu.ci.active-group.de:/root/wisen/datashapesorg.ttl
     # NOTE: need to build the uberjar with --no-sandbox for the time being;
     # nixos-rebuild doesn't have that option
     - nix build --no-sandbox
