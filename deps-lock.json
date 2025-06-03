@@ -4,10 +4,10 @@
     {
       "lib": "io.github.clojure/tools.build",
       "url": "https://github.com/clojure/tools.build.git",
-      "rev": "573711ea65f7d324a6a6cdd3ac20cb30bba47e48",
-      "tag": "v0.10.7",
+      "rev": "e405aac49c67310f88ceeca7839881692abdde95",
+      "tag": "v0.10.9",
       "git-dir": "https/github.com/clojure/tools.build",
-      "hash": "sha256-g+rtNL3gjmVKfT+p+9P45j13Hp6jW1VFS7mZ1m2PGjY="
+      "hash": "sha256-dT5DwFreMjc+0gnl61OpgmDs9utg6y5kYSCwSmN0k4A="
     },
     {
       "lib": "io.github.cognitect-labs/test-runner",
