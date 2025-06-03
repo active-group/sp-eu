@@ -10,6 +10,7 @@
 # clj(s) and node
 .clj-kondo/
 .cpcache/
+.lsp/
 target/
 .nrepl-port
 .prepl-port
