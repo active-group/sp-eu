@@ -30,23 +30,13 @@ in
     };
   };
 
+  active-group.sp-eu = {
+    enable = true;
+  };
+
   security.acme = {
     acceptTerms = true;
     defaults.email = "admin@active-group.de";
-  };
-
-  systemd.services = {
-    sp-eu = {
-      wantedBy = [ "multi-user.target" ];
-      after = [ "keycloak.service" ];
-      description = "Start SP-EU backend.";
-      serviceConfig = {
-        User = "root";
-        WorkingDirectory = "/root/wisen";
-        ExecStart = "${pkgs.jdk}/bin/java -jar ${pkgs.active-group.wisen}/lib/app.jar";
-        TimeoutStartSec = "0";
-      };
-    };
   };
 
   services = {
