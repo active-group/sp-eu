@@ -39,6 +39,9 @@ pkgs.stdenv.mkDerivation {
     clj -T:build uber
   '';
 
+  doCheck = true;
+  checkPhase = "clj -T:build test-clj";
+
   installPhase = ''
     mkdir -p $out/lib
     cp ./target/uber/*-standalone.jar $out/lib/app.jar
