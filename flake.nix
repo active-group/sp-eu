@@ -118,14 +118,24 @@
           pkgs = mkPkgs system;
         in
         {
+          nixosModules = {
+            default = import ./nix/modules;
+          };
+
           nixosConfigurations = {
             dev = lib.nixosSystem {
               inherit pkgs system;
-              modules = [ (import ./nix/nixos-configurations/vm-base.nix) ];
+              modules = [
+                inputs.self.nixosModules.default
+                (import ./nix/nixos-configurations/vm-base.nix)
+              ];
             };
             prod = lib.nixosSystem {
               inherit pkgs system;
-              modules = [ (import ./nix/nixos-configurations/prod.nix) ];
+              modules = [
+                inputs.self.nixosModules.default
+                (import ./nix/nixos-configurations/prod.nix)
+              ];
             };
           };
         };
