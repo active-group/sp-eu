@@ -126,15 +126,14 @@
             dev = lib.nixosSystem {
               inherit pkgs system;
               modules = [
-                inputs.self.nixosModules.default
-                (import ./nix/nixos-configurations/vm-base.nix)
+                ./nix/nixos-configurations/vm-base.nix
               ];
             };
             prod = lib.nixosSystem {
               inherit pkgs system;
               modules = [
                 inputs.self.nixosModules.default
-                (import ./nix/nixos-configurations/prod.nix)
+                ./nix/nixos-configurations/prod.nix
               ];
             };
           };
