@@ -21,17 +21,20 @@
   };
 
   virtualisation.vmVariant = {
-    virtualisation.forwardPorts = [
-      {
-        from = "host";
-        host.port = 2222;
-        guest.port = 22;
-      }
-      {
-        from = "host";
-        host.port = 8080;
-        guest.port = 8080;
-      }
-    ];
+    virtualisation = {
+      diskSize = 10000;
+      forwardPorts = [
+        {
+          from = "host";
+          host.port = 2222;
+          guest.port = 22;
+        }
+        {
+          from = "host";
+          host.port = 8080;
+          guest.port = 8080;
+        }
+      ];
+    };
   };
 }
