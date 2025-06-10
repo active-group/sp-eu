@@ -17,8 +17,7 @@
 
   :frontend {}
 
-  :test {:extra-paths ["toooosts"]
-         :extra-deps {io.github.cognitect-labs/test-runner
+  :test {:extra-deps {io.github.cognitect-labs/test-runner
                       {:git/url "https://github.com/cognitect-labs/test-runner"
                        :sha "3f288f1f16d167723ad87cc35b1dfee3c1681e10"}}
          :main-opts ["-m" "cognitect.test-runner"]
