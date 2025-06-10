@@ -5,28 +5,25 @@
 }:
 
 {
-  virtualisation.docker.enable = true;
-
-  systemd.services = {
-    keycloak = {
-      wantedBy = [ "multi-user.target" ];
-      after = [ "docker.service" ];
-      description = "Start SP-EU keycloak docker container.";
-      serviceConfig = {
-        User = "root";
-        WorkingDirectory = "/root/wisen/keycloak";
-        ExecStart = ''
-          ${pkgs.docker}/bin/docker run -p 8080:8080 \
-            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=agkeycloac07 \
-            -e KC_PROXY_HEADERS=xforwarded \
-            -e KC_HOSTNAME=https://sp-eu.ci.active-group.de/cloak \
-            -e KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/data/import/fullchain.pem \
-            -e KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/data/import/key.pem \
-            -v /root/wisen/keycloak:/opt/keycloak/data/import \
-            quay.io/keycloak/keycloak@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761 \
-            start-dev --import-realm
-        '';
+  virtualisation = {
+    oci-containers.containers.kc = {
+      image = "quay.io/keycloak/keycloak@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761";
+      ports = [ "8080:8080" ];
+      volumes = [
+        "${../../keycloak}:/opt/keycloak/data/import"
+      ];
+      environment = {
+        KC_BOOTSTRAP_ADMIN_USERNAME = "admin";
+        KC_BOOTSTRAP_ADMIN_PASSWORD = "agkeycloac07";
+        # KC_PROXY_HEADERS = "xforwarded";
+        # KC_HOSTNAME = "localhost";
+        # KC_HTTPS_CERTIFICATE_FILE = "/opt/keycloak/data/import/fullchain.pem";
+        # KC_HTTPS_CERTIFICATE_KEY_FILE = "/opt/keycloak/data/import/key.pem";
       };
+      cmd = [
+        "start-dev"
+        "--import-realm"
+      ];
     };
   };
 
