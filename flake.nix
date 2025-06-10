@@ -126,7 +126,7 @@
             dev = lib.nixosSystem {
               inherit pkgs system;
               modules = [
-                ./nix/nixos-configurations/vm-base.nix
+                ./nix/nixos-configurations/dev.nix
               ];
             };
             prod = lib.nixosSystem {
