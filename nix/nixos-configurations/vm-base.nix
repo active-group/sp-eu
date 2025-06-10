@@ -47,9 +47,6 @@
     };
   };
 
-  users.users.root.openssh.authorizedKeys.keys = [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMkJUKlZpli3wOU3DLI6qEm1286CFOOmwnTUWOzalmMx ci@gitlab"
-  ];
   nix = {
     package = pkgs.nixVersions.stable;
     extraOptions = "experimental-features = nix-command flakes";
