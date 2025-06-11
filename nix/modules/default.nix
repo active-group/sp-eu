@@ -1,3 +1,6 @@
 {
-  imports = [ ./sp-eu ];
+  imports = [
+    ./sp-eu
+    ./keycloak
+  ];
 }

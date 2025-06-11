@@ -7,6 +7,8 @@
 {
   imports = [ ./vm-base.nix ];
 
+  active-group.keycloak.env = "dev";
+
   users.users.alice = {
     isNormalUser = true;
     description = "Alice Foobar";
