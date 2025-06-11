@@ -1,13 +1,10 @@
 {
-  config,
-  pkgs,
-  ...
-}:
-
-{
   imports = [ ./vm-base.nix ];
 
-  active-group.keycloak.env = "dev";
+  active-group.keycloak = {
+    enable = true;
+    env = "dev";
+  };
 
   users.users.alice = {
     isNormalUser = true;
@@ -22,21 +19,19 @@
     firewall.enable = false;
   };
 
-  virtualisation.vmVariant = {
-    virtualisation = {
-      diskSize = 10000;
-      forwardPorts = [
-        {
-          from = "host";
-          host.port = 2222;
-          guest.port = 22;
-        }
-        {
-          from = "host";
-          host.port = 8080;
-          guest.port = 8080;
-        }
-      ];
-    };
+  virtualisation.vmVariant.virtualisation = {
+    diskSize = 10000;
+    forwardPorts = [
+      {
+        from = "host";
+        host.port = 2222;
+        guest.port = 22;
+      }
+      {
+        from = "host";
+        host.port = 8080;
+        guest.port = 8080;
+      }
+    ];
   };
 }
