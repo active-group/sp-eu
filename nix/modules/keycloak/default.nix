@@ -34,6 +34,7 @@ in
       ports = [ "8080:8080" ];
       volumes = [
         "${./${cfg.env}}:/opt/keycloak/data/import"
+        "/var/lib/acme/sp-eu.ci.active-group.de:/certs:ro"
       ];
       environment =
         {
@@ -44,8 +45,8 @@ in
           KC_PROXY_HEADERS = "xforwarded";
           KC_HOSTNAME = "https://sp-eu.ci.active-group.de/cloak";
           # FIXME(Johannes): parameterize over domain
-          KC_HTTPS_CERTIFICATE_FILE = "/var/lib/acme/sp-eu.ci.active-group.de/fullchain.pem";
-          KC_HTTPS_CERTIFICATE_KEY_FILE = "/var/lib/acme/sp-eu.ci.active-group.de/key.pem";
+          KC_HTTPS_CERTIFICATE_FILE = "/certs/fullchain.pem";
+          KC_HTTPS_CERTIFICATE_KEY_FILE = "/certs/key.pem";
         });
       cmd = [
         "start-dev"
