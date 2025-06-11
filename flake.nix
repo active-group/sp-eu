@@ -11,7 +11,12 @@
   };
 
   outputs =
-    { nixpkgs, flake-parts, ... }@inputs:
+    {
+      self,
+      nixpkgs,
+      flake-parts,
+      ...
+    }@inputs:
     let
       modelConfig = {
         name = "BAAI/bge-m3";
@@ -47,6 +52,7 @@
       systems = [
         "x86_64-linux"
         "aarch64-darwin"
+        "aarch64-linux"
       ];
 
       perSystem =
@@ -103,6 +109,8 @@
             inherit (pkgs.active-group) wisen embeddingModel;
             default = self'.packages.wisen;
             update-clj-lockfile = inputs'.clj-nix.packages.deps-lock;
+            ${if pkgs.stdenv.isLinux then "dev-vm" else null} =
+              inputs.self.nixosConfigurations."dev-${system}".config.system.build.vm;
           };
 
           formatter = pkgs.nixfmt-rfc-style;
@@ -111,33 +119,46 @@
           legacyPackages = pkgs;
         };
 
-      flake =
-        let
-          inherit (nixpkgs) lib;
-          system = "x86_64-linux";
-          pkgs = mkPkgs system;
-        in
-        {
-          nixosModules = {
-            default = import ./nix/modules;
-          };
-
-          nixosConfigurations = {
-            dev = lib.nixosSystem {
-              inherit pkgs system;
-              modules = [
-                inputs.self.nixosModules.default
-                ./nix/nixos-configurations/dev.nix
-              ];
-            };
-            prod = lib.nixosSystem {
-              inherit pkgs system;
-              modules = [
-                inputs.self.nixosModules.default
-                ./nix/nixos-configurations/prod.nix
-              ];
-            };
-          };
+      flake = {
+        nixosModules = {
+          default = import ./nix/modules;
         };
+
+        nixosConfigurations = builtins.listToAttrs (
+          builtins.concatMap
+            (
+              system:
+              let
+                pkgs = mkPkgs system;
+              in
+              [
+                {
+                  name = "dev-${system}";
+                  value = nixpkgs.lib.nixosSystem {
+                    inherit pkgs system;
+                    modules = [
+                      inputs.self.nixosModules.default
+                      ./nix/nixos-configurations/dev.nix
+                    ];
+                  };
+                }
+                {
+                  name = "prod-${system}";
+                  value = nixpkgs.lib.nixosSystem {
+                    inherit pkgs system;
+                    modules = [
+                      inputs.self.nixosModules.default
+                      ./nix/nixos-configurations/prod.nix
+                    ];
+                  };
+                }
+              ]
+            )
+            [
+              "x86_64-linux"
+              "aarch64-linux"
+            ]
+        );
+      };
     };
 }

@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -23,7 +22,7 @@ in
     env = lib.mkOption {
       type = lib.types.enum [
         "prod"
-        "env"
+        "dev"
       ];
       default = "prod";
     };

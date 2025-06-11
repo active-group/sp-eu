@@ -1,9 +1,3 @@
-{
-  config,
-  pkgs,
-  ...
-}:
-
 let
   domain = "sp-eu.ci.active-group.de";
 in
