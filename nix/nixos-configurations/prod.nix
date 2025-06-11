@@ -30,8 +30,12 @@ in
     };
   };
 
-  active-group.sp-eu = {
-    enable = true;
+  active-group = {
+    sp-eu.enable = true;
+    keycloak = {
+      enable = true;
+      env = "prod";
+    };
   };
 
   security.acme = {
@@ -46,6 +50,7 @@ in
         locations = {
           "/".proxyPass = "http://localhost:4321";
           "/cloak" = {
+            # FIXME(Johannes):
             # proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
             proxyPass = "http://localhost:8080/";
             extraConfig = ''

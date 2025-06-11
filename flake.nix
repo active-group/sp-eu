@@ -126,6 +126,7 @@
             dev = lib.nixosSystem {
               inherit pkgs system;
               modules = [
+                inputs.self.nixosModules.default
                 ./nix/nixos-configurations/dev.nix
               ];
             };
