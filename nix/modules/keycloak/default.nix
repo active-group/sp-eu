@@ -42,7 +42,7 @@ in
         }
         // (lib.optionalAttrs (cfg.env == "prod") {
           KC_PROXY_HEADERS = "xforwarded";
-          KC_HOSTNAME = "localhost";
+          KC_HOSTNAME = "https://sp-eu.ci.active-group.de/cloak";
           # FIXME(Johannes): parameterize over domain
           KC_HTTPS_CERTIFICATE_FILE = "/var/lib/acme/sp-eu.ci.active-group.de/fullchain.pem";
           KC_HTTPS_CERTIFICATE_KEY_FILE = "/var/lib/acme/sp-eu.ci.active-group.de/key.pem";
