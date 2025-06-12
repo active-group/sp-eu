@@ -42,7 +42,8 @@ in
       enable = true;
       virtualHosts.${domain} = {
         locations = {
-          "/cloak" = {
+          "/cloak".return = "301 /cloak/";
+          "/cloak/" = {
             # FIXME(Johannes):
             # proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
             proxyPass = "http://localhost:8080";
