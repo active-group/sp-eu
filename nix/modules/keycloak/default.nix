@@ -34,22 +34,21 @@ in
       ports = [ "8080:8080" ];
       volumes = [
         "${./${cfg.env}}:/opt/keycloak/data/import"
-        "/var/lib/acme/sp-eu.ci.active-group.de:/certs:ro"
       ];
       environment =
         {
           KC_BOOTSTRAP_ADMIN_USERNAME = "admin";
-          KC_BOOTSTRAP_ADMIN_PASSWORD = "agkeycloac07";
+          KC_BOOTSTRAP_ADMIN_PASSWORD = "agkeycloac08";
         }
         // (lib.optionalAttrs (cfg.env == "prod") {
           KC_PROXY_HEADERS = "xforwarded";
-          KC_HOSTNAME = "https://sp-eu.ci.active-group.de/cloak";
+          KC_PROXY = "edge";
           # FIXME(Johannes): parameterize over domain
-          KC_HTTPS_CERTIFICATE_FILE = "/certs/fullchain.pem";
-          KC_HTTPS_CERTIFICATE_KEY_FILE = "/certs/key.pem";
+          KC_HOSTNAME = "https://sp-eu.ci.active-group.de/cloak";
         });
       cmd = [
-        "start-dev"
+        "start"
+        "--http-enabled=true"
         "--import-realm"
       ];
     };

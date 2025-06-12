@@ -42,12 +42,12 @@ in
       enable = true;
       virtualHosts.${domain} = {
         locations = {
-          "/".proxyPass = "http://localhost:4321";
           "/cloak" = {
             # FIXME(Johannes):
             # proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
-            proxyPass = "http://localhost:8080/";
+            proxyPass = "http://localhost:8080";
             extraConfig = ''
+              rewrite /cloak(.*)  $1                 break;
               proxy_set_header    Host               $host;
               proxy_set_header    X-Real-IP          $remote_addr;
               proxy_set_header    X-Forwarded-For    $proxy_add_x_forwarded_for;
@@ -57,6 +57,7 @@ in
               proxy_set_header    X-Forwarded-Proto  $scheme;
             '';
           };
+          "/".proxyPass = "http://localhost:4321";
         };
         enableACME = true;
         forceSSL = true;
