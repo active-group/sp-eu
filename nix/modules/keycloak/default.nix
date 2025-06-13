@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 
@@ -29,28 +30,29 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    virtualisation.oci-containers.containers.keycloak = {
-      image = "quay.io/keycloak/keycloak@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761";
-      ports = [ "8080:8080" ];
-      volumes = [
-        "${./${cfg.env}}:/opt/keycloak/data/import"
-      ];
-      environment =
+    services.keycloak = {
+      enable = true;
+      realmFiles = if cfg.env == "prod" then [ ./prod/realm-export.json ] else [ ./dev/SP-EU-realm.json ];
+      initialAdminPassword = "foobar";
+      settings =
         {
-          KC_BOOTSTRAP_ADMIN_USERNAME = "admin";
-          KC_BOOTSTRAP_ADMIN_PASSWORD = "agkeycloac08";
+          hostname = "localhost";
+          http-port = 8080;
+          http-enabled = true;
         }
         // (lib.optionalAttrs (cfg.env == "prod") {
-          KC_PROXY_HEADERS = "xforwarded";
-          KC_PROXY = "edge";
-          # FIXME(Johannes): parameterize over domain
-          KC_HOSTNAME = "https://sp-eu.ci.active-group.de/cloak";
+          hostname = "https://sp-eu.ci.active-group.de/cloak";
+          proxy-headers = "xforwarded";
         });
-      cmd = [
-        "start"
-        "--http-enabled=true"
-        "--import-realm"
-      ];
+      database = {
+        type = "mariadb";
+        passwordFile = "${pkgs.writeTextFile {
+          name = "db-password";
+          text = "foobarpass";
+        }}";
+        username = "keycloak-user";
+        name = "keycloak";
+      };
     };
   };
 }
