@@ -8,6 +8,8 @@ test:
     - nix develop -j auto .#testWeb -c clj -T:build test-cljs
 
 deploy:
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'main'
   image: $NIX_IMAGE
   before_script:
     - eval $(ssh-agent -s)
