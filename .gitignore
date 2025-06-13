@@ -15,6 +15,7 @@ target/
 .nrepl-port
 .prepl-port
 .shadow-cljs/
+.nixos-test-history
 public/js/
 node_modules/
 

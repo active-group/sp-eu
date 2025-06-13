@@ -135,6 +135,7 @@
                   else
                     builtins.throw "unexpected system"
                 );
+            integration-test = pkgs.callPackage ./nix/packages/integration-test.nix { inherit self; };
           };
 
           formatter = pkgs.nixfmt-rfc-style;
