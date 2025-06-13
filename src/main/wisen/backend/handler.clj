@@ -3,6 +3,7 @@
             [hiccup.core :as h]
             [reitit.ring :as ring]
             [clj-http.client :as http]
+            [clojure.java.io]
             [reitit.ring.coercion :as rrc]
             [reitit.ring.middleware.exception :as exception]
             [reitit.coercion.spec :as rcs]
@@ -154,7 +155,8 @@
   (let [params (:body-params request)]
     (llm/ollama-request! params)))
 
-(def schema (slurp "public/schema/schemaorg.jsonld"))
+(def schema
+  (slurp (clojure.java.io/resource "schema/schemaorg.jsonld")))
 
 (defn get-schema [request]
   {:status 200
