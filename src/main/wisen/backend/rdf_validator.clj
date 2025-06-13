@@ -1,11 +1,15 @@
 (ns wisen.backend.rdf-validator
-  (:require [wisen.backend.jsonld :as jsonld])
+  (:require [clojure.java.io]
+            [wisen.backend.jsonld :as jsonld])
   (:import (org.apache.jena.shacl ShaclValidator Shapes)
            (org.apache.jena.riot RDFDataMgr)
            (org.apache.jena.riot Lang)
            (org.apache.jena.shacl.lib ShLib)))
 
-(def shapes-path "datashapesorg.ttl")
+(def shapes-uri
+  (-> (clojure.java.io/resource "datashapesorg.ttl")
+      (.toURI)
+      (str)))
 
 (defn read-shapes-graph [path]
   (-> path
@@ -26,7 +30,7 @@
         :invalid-nodes (pr-str (.getEntries report))
         :report report})))
   ([data-graph]
-   (validate-data-graph data-graph (read-shapes-graph shapes-path))))
+   (validate-data-graph data-graph (read-shapes-graph shapes-uri))))
 
 (defn validate-json-ld-string [json-ld-string]
   (-> json-ld-string

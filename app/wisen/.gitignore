@@ -1,8 +1,0 @@
-.cpcache
-target
-.nrepl-port
-.prepl-port
-.shadow-cljs
-public/js
-node_modules
-devdb
