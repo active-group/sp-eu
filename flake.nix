@@ -109,8 +109,26 @@
             inherit (pkgs.active-group) wisen embeddingModel;
             default = self'.packages.wisen;
             update-clj-lockfile = inputs'.clj-nix.packages.deps-lock;
-            ${if pkgs.stdenv.isLinux then "dev-vm" else null} =
-              inputs.self.nixosConfigurations."dev-${system}".config.system.build.vm;
+            dev-vm =
+              if pkgs.stdenv.isLinux then
+                inputs.self.nixosConfigurations."dev-${system}".config.system.build.vm
+              else
+                (
+                  if pkgs.stdenv.system == "aarch64-darwin" then
+                    pkgs.runCommand "macos-runner" { } ''
+                      mkdir -p $out/bin
+                      script=$out/bin/run
+                      install -m 755 ${inputs.self.nixosConfigurations.dev-aarch64-linux.config.system.build.vm}/bin/run* $script
+                      sed -i 's|/nix/store/.*/qemu|qemu|g' $script
+                      sed -i 's|/nix/store/.*/mkfs|mkfs|g' $script
+                      sed -i 's/^export PATH.*//g' $script
+                      sed -i 's|/nix/store/.*/bash|/usr/bin/env bash|g' $script
+                      sed -i 's|/nix/store/.*/mkfs|mkfs|g' $script
+                      sed -i 's/kvm:tcg/hvf/g' $script
+                    ''
+                  else
+                    builtins.throw "unexpected system"
+                );
           };
 
           formatter = pkgs.nixfmt-rfc-style;
