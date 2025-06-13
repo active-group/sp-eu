@@ -86,12 +86,18 @@
               TS_TOKENIZER_PATH = "${tsTokenizerPath}";
               PC_PORT_NUM = "8081";
 
-              buildInputs = basePackages ++ [
-                pkgs.importNpmLock.hooks.linkNodeModulesHook
-                pkgs.ollama
-                pkgs.process-compose
-                self'.packages.embeddingModel
-              ];
+              buildInputs =
+                basePackages
+                ++ [
+                  pkgs.importNpmLock.hooks.linkNodeModulesHook
+                  pkgs.ollama
+                  pkgs.process-compose
+                  self'.packages.embeddingModel
+                ]
+                ++ (lib.optionals pkgs.stdenv.isDarwin [
+                  pkgs.qemu
+                  pkgs.e2fsprogs
+                ]);
             };
 
             testWeb = pkgs.mkShell {
