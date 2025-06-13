@@ -94,7 +94,7 @@
                   pkgs.process-compose
                   self'.packages.embeddingModel
                 ]
-                ++ (lib.optionals pkgs.stdenv.isDarwin [
+                ++ (lib.optionals stdenv.isDarwin [
                   pkgs.qemu
                   pkgs.e2fsprogs
                 ]);
@@ -116,11 +116,11 @@
             default = self'.packages.wisen;
             update-clj-lockfile = inputs'.clj-nix.packages.deps-lock;
             dev-vm =
-              if pkgs.stdenv.isLinux then
+              if stdenv.isLinux then
                 inputs.self.nixosConfigurations."dev-${system}".config.system.build.vm
               else
                 (
-                  if pkgs.stdenv.system == "aarch64-darwin" then
+                  if stdenv.system == "aarch64-darwin" then
                     pkgs.runCommand "macos-runner" { } ''
                       mkdir -p $out/bin
                       script=$out/bin/run
