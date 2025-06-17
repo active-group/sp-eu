@@ -33,9 +33,9 @@ pkgs.stdenv.mkDerivation {
   outputHashAlgo = "sha256";
   outputHash =
     if pkgs.stdenv.isDarwin then
-      "sha256-k59QI19kwPEcYWsuNF0ZzjbQhus1+HYR4SzcYHx3obk="
+      "sha256-rP9JEQziGiKmaEHHjD6pj8Sy0vJ+iQPgr77/qe1vCpY="
     else
-      "sha256-fNHV+7/UDeIE5duWdeBut/zcB/nacAyXPDQTqA7CE14=";
+      "sha256-zDBIXOjoxKyicUwGAT6UoXC5ghE4YCAnxJpZ+2yYJ8M=";
 
   meta = with pkgs.lib; {
     description = "TorchScript version of ${modelConfig.name} for use with DJL";
