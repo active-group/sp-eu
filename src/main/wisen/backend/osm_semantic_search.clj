@@ -14,9 +14,9 @@
 
 (def model-name (System/getenv "TS_MODEL_NAME"))
 
-(def model-path (System/getenv "TS_MODEL_PATH"))
+(def model-path "model.pt")
 
-(def tokenizer-path (System/getenv "TS_TOKENIZER_PATH"))
+(def tokenizer-path "tokenizer")
 
 (defn normalize-vector [v]
   (let [norm-squared (reduce + (map (fn [x] (* x x)) v))
