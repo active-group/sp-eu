@@ -5,6 +5,7 @@
     ollama = {
       enable = true;
       loadModels = [ "phi4" ];
+      host = "0.0.0.0";
     };
 
     riemann-tools = {
