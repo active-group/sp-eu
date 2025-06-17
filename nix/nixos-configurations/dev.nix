@@ -21,6 +21,7 @@
 
   virtualisation.vmVariant.virtualisation = {
     diskSize = 10000;
+    memorySize = 16000;
     forwardPorts = [
       {
         from = "host";
@@ -31,6 +32,11 @@
         from = "host";
         host.port = 8080;
         guest.port = 8080;
+      }
+      {
+        from = "host";
+        host.port = 11434;
+        guest.port = 11434;
       }
     ];
   };
