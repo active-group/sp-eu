@@ -15,6 +15,9 @@ in
 
   config = lib.mkIf cfg.enable {
     systemd.services.sp-eu = {
+      environment = {
+        TS_MODEL_NAME = pkgs.active-group.modelConfig.name;
+      };
       wantedBy = [ "multi-user.target" ];
       after = [ "keycloak.service" ];
       description = "SP-EU service";

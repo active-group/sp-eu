@@ -6,10 +6,7 @@ import sys
 import json
 
 
-def convert_model(output_dir=None, model_name=None, model_revision=None, traced_filename=None, tokenizer_dirname=None):
-
-    if model_name is None:
-        model_name = "BAAI/bge-m3"
+def convert_model(model_name, output_dir=None, model_revision=None, traced_filename=None, tokenizer_dirname=None):
 
     print(f"Loading model {model_name}" +
           (f" at revision {model_revision}" if model_revision else ""))
@@ -65,4 +62,4 @@ if __name__ == "__main__":
     torch.use_deterministic_algorithms(True)
     torch.manual_seed(0)
 
-    convert_model(output_dir, args.model_name, args.model_revision, args.traced_filename, args.tokenizer_dirname)
+    convert_model(args.model_name, output_dir, args.model_revision, args.traced_filename, args.tokenizer_dirname)

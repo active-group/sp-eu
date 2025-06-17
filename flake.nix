@@ -18,12 +18,10 @@
       ...
     }@inputs:
     let
-      modelConfig = {
+      modelConfig = rec {
         name = "BAAI/bge-m3";
         revision = "5617a9f61b028005a4858fdac845db406aefb181";
-        safe-name = "BAAI-bge-m3";
-        traced-model-filename = "BAAI-bge-m3-traced.pt";
-        tokenizer-dirname = "tokenizer";
+        safe-name = builtins.replaceStrings ["/"] ["-"] name;
       };
       mkPkgs =
         system:
@@ -36,6 +34,7 @@
               active-group = {
                 wisen = final.callPackage ./nix/packages/wisen-uberjar.nix { };
                 embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
+                inherit modelConfig;
                 npmDeps = final.importNpmLock.buildNodeModules {
                   inherit (final) nodejs;
                   npmRoot = ./.;
@@ -72,18 +71,13 @@
             pkgs.jdk
             self'.formatter
           ];
-
-          tsModelPath = "${self'.packages.embeddingModel}/${modelConfig.traced-model-filename}";
-          tsTokenizerPath = "${self'.packages.embeddingModel}/${modelConfig.tokenizer-dirname}";
         in
         {
           devShells = {
             default = pkgs.mkShell {
               inherit (pkgs.active-group) npmDeps;
 
-              TS_MODEL_NAME = "${modelConfig.name}";
-              TS_MODEL_PATH = "${tsModelPath}";
-              TS_TOKENIZER_PATH = "${tsTokenizerPath}";
+              TS_MODEL_NAME = modelConfig.name;
               PC_PORT_NUM = "8081";
 
               buildInputs =

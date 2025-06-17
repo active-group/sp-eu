@@ -1,5 +1,8 @@
-{ pkgs, modelConfig, ... }:
+{ pkgs, ... }:
 
+let
+  inherit (pkgs.active-group) modelConfig;
+in
 pkgs.stdenv.mkDerivation {
   pname = "${modelConfig.safe-name}-torchscript";
   version = "1.0.0";
@@ -22,8 +25,8 @@ pkgs.stdenv.mkDerivation {
     python ${../../convert_model.py} \
       --model-name "${modelConfig.name}" \
       --model-revision "${modelConfig.revision}" \
-      --traced-filename "${modelConfig.traced-model-filename}" \
-      --tokenizer-dirname "${modelConfig.tokenizer-dirname}"
+      --traced-filename model.pt \
+      --tokenizer-dirname tokenizer
   '';
 
   outputHashMode = "recursive";
