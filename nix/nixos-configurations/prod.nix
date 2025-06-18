@@ -1,6 +1,3 @@
-let
-  domain = "sp-eu.ci.active-group.de";
-in
 {
   imports = [
     ./hardware-configuration.nix
@@ -25,45 +22,26 @@ in
   };
 
   active-group = {
-    sp-eu.enable = true;
+    sp-eu = {
+      enable = true;
+      proxy = {
+        enable = true;
+        domain = "sp-eu.ci.active-group.de";
+      };
+    };
     keycloak = {
       enable = true;
-      env = "prod";
+      realmFiles = [ ./keycloak-realms/realm-export.json ];
+      proxy = {
+        enable = true;
+        domain = "sp-eu.ci.active-group.de";
+      };
     };
   };
 
   security.acme = {
     acceptTerms = true;
     defaults.email = "admin@active-group.de";
-  };
-
-  services = {
-    nginx = {
-      enable = true;
-      virtualHosts.${domain} = {
-        locations = {
-          "/cloak".return = "301 /cloak/";
-          "/cloak/" = {
-            # FIXME(Johannes):
-            # proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
-            proxyPass = "http://localhost:8080";
-            extraConfig = ''
-              rewrite /cloak(.*)  $1                 break;
-              proxy_set_header    Host               $host;
-              proxy_set_header    X-Real-IP          $remote_addr;
-              proxy_set_header    X-Forwarded-For    $proxy_add_x_forwarded_for;
-              proxy_set_header    X-Forwarded-Host   $host;
-              proxy_set_header    X-Forwarded-Server $host;
-              proxy_set_header    X-Forwarded-Port   $server_port;
-              proxy_set_header    X-Forwarded-Proto  $scheme;
-            '';
-          };
-          "/".proxyPass = "http://localhost:4321";
-        };
-        enableACME = true;
-        forceSSL = true;
-      };
-    };
   };
 
   users.users.root.openssh.authorizedKeys.keys = [

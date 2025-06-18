@@ -3,7 +3,8 @@
 
   active-group.keycloak = {
     enable = true;
-    env = "dev";
+    realmFiles = [ ./keycloak-realms/SP-EU-realm.json ];
+    proxy.enable = false;
   };
 
   users.users.alice = {
