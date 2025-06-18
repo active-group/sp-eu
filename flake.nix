@@ -78,6 +78,7 @@
               inherit (pkgs.active-group) npmDeps;
 
               TS_MODEL_NAME = modelConfig.name;
+              TS_MODEL_DIR = self'.packages.embeddingModel;
               PC_PORT_NUM = "8081";
 
               buildInputs =
