@@ -29,6 +29,7 @@
 
   :backend {:extra-deps {ring/ring-jetty-adapter {:mvn/version "1.13.0"}
                          ring/ring-core {:mvn/version "1.13.0"}
+                         org.apache.jena/jena-arq {:mvn/version "5.3.0"}
                          org.apache.jena/jena-core {:mvn/version "5.3.0"}
                          org.apache.jena/jena-rdfpatch {:mvn/version "5.3.0"}
                          org.apache.jena/jena-tdb2 {:mvn/version "5.3.0"}
