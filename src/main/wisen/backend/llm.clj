@@ -143,8 +143,8 @@
                  :body (error/success-value parsed-response)}
                 {:status 500
                  :body {:error (error/error-value parsed-response)
-                        :ai-response response}}))
+                        :ai-response (:body response)}}))
         ;; TODO: error handling
-        {:status 500 :body (pr-str response)}))
+        {:status 500 :body (pr-str (:body response))}))
     {:status 400
      :body "could not parse chat history"}))
