@@ -61,7 +61,7 @@ about organizations relevant to their field and geographical area.
 
 One subtle aspect of information assessment is trutstworthiness. Users
 currently take trustworthiness as a function of information source: If
-the information originated at a trustworthy collegeau, the information
+the information originated at a trustworthy colleague, the information
 is considered sound. If the information originated on Google Maps, it
 is taken with a grain of salt.
 
@@ -71,7 +71,7 @@ Even though spontaneous information retrieval is a central aspect of
 users' workflow, currently this is not a distinct activity. For
 example, users spontaneously look for information on Google Maps to
 serve an immediate need. When they found what they were looking for,
-they might copy this information over into their own note book or a
+they might copy this information over into their own notebook or a
 shared spreadsheet or they might not.
 
 ## Requirements and Constraints
@@ -90,7 +90,7 @@ parts involved share a common vocabulary or structure.  This means
 that users have to find and enforce uniform structures themselves. For
 example, if a user gathers information both from Google Maps and a PDF
 catalogue and they want to make this information available to their
-collegeaus (for example via the above mentioned spreadsheet) and also
+colleagues (for example via the above mentioned spreadsheet) and also
 provide their own annotations, they have to manually merge all the
 information packages. This burden on the users often means that
 information is not being unified and not being shared with collegeaus.
