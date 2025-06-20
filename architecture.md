@@ -264,7 +264,10 @@ currently the case), we can use this as ingress into our system.
   willing to explicitly enter information from their note books,
   Google Maps, their spreadsheets etc. into the system, other users
   will not find any information in the system and will therefore be
-  dissatisfied.
+  dissatisfied. Alternatively or additionally, information providers
+  such as governmental bodies or municipalities may offer their
+  information as RDF graphs. If none of them do, the system cannot
+  work.
 * The notion of an information graph might not be familiar to
   users. There are certain effects such as node sharing or the
   neccessity to use global identifiers that are quite unlike any of
