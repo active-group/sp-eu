@@ -128,7 +128,7 @@
                       sed -i 's/kvm:tcg/hvf/g' $script
                     ''
                   else
-                    builtins.throw "unexpected system"
+                    builtins.throw "unexpected system: ${system}"
                 );
             integration-test = pkgs.callPackage ./nix/packages/integration-test.nix { inherit self; };
           };
