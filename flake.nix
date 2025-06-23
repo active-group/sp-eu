@@ -8,6 +8,10 @@
       url = "github:jlesquembre/clj-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -88,6 +92,7 @@
                   pkgs.ollama
                   pkgs.process-compose
                   self'.packages.embeddingModel
+                  inputs'.agenix.packages.default
                 ]
                 ++ (lib.optionals stdenv.isDarwin [
                   pkgs.qemu
@@ -158,6 +163,7 @@
                     inherit pkgs system;
                     modules = [
                       inputs.self.nixosModules.default
+                      inputs.agenix.nixosModules.default
                       ./nix/nixos-configurations/dev.nix
                     ];
                   };
@@ -168,6 +174,7 @@
                     inherit pkgs system;
                     modules = [
                       inputs.self.nixosModules.default
+                      inputs.agenix.nixosModules.default
                       ./nix/nixos-configurations/prod.nix
                     ];
                   };
