@@ -21,7 +21,7 @@
       modelConfig = rec {
         name = "BAAI/bge-m3";
         revision = "5617a9f61b028005a4858fdac845db406aefb181";
-        safe-name = builtins.replaceStrings ["/"] ["-"] name;
+        safe-name = builtins.replaceStrings [ "/" ] [ "-" ] name;
       };
       mkPkgs =
         system:
