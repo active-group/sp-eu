@@ -1,9 +1,12 @@
+{ pkgs, ... }:
+
 {
   imports = [ ./vm-base.nix ];
 
   active-group.keycloak = {
     enable = true;
     realmFiles = [ ./keycloak-realms/SP-EU-realm.json ];
+    dbPasswordFile = "${pkgs.writeText "db_pw" "blubberdiblub"}";
     proxy.enable = false;
   };
 
