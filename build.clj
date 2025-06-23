@@ -69,7 +69,7 @@
   (process {:command-args ["npx" "karma" "start" "--single-run"]}))
 
 (defn test-clj [_]
-  (process {:command-args ["clojure" "-M:test:backend"]
+  (process {:command-args ["clojure" "-M:backend:test"]
             :dir "."
             :out :inherit
             :err :inherit}))

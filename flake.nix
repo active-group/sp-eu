@@ -8,6 +8,10 @@
       url = "github:jlesquembre/clj-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -21,7 +25,7 @@
       modelConfig = rec {
         name = "BAAI/bge-m3";
         revision = "5617a9f61b028005a4858fdac845db406aefb181";
-        safe-name = builtins.replaceStrings ["/"] ["-"] name;
+        safe-name = builtins.replaceStrings [ "/" ] [ "-" ] name;
       };
       mkPkgs =
         system:
@@ -88,6 +92,7 @@
                   pkgs.ollama
                   pkgs.process-compose
                   self'.packages.embeddingModel
+                  inputs'.agenix.packages.default
                 ]
                 ++ (lib.optionals stdenv.isDarwin [
                   pkgs.qemu
@@ -116,7 +121,7 @@
               else
                 (
                   if stdenv.system == "aarch64-darwin" then
-                    pkgs.runCommand "macos-runner" { } ''
+                    pkgs.runCommand "run" { } ''
                       mkdir -p $out/bin
                       script=$out/bin/run
                       install -m 755 ${inputs.self.nixosConfigurations.dev-aarch64-linux.config.system.build.vm}/bin/run* $script
@@ -128,7 +133,7 @@
                       sed -i 's/kvm:tcg/hvf/g' $script
                     ''
                   else
-                    builtins.throw "unexpected system"
+                    builtins.throw "unexpected system: ${system}"
                 );
             integration-test = pkgs.callPackage ./nix/packages/integration-test.nix { inherit self; };
           };
@@ -158,6 +163,7 @@
                     inherit pkgs system;
                     modules = [
                       inputs.self.nixosModules.default
+                      inputs.agenix.nixosModules.default
                       ./nix/nixos-configurations/dev.nix
                     ];
                   };
@@ -168,6 +174,7 @@
                     inherit pkgs system;
                     modules = [
                       inputs.self.nixosModules.default
+                      inputs.agenix.nixosModules.default
                       ./nix/nixos-configurations/prod.nix
                     ];
                   };
