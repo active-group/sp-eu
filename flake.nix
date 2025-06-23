@@ -121,7 +121,7 @@
               else
                 (
                   if stdenv.system == "aarch64-darwin" then
-                    pkgs.runCommand "macos-runner" { } ''
+                    pkgs.runCommand "run" { } ''
                       mkdir -p $out/bin
                       script=$out/bin/run
                       install -m 755 ${inputs.self.nixosConfigurations.dev-aarch64-linux.config.system.build.vm}/bin/run* $script
