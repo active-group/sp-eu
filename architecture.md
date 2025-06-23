@@ -123,7 +123,8 @@ system-to-be to be useful at all, it has to have a strong information
 base as well.
 
 This requirement neccessitates that it is easy to put information into
-the system-to-be.
+the system-to-be -- either for users or for primary information
+providers such as municipalities etc.
 
 ### Efficient retrieval ("output")
 
