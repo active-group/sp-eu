@@ -3,14 +3,12 @@ let
   maier = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICR48mD5nj7LpDcrpN1nX2bWghMQvnt9IWGjAWk54dWN johannes.maier@mailbox.org";
   leitz = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG6o4SiFpsgaR5H7MH2slofck0Mn8rveACBMPqKi/N4k leitz@leitz";
   schlotterbeck = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCuDtoiZoRtmRHRvhH8Lmf0WJFp2ewBnk5/5SwJl6q2Fs3oEjPwHTppFFE6yMMIfFwVZmcwl4jEPamcf0EKlqILG2rYAjCpUCe3ABOTOnNeA048YOABcXDyPYtP4llbWmtL7I24ArOieEAhFMGCmHtE7w049JGiHLCkW52fPIuSTs/hn2bjcpEFS7w+ZI1xb+8f6zbIl2y3e5r3pJfg/tu1gPL+gwQN7YD48BBK9de4c8yCF9rrOhsQU7iYohSsKkzkVHHNHL8h9HtKX4mVUYN9OMEx3LGfnvmp5PEhpbi6PqUB6HhkgzO1NdWSVT9wxYudHAeSNGSHJt/hW9i/xLXp schlotterbeck@Admins-MBP.home.active-group.de";
-  gitlab-ci = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMkJUKlZpli3wOU3DLI6qEm1286CFOOmwnTUWOzalmMx ci@gitlab";
   prod = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO0L3uAkiMmNXbgOgJDVTgfXEVgTt39dzFp95KUL+QwL root@sp-eu";
   all = [
     schlegel
     maier
     leitz
     schlotterbeck
-    gitlab-ci
     prod
   ];
 in
