@@ -15,31 +15,5 @@ display is at =http://localhost:9501/=
 Run backend tests:
 =clj -M:test= or =clj -X:test=
 
-* SP-EU Durchstich
-
-** Search Frontend
-
-*** SPARQL query Eingabefeld
-*** query abschicken
-
-** Triple Store
-
-*** Endpunkt 1: SPARQL-query auflösen und RDF triple zurückgeben
-*** Endpunkt 2: Neue Triple empfangen und abspeichern
-
-** Display Frontend
-
-*** RDF triples anzeigen
-*** 1. allgemeine Darstellung (Subjekt, Prädikte, Objekt)
-*** 2. für ausgewählte Prädikate (location, address, events, ...) spezielle GUI
-
-** Triple Entry Frontend
-
-*** RDF triple anlegen
-*** An den Triple Store schicken
-
-** (Google Places API-Adapter)
-
-** (Knowledge-Graph-Adapter)
-
-** (Wikidata-Adapter)
+Ollama + Keycloak backing services can be started with =nix run .#dev-vm=,
+which on macOS requires a running linux-builder (=nix run nixpkgs#darwin.linux-builder=)
