@@ -1,9 +1,4 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, lib, ... }:
 
 let
   cfg = config.active-group.keycloak;
@@ -13,6 +8,10 @@ in
     enable = lib.mkEnableOption "keycloak";
     realmFiles = lib.mkOption {
       type = lib.types.listOf lib.types.path;
+    };
+    dbPasswordFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
     };
     proxy = lib.mkOption {
       type = lib.types.submodule {
@@ -27,6 +26,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    age.secrets.keycloak_db.file = ../../secrets/keycloak_db.age;
+
     services.keycloak = {
       enable = true;
       inherit (cfg) realmFiles;
@@ -42,11 +43,9 @@ in
           proxy-headers = "xforwarded";
         });
       database = {
-        type = "mariadb";
-        passwordFile = "${pkgs.writeTextFile {
-          name = "db-password";
-          text = "foobarpass";
-        }}";
+        type = "postgresql";
+        passwordFile =
+          if cfg.dbPasswordFile == null then config.age.secrets.keycloak_db.path else cfg.dbPasswordFile;
         username = "keycloak-user";
         name = "keycloak";
       };
