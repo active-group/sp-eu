@@ -8,6 +8,7 @@ jobs:
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: actions/checkout@v4
+      - run: cd wisen
       - name: backend tests
         run: nix develop -j auto -c clj -T:build test-clj
       - name: client tests
