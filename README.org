@@ -7,14 +7,14 @@ Common commands (to be used from within the [[./wisen][wisen]] subdirectory):
 - Run backend repl: =clj -M:nrepl:backend -m nrepl.cmdline=
 - Run frontend watch: =clj -M:shadow-cljs:frontend watch :frontend :test=
 
-The frontend then runs on http://localhost:4321. The cljs test display is at
-http://localhost:9501/.
+The frontend then runs on [[http://localhost:4321]]. The cljs test display is at
+[[http://localhost:9501/]].
 
 Ollama + Keycloak backing services can be started in a local QEMU VM via
 
-```shell
+#+begin_src shell
 nix run .#dev-vm
-```
+#+end_src
 
 Note that on macOS only this requires a properly configured and booted
 =linux-builder= (=nix run nixpkgs#darwin.linux-builder=). Follow the [[https://nixos.org/manual/nixpkgs/stable/#sec-darwin-builder][instructions in
@@ -23,7 +23,7 @@ the manual]] on how to configure your macOS system to automatically dispatch
 
 * Deployment
 
-The live system is hosted at https://sp-eu.ci.active-group.de. Deployment
+The live system is hosted at [[https://sp-eu.ci.active-group.de]]. Deployment
 happens continually via CI pipeline.
 
 ** Secret management
