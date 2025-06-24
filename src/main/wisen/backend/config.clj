@@ -55,4 +55,4 @@
        (catch Exception e
          ;; TODO: take a closer look at what the errors in the config file are.
          (event-logger/log-event! :error (.getMessage e))
-         nil)))
+         (System/exit 2))))

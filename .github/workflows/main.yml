@@ -1,0 +1,32 @@
+name: SP-EU deployment
+on: [ push, workflow_dispatch ]
+
+jobs:
+  test:
+    runs-on: [ "ubuntu-24.04", "macos-15" ]
+    name: test
+    steps:
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@v4
+      - name: backend tests
+        run: nix develop -j auto -c clj -T:build test-clj
+      - name: client tests
+        run: nix develop -j auto .#testWeb -c clj -T:build test-cljs
+
+  deploy:
+    runs-on: [ "ubuntu-24.04" ]
+    if: github.ref == 'refs/tags/main'
+    needs: [ test ]
+    name: deploy NixOS generation
+    steps:
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@v4
+      - name: nixos-rebuild
+        run: |
+          mkdir -m 700 -p ~/.ssh
+          eval "$(ssh-agent -s)"
+          echo "${{ secrets.SP_EU_HOST_KEY }}" >> ~/.ssh/known_hosts
+          echo "${{ secrets.SP_EU_SSH_KEY }}" | tr -d '\r' | ssh-add - >/dev/null
+          nix shell nixpkgs#nixos-rebuild -c \
+              nixos-rebuild switch -j auto --flake .#prod-x86_64-linux \
+              --target-host root@sp-eu.ci.active-group.de
