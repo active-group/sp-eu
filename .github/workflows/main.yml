@@ -3,10 +3,7 @@ on: [ push, workflow_dispatch ]
 
 jobs:
   test:
-    strategy:
-      matrix:
-        os: [ "ubuntu-24.04", "macos-15" ]
-    runs-on: ${{ matrix.os }}
+    runs-on: [ "ubuntu-24.04", "macos-15" ]
     name: test
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
