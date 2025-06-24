@@ -1,0 +1,20 @@
+name: SP-EU deployment
+on: [ push, workflow_dispatch ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ["ubuntu-24.04"]
+    # FIXME: Deploy continuously, but from the `main` branch only
+    # if: github.ref == 'refs/tags/main'
+    name: release images
+    steps:
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@v4
+      - name: Deploy a new NixOS generation
+        run: |
+          ls -la ~/.ssh
+          echo "${{ secrets.SP_EU_HOST_KEY }}" >> ~/.ssh/known_hosts
+          echo "${{ secrets.SP_EU_SSH_KEY }}" | tr -d '\r' | ssh-add - >/dev/null
+          nix shell nixpkgs#nixos-rebuild -c \
+              nixos-rebuild switch -j auto --flake .#prod-x86_64-linux \
+              --target-host root@sp-eu.ci.active-group.de
