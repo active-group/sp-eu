@@ -5,8 +5,10 @@
 
 (defonce server (atom nil))
 
-(defn start! []
-  (let [cfg (config/try-load-config "./etc/config.edn" false)]
+(defn start!
+  "Given command-line configuration options `opts`, start the wisen server."
+  [config-path]
+  (let [cfg (config/try-load-config config-path false)]
     (reset! server
             (ring-jetty/run-jetty
              (handler/handler cfg)

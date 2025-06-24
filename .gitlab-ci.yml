@@ -6,19 +6,3 @@ test:
   script:
     - nix develop -j auto -c clj -T:build test-clj
     - nix develop -j auto .#testWeb -c clj -T:build test-cljs
-
-deploy:
-  rules:
-    - if: $CI_COMMIT_BRANCH == 'main'
-  image: $NIX_IMAGE
-  before_script:
-    - eval $(ssh-agent -s)
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - echo "$SP_EU_SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
-    - echo "$SP_EU_SSH_SERVER_HOSTKEY" >> ~/.ssh/known_hosts
-  script:
-    - |
-      nix shell nixpkgs#nixos-rebuild -c \
-          nixos-rebuild switch -j auto --option sandbox false \
-          --flake .#prod-x86_64-linux --target-host root@sp-eu.ci.active-group.de
