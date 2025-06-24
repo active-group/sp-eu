@@ -8,11 +8,10 @@ jobs:
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: actions/checkout@v4
-      - run: cd wisen
       - name: backend tests
-        run: nix develop -j auto -c clj -T:build test-clj
+        run: cd wisen && nix develop -j auto -c "clj -T:build test-clj"
       - name: client tests
-        run: nix develop -j auto .#testWeb -c clj -T:build test-cljs
+        run: cd wisen && nix develop -j auto .#testWeb -c "clj -T:build test-cljs"
 
   deploy:
     runs-on: [ "ubuntu-24.04" ]
