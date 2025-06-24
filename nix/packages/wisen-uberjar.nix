@@ -1,24 +1,28 @@
 {
-  pkgs,
+  active-group,
+  stdenv,
   lib,
   clj-builder,
   clojure,
   nodejs,
+  importNpmLock,
   ...
 }:
 
 let
-  inherit (pkgs.active-group) cljDeps npmDeps;
+  inherit (active-group) cljDeps npmDeps;
 in
-pkgs.stdenv.mkDerivation {
+stdenv.mkDerivation {
   name = "wisen-uber-jar";
 
   src = lib.cleanSource ../../wisen;
 
+  inherit npmDeps;
   nativeBuildInputs = [
     clojure
     nodejs
     clj-builder
+    importNpmLock.linkNodeModulesHook
   ];
 
   preBuildPhases = [ "preBuildPhase" ];
@@ -33,8 +37,6 @@ pkgs.stdenv.mkDerivation {
     export GITLIBS="$HOME/.gitlibs"
     export CLJ_CONFIG="$HOME/.clojure"
     export CLJ_CACHE="$TMP/cp_cache"
-
-    ln -s ${npmDeps}/node_modules .
 
     clj -T:build uber
   '';
