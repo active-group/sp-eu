@@ -1,6 +1,6 @@
 (ns wisen.backend.sparql
   (:require [active.data.record :refer [def-record is-a?]])
-  (:import (org.apache.jena.query ARQ QueryFactory)))
+  (:import (org.apache.jena.query QueryFactory)))
 
 (def place :place)
 (def geo-var-name :geo-var-name)

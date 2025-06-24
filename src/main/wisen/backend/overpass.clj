@@ -2,7 +2,6 @@
   (:require [clj-http.client :as http]
             [cheshire.core :as cheshire]
             [ring.util.codec :as codec]
-            [wisen.common.prefix :as prefix]
             [wisen.backend.osm-semantic-search :as sem]))
 
 (defn assoc-some-from [m1 m2 m1-key m2-key]

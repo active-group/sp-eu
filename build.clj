@@ -14,7 +14,7 @@
                                    :aliases [:backend]})))
 
 (def cljs-basis (delay (b/create-basis {:project "deps.edn"
-                                        :aliases [:shadow-cljs]})))
+                                        :aliases [:frontend]})))
 
 (defn clean [_]
   (b/delete {:path class-dir})

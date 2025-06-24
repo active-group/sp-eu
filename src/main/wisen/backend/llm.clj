@@ -3,7 +3,6 @@
             [clojure.string :as str]
             [jsonista.core :as jsonista]
             [wisen.backend.jsonld :as jsonld]
-            [wisen.backend.skolem :as skolem]
             [wisen.backend.rdf-validator :as validator]
             [wisen.common.or-error :as error]
             [cheshire.core :as cheshire])

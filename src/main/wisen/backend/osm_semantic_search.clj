@@ -1,14 +1,7 @@
 (ns wisen.backend.osm-semantic-search
   (:require [clj-http.client :as http]
-            [clojure.core.cache :as cache]
             [clojure.string :as str]
-            [wisen.backend.embedding :as embedding])
-  (:import [ai.djl.huggingface.tokenizers HuggingFaceTokenizer]
-           ;; [ai.djl.huggingface.translator TextEmbeddingTranslatorFactory]
-           [ai.djl.ndarray NDList]
-           [ai.djl.repository.zoo Criteria ModelZoo]
-           [ai.djl.translate Translator]
-           [java.nio.file Paths]))
+            [wisen.backend.embedding :as embedding]))
 
 (def osm-tags
   {:general [

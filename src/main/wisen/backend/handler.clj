@@ -2,7 +2,6 @@
   (:require [active.clojure.config :as active.config]
             [hiccup.core :as h]
             [reitit.ring :as ring]
-            [clj-http.client :as http]
             [clojure.java.io]
             [reitit.ring.coercion :as rrc]
             [reitit.ring.middleware.exception :as exception]
@@ -11,7 +10,6 @@
             [ring.middleware.resource]
             [ring.middleware.session :as mw.session]
             [ring.middleware.session.memory :as session.memory]
-            [reacl-c-basics.pages.ring :as pages.ring]
             [muuntaja.core]
             [wisen.backend.auth :as auth]
             [wisen.backend.config :as config]
@@ -24,14 +22,8 @@
             [wisen.backend.sparql :as sparql]
             [wisen.common.routes :as routes]
             [reacl-c-basics.pages.routes :as pages.routes]
-            [clojure.edn :as edn]
             [wisen.common.change-api :as change-api]
-            [wisen.common.prefix :as prefix])
-  (:import
-   (org.apache.jena.tdb2 TDB2 TDB2Factory)
-   (org.apache.jena.rdf.model Model ModelFactory)
-   (org.apache.jena.vocabulary SchemaDO)
-   (org.apache.jena.query ReadWrite QueryExecutionFactory)))
+            [wisen.common.prefix :as prefix]))
 
 (defn mint-resource-url! []
   (str "http://example.org/resource/" (random-uuid)))

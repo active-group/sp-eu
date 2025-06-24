@@ -1,6 +1,6 @@
 (ns wisen.backend.jsonld
   (:import
-   (org.apache.jena.riot RDFParser RDFParserBuilder Lang)))
+   (org.apache.jena.riot RDFParser Lang)))
 
 (defn json-ld-string->model [s]
   (let [parser-builder (RDFParser/fromString s Lang/JSONLD11)]
