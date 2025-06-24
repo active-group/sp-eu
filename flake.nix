@@ -41,10 +41,10 @@
                 inherit modelConfig;
                 npmDeps = final.importNpmLock.buildNodeModules {
                   inherit (final) nodejs;
-                  npmRoot = ./.;
+                  npmRoot = ./wisen;
                 };
                 cljDeps = final.mk-deps-cache {
-                  lockfile = ./deps-lock.json;
+                  lockfile = ./wisen/deps-lock.json;
                 };
               };
             })
@@ -80,6 +80,7 @@
           devShells = {
             default = pkgs.mkShell {
               inherit (pkgs.active-group) npmDeps;
+              npmRoot = "wisen";
 
               TS_MODEL_NAME = modelConfig.name;
               TS_MODEL_DIR = self'.packages.embeddingModel;

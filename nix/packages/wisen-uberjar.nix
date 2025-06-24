@@ -13,7 +13,7 @@ in
 pkgs.stdenv.mkDerivation {
   name = "wisen-uber-jar";
 
-  src = lib.cleanSource ../..;
+  src = lib.cleanSource ../../wisen;
 
   nativeBuildInputs = [
     clojure

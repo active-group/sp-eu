@@ -1,0 +1,10 @@
+# clj(s) and node
+.clj-kondo/
+.cpcache/
+.lsp/
+target/
+.nrepl-port
+.prepl-port
+.shadow-cljs/
+public/js/
+node_modules/

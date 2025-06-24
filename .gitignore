@@ -1,22 +1,11 @@
 *~
 ~*
 
-# nix symlinks
+# nix
 /result*
+.nixos-test-history
 
 # QEMU images
 *.qcow2
-
-# clj(s) and node
-.clj-kondo/
-.cpcache/
-.lsp/
-target/
-.nrepl-port
-.prepl-port
-.shadow-cljs/
-.nixos-test-history
-public/js/
-node_modules/
 
 devdb
