@@ -4,5 +4,6 @@ variables:
 test:
   image: $NIX_IMAGE
   script:
+    - cd wisen
     - nix develop -j auto -c clj -T:build test-clj
     - nix develop -j auto .#testWeb -c clj -T:build test-cljs
