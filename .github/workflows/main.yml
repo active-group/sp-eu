@@ -4,15 +4,15 @@ on: [ push, workflow_dispatch ]
 jobs:
   build-and-deploy:
     runs-on: ["ubuntu-24.04"]
-    # FIXME: Deploy continuously, but from the `main` branch only
-    # if: github.ref == 'refs/tags/main'
-    name: release images
+    if: github.ref == 'refs/tags/main'
+    name: deploy NixOS generation
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: actions/checkout@v4
-      - name: Deploy a new NixOS generation
+      - name: nixos-rebuild
         run: |
-          ls -la ~/.ssh
+          mkdir -m 700 -p ~/.ssh
+          eval "$(ssh-agent -s)"
           echo "${{ secrets.SP_EU_HOST_KEY }}" >> ~/.ssh/known_hosts
           echo "${{ secrets.SP_EU_SSH_KEY }}" | tr -d '\r' | ssh-add - >/dev/null
           nix shell nixpkgs#nixos-rebuild -c \
