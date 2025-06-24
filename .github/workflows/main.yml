@@ -2,9 +2,24 @@ name: SP-EU deployment
 on: [ push, workflow_dispatch ]
 
 jobs:
-  build-and-deploy:
-    runs-on: ["ubuntu-24.04"]
+  test:
+    strategy:
+      matrix:
+        os: [ "ubuntu-24.04", "macos-15" ]
+    runs-on: ${{ matrix.os }}
+    name: test
+    steps:
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@v4
+      - name: backend tests
+        run: nix develop -j auto -c clj -T:build test-clj
+      - name: client tests
+        run: nix develop -j auto .#testWeb -c clj -T:build test-cljs
+
+  deploy:
+    runs-on: [ "ubuntu-24.04" ]
     if: github.ref == 'refs/tags/main'
+    needs: [ test ]
     name: deploy NixOS generation
     steps:
       - uses: DeterminateSystems/nix-installer-action@main
