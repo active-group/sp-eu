@@ -1,3 +1,5 @@
+{ config, ... }:
+
 {
   imports = [
     ./hardware-configuration.nix
@@ -21,9 +23,12 @@
     };
   };
 
+  age.secrets.config_edn.file = ../secrets/prod_config_edn.age;
+
   active-group = {
     sp-eu = {
       enable = true;
+      configFile = config.age.secrets.config_edn.path;
       proxy = {
         enable = true;
         domain = "sp-eu.ci.active-group.de";

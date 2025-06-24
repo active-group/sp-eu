@@ -14,4 +14,5 @@ let
 in
 {
   "keycloak_db.age".publicKeys = all;
+  "prod_config_edn.age".publicKeys = all;
 }
