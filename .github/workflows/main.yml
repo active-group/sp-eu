@@ -15,7 +15,7 @@ jobs:
 
   deploy:
     runs-on: [ "ubuntu-24.04" ]
-    if: github.ref == 'refs/tags/main'
+    if: github.ref == 'refs/heads/main'
     needs: [ test ]
     name: deploy NixOS generation
     steps:
