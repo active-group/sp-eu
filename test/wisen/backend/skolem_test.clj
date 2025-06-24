@@ -1,5 +1,5 @@
 (ns wisen.backend.skolem-test
-  (:require [clojure.test :refer [deftest testing is]]
+  (:require [clojure.test :refer [deftest is]]
             [wisen.backend.skolem2 :as skolem]
             [wisen.common.change-api :as change-api]))
 

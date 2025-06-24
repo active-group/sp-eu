@@ -6,9 +6,8 @@
             [wisen.backend.osm :as osm]
             [wisen.common.prefix :as prefix])
   (:import
-   (org.apache.jena.tdb2 TDB2 TDB2Factory)
-   (org.apache.jena.rdf.model Model ModelFactory)
-   (org.apache.jena.vocabulary SchemaDO)
+   (org.apache.jena.tdb2 TDB2Factory)
+   (org.apache.jena.rdf.model Model)
    (org.apache.jena.query ARQ ReadWrite QueryExecutionFactory)
    (org.apache.jena.datatypes.xsd XSDDatatype)))
 

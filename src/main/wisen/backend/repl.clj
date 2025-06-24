@@ -4,7 +4,7 @@
 
 (defn start! []
   (triple-store/setup!)
-  (server/start!))
+  (server/start! "./etc/config.edn"))
 
 (defn stop! []
   (server/stop!))
