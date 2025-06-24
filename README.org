@@ -1,19 +1,32 @@
 * Development
 
-Once:
-npm install
+Common commands:
 
-Start frontend watch (with tests): =clj -M:shadow-cljs:frontend watch :frontend :test=
-
-Then either:
-- Run backend server: =clj -M:backend -m wisen.backend.main=
+- Run backend server: =clj -M:backend=
+- Run backend tests: =clj -T:build test-clj=
 - Run backend repl: =clj -M:nrepl:backend -m nrepl.cmdline=
+- Run frontend watch: =clj -M:shadow-cljs:frontend watch :frontend :test=
 
-The frontend then runs on =http://localhost:4321=. The cljs test
-display is at =http://localhost:9501/=
+The frontend then runs on =http://localhost:4321=. The cljs test display is at
+=http://localhost:9501/=.
 
-Run backend tests:
-=clj -M:test= or =clj -X:test=
+Ollama + Keycloak backing services can be started in a local QEMU VM via
 
-Ollama + Keycloak backing services can be started with =nix run .#dev-vm=,
-which on macOS requires a running linux-builder (=nix run nixpkgs#darwin.linux-builder=)
+```shell
+nix run .#dev-vm
+```
+
+Note that on macOS only this requires a properly configured and booted
+=linux-builder= (=nix run nixpkgs#darwin.linux-builder=). Follow the [[https://nixos.org/manual/nixpkgs/stable/#sec-darwin-builder][instructions in
+the manual]] on how to configure your macOS system to automatically dispatch
+=aarch64-linux= builds to the =linux-builder=.
+
+* Deployment
+
+The live system is hosted at https://sp-eu.ci.active-group.de. Deployment
+happens continually via CI pipeline.
+
+** Secret management
+
+We use [[https://github.com/ryantm/agenix][agenix]] to manage secrets (mainly the DB password used by the Keycloak
+service). See [[./nix/secrets][this directory]].
