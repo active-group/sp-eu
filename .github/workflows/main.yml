@@ -30,3 +30,4 @@ jobs:
           nix shell nixpkgs#nixos-rebuild -c \
               nixos-rebuild switch -j auto --flake .#prod-x86_64-linux \
               --target-host root@sp-eu.ci.active-group.de
+          ssh root@sp-eu.ci.active-group.de systemctl restart sp-eu.service
