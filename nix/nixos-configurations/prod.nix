@@ -36,7 +36,7 @@
     };
     keycloak = {
       enable = true;
-      realmFiles = [ ./keycloak-realms/realm-export.json ];
+      realmFiles = [ ./keycloak-realms/sp-eu-prod.json ];
       proxy = {
         enable = true;
         domain = "sp-eu.ci.active-group.de";
