@@ -6,10 +6,15 @@
             [wisen.backend.osm :as osm]
             [wisen.common.prefix :as prefix])
   (:import
+   (java.io File)
    (org.apache.jena.tdb2 TDB2Factory)
-   (org.apache.jena.rdf.model Model)
+   (org.apache.jena.rdf.model Model ResourceFactory)
    (org.apache.jena.query ARQ ReadWrite QueryExecutionFactory)
-   (org.apache.jena.datatypes.xsd XSDDatatype)))
+   (org.apache.jena.datatypes.xsd XSDDatatype)
+   (org.apache.jena.vocabulary SchemaDO)
+   (org.apache.jena.query.text EntityDefinition TextDatasetFactory TextIndexConfig)
+   (org.apache.jena.sparql.util QueryExecUtils)
+   (org.apache.lucene.store Directory FSDirectory)))
 
 (defonce dataset (atom nil))
 
@@ -83,7 +88,12 @@
      (fn [base-model]
        (add-model! base-model model-to-add))))
   ([base-model model-to-add]
-   (.add base-model (skolem/skolemize-model model-to-add "foobar"))))
+   (let [skolemized-model (skolem/skolemize-model model-to-add "foobar")]
+     (mapv (fn [statement]
+             (.add base-model statement))
+           (iterator-seq (.listStatements skolemized-model)))
+     ;; Merging two entire models doesn't trigger text indexing
+     #_(.add base-model (skolem/skolemize-model model-to-add "foobar")))))
 
 (defn- unwrap! [model obj]
   (cond
@@ -251,6 +261,25 @@
 
 (def dbname "devdb")
 
+(defn- entity-definition []
+  (let [entDef (EntityDefinition. "uri" "text")]
+    ;; with https
+    (.set entDef "text" (.asNode SchemaDO/name))
+    (.set entDef "text" (.asNode SchemaDO/description))
+    ;; with http
+    (.set entDef "text" (.asNode (ResourceFactory/createProperty "http://schema.org/name")))
+    (.set entDef "text" (.asNode (ResourceFactory/createProperty "http://schema.org/description")))
+    #_(.setPrimaryPredicate entDef (.asNode SchemaDO/name))
+    entDef))
+
+(defn- lucene-directory []
+  (FSDirectory/open (.toPath (File. "lucene-index-11"))))
+
+(defn- dataset-add-lucene [ds]
+  (let [entDef (entity-definition)
+        dir (lucene-directory)]
+    (TextDatasetFactory/createLucene ds dir (TextIndexConfig. entDef))))
+
 (defn setup! []
   ;; Use POST for federated (SERVICE) queries
   (.set (ARQ/getContext) ARQ/httpServiceSendMode "POST")
@@ -258,9 +287,9 @@
          (fn [ds]
            (if ds
              ds
-             (let [new-ds (TDB2Factory/connectDataset dbname)]
-               #_(with-write-model! new-ds populate!)
-               new-ds)))))
+             (let [new-ds (TDB2Factory/createDataset) #_(TDB2Factory/connectDataset "new3")]
+               ;; setup lucene text indexing
+               (dataset-add-lucene new-ds))))))
 
 
 #_(run-select-query!
