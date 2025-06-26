@@ -43,7 +43,6 @@ in
         description = "SP-EU service";
         serviceConfig = {
           User = "root";
-          WorkingDirectory = "/root/wisen";
           ExecStart = "${pkgs.jdk}/bin/java -jar ${pkgs.active-group.wisen}/lib/app.jar ${configArgs}";
           TimeoutStartSec = "0";
         };
