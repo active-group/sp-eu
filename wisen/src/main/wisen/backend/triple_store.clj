@@ -273,7 +273,7 @@
     entDef))
 
 (defn- lucene-directory []
-  (FSDirectory/open (.toPath (File. "lucene-index-11"))))
+  (FSDirectory/open (.toPath (File. "lucene-index"))))
 
 (defn- dataset-add-lucene [ds]
   (let [entDef (entity-definition)
