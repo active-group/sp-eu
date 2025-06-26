@@ -23,8 +23,10 @@
     };
   };
 
-  age.secrets.config_edn.file = ../secrets/prod_config_edn.age;
-  age.secrets.kc_realm_json.file = ../secrets/prod_kc_realm_json.age;
+  age.secrets = {
+    config_edn.file = ../secrets/prod_config_edn.age;
+    kc_realm_json.file = ../secrets/prod_kc_realm_json.age;
+  };
 
   active-group = {
     sp-eu = {
