@@ -24,6 +24,7 @@
   };
 
   age.secrets.config_edn.file = ../secrets/prod_config_edn.age;
+  age.secrets.kc_realm_json.file = ../secrets/prod_kc_realm_json.age;
 
   active-group = {
     sp-eu = {
@@ -36,7 +37,7 @@
     };
     keycloak = {
       enable = true;
-      realmFiles = [ ./keycloak-realms/sp-eu-prod.json ];
+      realmFiles = [ config.age.secrets.kc_realm_json.path ];
       proxy = {
         enable = true;
         domain = "sp-eu.ci.active-group.de";
