@@ -9,5 +9,8 @@
     (doto driver
       (e/driver-type)
       (e/go "http://localhost:4321")
-      (e/wait-visible {:tag :button :type :submit})
-      (e/click {:tag :button :type :submit}))))
+      (e/wait-visible {:tag :input :type :text :id "username"})
+      (e/fill {:tag :input :type :text :id "username"} "admin-user")
+      (e/fill {:tag :input :type :password} "password")
+      (e/click {:tag :button :type :submit :name "login"})
+      (e/wait-visible {:xpath "//a[text()='Search']"}))))
