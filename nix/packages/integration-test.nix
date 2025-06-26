@@ -1,5 +1,13 @@
-{ pkgs, inputs }:
+{
+  pkgs,
+  inputs,
+  lib,
+}:
 
+let
+  inherit (inputs) self;
+  inherit (self.packages.${pkgs.stdenv.system}) e2e-test;
+in
 pkgs.testers.runNixOSTest {
   name = "SP-EU integration tests";
 
@@ -11,6 +19,12 @@ pkgs.testers.runNixOSTest {
           inputs.self.nixosModules.default
           inputs.agenix.nixosModules.default
         ];
+
+        virtualisation = {
+          diskSize = 15000;
+          memorySize = 4096;
+          cores = 2;
+        };
 
         active-group = {
           sp-eu = {
@@ -34,10 +48,13 @@ pkgs.testers.runNixOSTest {
           uid = 1000;
         };
 
-        environment.systemPackages = [
-          pkgs.chromium
-          pkgs.chromedriver
-        ];
+        environment = {
+          systemPackages = [
+            pkgs.chromium
+            pkgs.chromedriver
+          ];
+          variables."XAUTHORITY" = "/home/alice/.Xauthority";
+        };
 
         networking.firewall.enable = false;
 
@@ -60,6 +77,11 @@ pkgs.testers.runNixOSTest {
   };
 
   testScript = ''
+    import shlex
+
+    def as_user(cmd):
+        return "su - alice -c " + shlex.quote(cmd)
+
     prod.wait_for_unit("keycloak")
     prod.wait_for_open_port(8080)
     prod.succeed("curl -Lf --silent http://localhost:8080")
@@ -67,5 +89,7 @@ pkgs.testers.runNixOSTest {
     prod.wait_for_x()
     prod.wait_for_open_port(4321)
     prod.succeed("curl -Lf --silent http://localhost:4321")
+
+    prod.succeed(as_user("${lib.getExe e2e-test}"))
   '';
 }
