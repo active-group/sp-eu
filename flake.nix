@@ -136,7 +136,7 @@
                   else
                     builtins.throw "unexpected system: ${system}"
                 );
-            e2e-test-jar = pkgs.callPackage ./nix/packages/e2e-test-jar.nix { };
+            e2e-test = pkgs.callPackage ./nix/packages/e2e-test.nix { };
             integration-test = pkgs.callPackage ./nix/packages/integration-test.nix { inherit inputs; };
           };
 
