@@ -13,6 +13,14 @@ jobs:
       - name: client tests
         run: nix develop -j auto .#testWeb -c bash -c "cd wisen && clj -T:build test-cljs"
 
+  integration-test:
+    runs-on: [ "ubuntu-24.04" ]
+    name: integration-test
+    steps:
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: actions/checkout@v4
+      - run: nix build .#integration-test -L
+
   deploy:
     runs-on: [ "ubuntu-24.04" ]
     if: github.ref == 'refs/heads/main'
