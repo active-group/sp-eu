@@ -291,6 +291,7 @@
                ;; setup lucene text indexing
                (dataset-add-lucene new-ds))))))
 
-
-#_(run-select-query!
- "SELECT ?x WHERE { ?x <https://schema.org/name> \"Stadtseniorenrat Tübingen e.V.\"}")
+(comment
+  ;; Run text queries like this:
+  (run-select-query!
+   "SELECT ?s WHERE { ?s <http://jena.apache.org/text#query> 'Cafeteria~' . }"))
