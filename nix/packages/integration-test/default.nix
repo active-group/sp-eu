@@ -98,7 +98,7 @@ nixosTest {
           variables."XAUTHORITY" = "/home/alice/.Xauthority";
         };
 
-        networking.extraHosts = "${nodes.prod.config.networking.primaryIPAddress} ${certs.domain}";
+        networking.extraHosts = "${nodes.prod.networking.primaryIPAddress} ${certs.domain}";
 
         virtualisation = {
           memorySize = 2048;
