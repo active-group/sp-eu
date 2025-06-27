@@ -137,7 +137,7 @@
                     builtins.throw "unexpected system: ${system}"
                 );
             e2e-test = pkgs.callPackage ./nix/packages/e2e-test.nix { };
-            integration-test = pkgs.callPackage ./nix/packages/integration-test.nix { inherit inputs; };
+            integration-test = pkgs.callPackage ./nix/packages/integration-test { inherit inputs; };
           };
 
           formatter = pkgs.nixfmt-rfc-style;
