@@ -46,6 +46,8 @@
                 cljDeps = final.mk-deps-cache {
                   lockfile = ./wisen/deps-lock.json;
                 };
+                e2e-test = final.callPackage ./nix/packages/e2e-test.nix { };
+                integration-test = final.callPackage ./nix/packages/integration-test { inherit inputs; };
               };
             })
           ];
@@ -113,7 +115,12 @@
           };
 
           packages = {
-            inherit (pkgs.active-group) wisen embeddingModel;
+            inherit (pkgs.active-group)
+              wisen
+              embeddingModel
+              e2e-test
+              integration-test
+              ;
             default = self'.packages.wisen;
             update-clj-lockfile = inputs'.clj-nix.packages.deps-lock;
             dev-vm =
@@ -136,8 +143,6 @@
                   else
                     builtins.throw "unexpected system: ${system}"
                 );
-            e2e-test = pkgs.callPackage ./nix/packages/e2e-test.nix { };
-            integration-test = pkgs.callPackage ./nix/packages/integration-test { inherit inputs; };
           };
 
           formatter = pkgs.nixfmt-rfc-style;
