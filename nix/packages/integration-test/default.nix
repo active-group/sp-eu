@@ -8,7 +8,6 @@
 
 let
   inherit (inputs) self;
-  # TODO(Johannes): use self-signed, self-created cert
   certs = import (inputs.nixpkgs + /nixos/tests/common/acme/server/snakeoil-certs.nix);
 in
 testers.runNixOSTest (
