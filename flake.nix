@@ -38,7 +38,7 @@
               active-group = {
                 snakeoil-certs = final.callPackage ./nix/packages/snakeoil-certs { };
                 wisen = final.callPackage ./nix/packages/wisen-uberjar.nix { };
-                embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
+                embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { };
                 inherit modelConfig;
                 npmDeps = final.importNpmLock.buildNodeModules {
                   inherit (final) nodejs;
