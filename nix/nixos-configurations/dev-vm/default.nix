@@ -1,11 +1,11 @@
 { pkgs, ... }:
 
 {
-  imports = [ ./vm-base.nix ];
+  imports = [ ../vm-base.nix ];
 
   active-group.keycloak = {
     enable = true;
-    realmFiles = [ ./keycloak-realms/SP-EU-realm.json ];
+    realmFiles = [ ./SP-EU-realm.json ];
     dbPasswordFile = "${pkgs.writeText "db_pw" "blubberdiblub"}";
     proxy.enable = false;
   };
@@ -26,6 +26,7 @@
   virtualisation.vmVariant.virtualisation = {
     diskSize = 10000;
     memorySize = 16000;
+    cores = 2;
     forwardPorts = [
       {
         from = "host";

@@ -172,7 +172,7 @@
                     modules = [
                       inputs.self.nixosModules.default
                       inputs.agenix.nixosModules.default
-                      ./nix/nixos-configurations/dev.nix
+                      ./nix/nixos-configurations/dev-vm
                     ];
                   };
                 }
@@ -183,7 +183,7 @@
                     modules = [
                       inputs.self.nixosModules.default
                       inputs.agenix.nixosModules.default
-                      ./nix/nixos-configurations/prod.nix
+                      ./nix/nixos-configurations/prod
                     ];
                   };
                 }
