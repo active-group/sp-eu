@@ -36,6 +36,7 @@
             inputs.clj-nix.overlays.default
             (final: prev: {
               active-group = {
+                snakeoil-certs = final.callPackage ./nix/packages/snakeoil-certs { };
                 wisen = final.callPackage ./nix/packages/wisen-uberjar.nix { };
                 embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
                 inherit modelConfig;
