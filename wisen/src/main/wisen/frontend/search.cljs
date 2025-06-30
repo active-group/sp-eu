@@ -393,7 +393,9 @@
 
      (quick-search loading?))
 
-    (c/dynamic pr-str)
+    (c/dynamic
+     (comp dom/pre query/query->sparql)
+     #_(comp pr-str query/serialize-query))
 
     (c/focus (lens/>> query/query-geo-bounding-box
                       query/geo-bounding-box<->vectors)

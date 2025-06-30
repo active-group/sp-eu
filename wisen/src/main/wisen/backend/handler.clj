@@ -23,7 +23,9 @@
             [wisen.common.routes :as routes]
             [reacl-c-basics.pages.routes :as pages.routes]
             [wisen.common.change-api :as change-api]
-            [wisen.common.prefix :as prefix]))
+            [wisen.common.prefix :as prefix]
+            [wisen.common.query :as query]
+            [active.clojure.logger.event :as event-logger]))
 
 (defn mint-resource-url! []
   (str "http://example.org/resource/" (random-uuid)))
@@ -72,8 +74,12 @@
       {:status 400})))
 
 (defn search [request]
-  (let [q (get-in request [:body-params :query])
-        result-model (triple-store/run-construct-query! q)]
+  (let [q (query/deserialize-query
+           (get-in request [:body-params :query]))
+        _ (event-logger/log-event! :info (str "Running query: " (pr-str q)))
+        sparql (query/query->sparql q)
+        _ (event-logger/log-event! :info (str "Running sparql: " (pr-str sparql)))
+        result-model (triple-store/run-construct-query! sparql)]
     {:status 200
      :body (jsonld/model->json-ld-string result-model)}))
 
@@ -166,6 +172,39 @@
                   (.toString (get line "reference")))
                 result)}))
 
+;; type hierarchy
+(derive ::error ::exception)
+(derive ::failure ::exception)
+(derive ::horror ::exception)
+
+(defn handler [message exception request]
+  {:status 500
+   :body {:message message
+          :exception (.getClass exception)
+          :data (ex-data exception)
+          :uri (:uri request)}})
+
+(def exception-middleware
+  (exception/create-exception-middleware
+    (merge
+      exception/default-handlers
+      {;; ex-data with :type ::error
+       ::error (partial handler "error")
+
+       ;; ex-data with ::exception or ::failure
+       ::exception (partial handler "exception")
+
+       ;; SQLException and all it's child classes
+       java.sql.SQLException (partial handler "sql-exception")
+
+       ;; override the default handler
+       ::exception/default (partial handler "default")
+
+       ;; print stack-traces for all exceptions
+       ::exception/wrap (fn [handler e request]
+                          (event-logger/log-event! :error (pr-str (:uri request)))
+                          (handler e request))})))
+
 (def handler*
   (ring/ring-handler
    (ring/router
@@ -192,7 +231,7 @@
     {:data {:muuntaja muuntaja.core/instance
             :coercion rcs/coercion
             :middleware [m/format-middleware
-                         exception/exception-middleware
+                         exception-middleware
                          rrc/coerce-exceptions-middleware
                          rrc/coerce-request-middleware
                          rrc/coerce-response-middleware]}})))
