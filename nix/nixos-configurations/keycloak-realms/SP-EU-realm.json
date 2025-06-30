@@ -479,17 +479,17 @@
     {
       "id": "46cc7f57-a77e-4c33-9d55-0716c29f34a2",
       "clientId": "sp-eu",
-      "baseUrl": "http://acme.test",
+      "baseUrl": "http://localhost:4321",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "tehAhByB5uabP7vAQKgh2wmXVnjTxDU9",
       "redirectUris": [
-        "http://acme.test/oidc-login-successful"
+        "http://localhost:4321/oidc-login-successful"
       ],
       "webOrigins": [
-        "http://acme.test"
+        "http://localhost:4321"
       ],
       "notBefore": 0,
       "bearerOnly": false,
