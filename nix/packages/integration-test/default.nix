@@ -1,13 +1,10 @@
 {
   inputs,
   lib,
-  nixosTest,
-  stdenv,
   testers,
 }:
 
 let
-  inherit (inputs) self;
   certs = import (inputs.nixpkgs + /nixos/tests/common/acme/server/snakeoil-certs.nix);
 in
 testers.runNixOSTest (
@@ -33,7 +30,6 @@ testers.runNixOSTest (
           active-group = {
             sp-eu = {
               enable = true;
-              # TODO(Johannes): allow paths as well?
               configFile = "${./config.edn}";
               proxy = {
                 enable = true;
