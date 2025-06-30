@@ -2,6 +2,7 @@
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [active.data.record :as record :refer-macros [def-record]]
+            [active.data.realm :as realm]
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
@@ -21,13 +22,15 @@
                                            success?
                                            success-value
                                            make-error]]
+            [clojure.string :as string]
             [wisen.frontend.commit :as commit]
             ["jsonld" :as jsonld]
             [wisen.frontend.create :as create]
-            [wisen.frontend.schema :as schema]))
+            [wisen.frontend.schema :as schema]
+            [wisen.common.query :as query]))
 
 (def-record focus-query-action
-  [focus-query-action-query])
+  [focus-query-action-query :- query/query])
 
 (defn make-focus-query-action [q]
   (focus-query-action focus-query-action-query q))
@@ -48,7 +51,7 @@
 
 (defn sparql-request [query]
   (-> (ajax/POST "/api/search"
-                 {:body (js/JSON.stringify (clj->js {:query query}))
+                 {:body (js/JSON.stringify (clj->js {:query (query/serialize-query query)}))
                   :headers {:content-type "application/json"}
                   #_#_:response-format "application/ld+json"})
       #_(ajax/map-ok-response
@@ -69,6 +72,7 @@
                       ?location ?locationp ?locationo .
                     }
           WHERE { ?s ?p ?o .
+                  ?s <http://jena.apache.org/text#query> '" (:text m) "~' .
                   ?s a <http://schema.org/Organization> .
                   ?s <https://wisen.active-group.de/target-group> ?target .
                   ?s <http://schema.org/keywords> ?keywords .
@@ -82,8 +86,6 @@
                         ?location ?locationp ?locationo .
                       }
                   FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
-                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
-                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
                   }")))
 
 (defn- offer->sparql [m]
@@ -169,79 +171,163 @@
              {:body (.stringify js/JSON (clj->js params))
               :headers {:content-type "application/json"}}))
 
+(defn make-filter-component [add-button-label initial-filter item]
+  (c/with-state-as state
+    (dom/div
+     (if-not state
+       (ds/button-secondary {:onClick (constantly initial-filter)}
+                            add-button-label)
+       (dom/div
+        {:style {:display "flex"
+                 :gap "16px"}}
+        (dom/div
+         {:style {:background "rgba(255,255,255,0.5)"
+                  :border ds/border
+                  :border-radius "8px"
+                  :padding "8px 12px"
+                  :min-width "320px"}}
+         item)
+        (ds/button-secondary {:onClick (constantly nil)}
+                             ds/x-icon))))))
+
+(defn h5 [lbl]
+  (dom/h5 {:style {:margin 0
+                   :font-size "1em"}}
+          lbl))
+
+(c/defn-item filter-thing-type-component []
+  (make-filter-component
+   "+ Add type filter"
+   query/initial-thing-type-filter
+
+   (dom/div
+    (h5 "Type is one of ...")
+    (dom/p
+     (dom/label
+      (c/focus (lens/contains query/organization-type)
+               (forms/input {:type "checkbox"}))
+      "Organization")
+     (dom/label
+      (c/focus (lens/contains query/event-type)
+               (forms/input {:type "checkbox"}))
+      "Event")
+     (dom/label
+      (c/focus (lens/contains query/offer-type)
+               (forms/input {:type "checkbox"}))
+      "Offer")))))
+
+(c/defn-item filter-target-group-component []
+  (make-filter-component
+   "+ Add target group filter"
+   query/initial-target-group-filter
+
+   (dom/div
+    (h5 "Target group is one of ...")
+    (dom/p
+     (dom/label
+      (c/focus (lens/contains query/elderly-target-group)
+               (forms/input {:type "checkbox"}))
+      "Elderly")
+     (dom/label
+      (c/focus (lens/contains query/queer-target-group)
+               (forms/input {:type "checkbox"}))
+      "Queer")
+     (dom/label
+      (c/focus (lens/contains query/immigrants-target-group)
+               (forms/input {:type "checkbox"}))
+      "Immigrants")))))
+
 (c/defn-item quick-search [loading?]
-  (dom/div
-   {:style {:padding "8px"
-            :display "flex"
-            :justify-content "center"}}
-   (forms/form
-    {:onSubmit (fn [state event]
-                 (.preventDefault event)
-                 (c/return :action (make-focus-query-action
-                                    (quick-search->sparql state))
-                           #_#_:action (make-area-search-action (:location state))))
-     :style {:display "flex"
-             :align-items "baseline"
-             :gap "16px"
-             :border "1px solid rgba(255,255,255,0.8)"
-             :background "rgba(255,255,255,0.5)"
-             :backdrop-filter "blur(20px)"
-             :padding "10px 32px"
-             :border-radius "48px"
-             :box-shadow "0 2px 8px rgba(0,0,0,0.3)"
-             }}
-    (dom/div "I'm looking for ")
-    (c/focus :type
-             (ds/select
-              (forms/option {:value :organization}
-                            "organizations")
-              (forms/option {:value :offer}
-                            "offers")
-              (forms/option {:value :event}
-                            "events")))
-    (dom/div "targeted towards")
-    (c/focus :target
-             (ds/select
-              (forms/option {:value "elderly"}
-                            "elderly")
-              (forms/option {:value "queer"}
-                            "queer")
-              (forms/option {:value "immigrants"}
-                            "immigrants")
-              ))
+  (c/with-state-as [query show-advanced? :local false]
+    (let [everything? (query/everything-query? query)]
+      (dom/div
+       (dom/div
+        {:style {:padding "8px"
+                 :display "flex"
+                 :gap "12px"
+                 :justify-content "center"
+                 :align-items "baseline"}}
+        (forms/form
+         {:onSubmit (fn [[query _show-advanced?] event]
+                      (.preventDefault event)
+                      (c/return :action (make-focus-query-action query)))
+          :style {:display "flex"
+                  :align-items "baseline"
+                  :gap "10px"
+                  :border "1px solid rgba(255,255,255,0.8)"
+                  :background "rgba(255,255,255,0.5)"
+                  :backdrop-filter "blur(20px)"
+                  :padding "4px 8px"
+                  :border-radius "48px"
+                  :box-shadow "0 2px 8px rgba(0,0,0,0.3)"
+                  }}
 
-    (dom/div "with tag")
-    (c/focus (lens/>> :tags lens/first)
-             (ds/input {:suggestions ["Education" "Fun" "Games"]}))
+         (c/focus lens/first
+                  (c/focus query/query-fuzzy-search-term
+                           (ds/input {:size 28
+                                      :style {:opacity (when everything? "0.5")
+                                              :border-radius "20px"}})))
 
-    (ds/button-primary {:type "submit"
-                        :style {:background "#923dd2"
-                                :padding "6px 16px"
-                                :border-radius "20px"
-                                :color "white"}}
-                       (if loading?
-                         (dom/div
-                          {:style {:display "flex"
-                                   :align-items "center"
-                                   :gap "0.5em"}}
-                          "Searching …"
-                          (spinner/main))
-                         "Search")))
-   (forms/form
-    {:onSubmit (fn [state event]
-                 (.preventDefault event)
-                 (c/return :action (make-semantic-area-search-action
-                                    (:free-text state)
-                                    (:location state))))}
-    (dom/div "Freitextsuche")
-    (c/focus :free-text
-             (ds/input))
-    (ds/button-primary {:type "submit"
-                        :style {:background "#923dd2"
-                                :padding "6px 16px"
-                                :border-radius "20px"
-                                :color "white"}}
-                       "Search"))))
+         (ds/button-primary {:type "submit"
+                             :style {:background "#923dd2"
+                                     :padding "6px 16px"
+                                     :border-radius "20px"
+                                     :color "white"}}
+                            (if loading?
+                              (dom/div
+                               {:style {:display "flex"
+                                        :align-items "center"
+                                        :gap "0.5em"}}
+                               "Searching …"
+                               (spinner/main))
+                              (str "Search"
+                                   (when everything?
+                                     " everything")))))
+
+        (c/focus lens/second
+                 (ds/button-secondary {:onClick not
+                                       :style {:background "white"
+                                               :padding "6px 12px"
+                                               :border-radius "4px"}}
+                                      (c/with-state-as show?
+                                        (if show?
+                                          "Hide filters"
+                                          "Show filters"))))
+        #_(forms/form
+           {:onSubmit (fn [state event]
+                        (.preventDefault event)
+                        (c/return :action (make-semantic-area-search-action
+                                           (:free-text state)
+                                           (:location state))))}
+           (dom/div "Freitextsuche")
+           (c/focus :free-text
+                    (ds/input))
+           (ds/button-primary {:type "submit"
+                               :style {:background "#923dd2"
+                                       :padding "6px 16px"
+                                       :border-radius "20px"
+                                       :color "white"}}
+                              "Search")))
+
+       (when show-advanced?
+         (c/focus lens/first
+                  (dom/div
+                   {:style {:background "rgba(255,255,255,0.5)"
+                            :backdrop-filter "blur(20px)"
+                            :padding "6px 16px"
+                            :border-top "1px solid #bbb"
+                            }}
+                   (dom/h4 "Additional search filters")
+
+                   (dom/div
+                    {:style {:display "flex"
+                             :flex-direction "column"
+                             :gap "8px"}}
+                    (c/focus query/query-filter-thing-type
+                             (filter-thing-type-component))
+
+                    (c/focus query/query-filter-target-group
+                             (filter-target-group-component))))))))))
 
 (defn run-query [q]
   (util/load-json-ld (sparql-request q)))
@@ -294,14 +380,10 @@
 
 (c/defn-item map-search [schema loading? pins]
   (c/isolate-state
-   {:type :organization
-    :target "elderly"
-    :tags ["education"]
-    :location [[48.484 48.550]
-               [9.0051 9.106]]
-    :free-text ""}
+   query/initial-query
    (dom/div
-    {:style {:position "relative"}}
+    {:style {:position "relative"
+             :border-bottom "1px solid #bbb"}}
     (dom/div
      {:style {:position "absolute"
               :bottom 0
@@ -311,8 +393,11 @@
 
      (quick-search loading?))
 
-    (c/focus :location
-             (leaflet/main {:style {:height 460}} pins)))))
+    (c/dynamic pr-str)
+
+    (c/focus (lens/>> query/query-geo-bounding-box
+                      query/geo-bounding-box<->vectors)
+             (leaflet/main {:style {:height 560}} pins)))))
 
 (declare tree-geo-positions)
 
