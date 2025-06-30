@@ -4,7 +4,7 @@
   services = {
     ollama = {
       enable = true;
-      loadModels = [ "phi4" ];
+      loadModels = [ "phi4" "mistral" ];
       host = "0.0.0.0";
     };
 
