@@ -15,4 +15,5 @@ in
 {
   "keycloak_db.age".publicKeys = all;
   "prod_config_edn.age".publicKeys = all;
+  "prod_kc_realm_json.age".publicKeys = all;
 }

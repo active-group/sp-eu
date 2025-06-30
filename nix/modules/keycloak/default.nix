@@ -2,23 +2,24 @@
 
 let
   cfg = config.active-group.keycloak;
+  inherit (lib) types;
 in
 {
   options.active-group.keycloak = {
     enable = lib.mkEnableOption "keycloak";
     realmFiles = lib.mkOption {
-      type = lib.types.listOf lib.types.path;
+      type = types.listOf types.path;
     };
     dbPasswordFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
+      type = types.nullOr types.str;
       default = null;
     };
     proxy = lib.mkOption {
-      type = lib.types.submodule {
+      type = types.submodule {
         options = {
           enable = lib.mkEnableOption "proxy";
           domain = lib.mkOption {
-            type = lib.types.str;
+            type = types.str;
           };
         };
       };

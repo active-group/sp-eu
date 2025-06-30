@@ -36,8 +36,9 @@
             inputs.clj-nix.overlays.default
             (final: prev: {
               active-group = {
+                snakeoil-certs = final.callPackage ./nix/packages/snakeoil-certs { };
                 wisen = final.callPackage ./nix/packages/wisen-uberjar.nix { };
-                embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { inherit modelConfig; };
+                embeddingModel = final.callPackage ./nix/packages/embedding-model.nix { };
                 inherit modelConfig;
                 npmDeps = final.importNpmLock.buildNodeModules {
                   inherit (final) nodejs;
@@ -46,6 +47,8 @@
                 cljDeps = final.mk-deps-cache {
                   lockfile = ./wisen/deps-lock.json;
                 };
+                e2e-test = final.callPackage ./nix/packages/e2e-test.nix { };
+                integration-test = final.callPackage ./nix/packages/integration-test { inherit inputs; };
               };
             })
           ];
@@ -113,7 +116,12 @@
           };
 
           packages = {
-            inherit (pkgs.active-group) wisen embeddingModel;
+            inherit (pkgs.active-group)
+              wisen
+              embeddingModel
+              e2e-test
+              integration-test
+              ;
             default = self'.packages.wisen;
             update-clj-lockfile = inputs'.clj-nix.packages.deps-lock;
             dev-vm =
@@ -136,7 +144,6 @@
                   else
                     builtins.throw "unexpected system: ${system}"
                 );
-            integration-test = pkgs.callPackage ./nix/packages/integration-test.nix { inherit self; };
           };
 
           formatter = pkgs.nixfmt-rfc-style;
