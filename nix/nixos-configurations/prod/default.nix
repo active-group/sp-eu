@@ -3,7 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ./vm-base.nix
+    ../vm-base.nix
   ];
 
   boot.loader.grub = {
@@ -24,8 +24,8 @@
   };
 
   age.secrets = {
-    config_edn.file = ../secrets/prod_config_edn.age;
-    kc_realm_json.file = ../secrets/prod_kc_realm_json.age;
+    config_edn.file = ../../secrets/prod_config_edn.age;
+    kc_realm_json.file = ../../secrets/prod_kc_realm_json.age;
   };
 
   active-group = {
