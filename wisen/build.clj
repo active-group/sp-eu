@@ -64,6 +64,20 @@
   (compile-clj nil)
   (make-uber nil))
 
+(defn e2e-uber [_]
+  (let [basis (b/create-basis {:project "deps.edn"
+                               :aliases [:e2e-test]})]
+    (clean nil)
+    (b/compile-clj
+     {:basis basis
+      :ns-compile '[wisen.e2e]
+      :class-dir class-dir})
+    (b/uber
+     {:class-dir class-dir
+      :uber-file (str uber-dir "/e2e-test.jar")
+      :main 'wisen.e2e
+      :basis basis})))
+
 (defn test-cljs [_]
   (shadow-cljs {:task "compile" :target "karma-test"})
   (process {:command-args ["npx" "karma" "start" "--single-run"]}))

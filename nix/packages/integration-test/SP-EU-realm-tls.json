@@ -479,17 +479,17 @@
     {
       "id": "46cc7f57-a77e-4c33-9d55-0716c29f34a2",
       "clientId": "sp-eu",
-      "baseUrl": "http://localhost:4321",
+      "baseUrl": "http://fake.active-group.de",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "secret": "tehAhByB5uabP7vAQKgh2wmXVnjTxDU9",
       "redirectUris": [
-        "http://localhost:4321/oidc-login-successful"
+        "http://fake.active-group.de/oidc-login-successful"
       ],
       "webOrigins": [
-        "http://localhost:4321"
+        "http://fake.active-group.de"
       ],
       "notBefore": 0,
       "bearerOnly": false,
