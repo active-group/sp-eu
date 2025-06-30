@@ -1,6 +1,9 @@
 (ns wisen.common.query
   (:require 
-   [active.data.record :as record :refer-macros [def-record]]
+   #?(:cljs
+      [active.data.record :as record :refer-macros [def-record]])
+   #?(:clj
+      [active.data.record :as record :refer [def-record]])
    [active.data.realm :as realm]
    [active.clojure.lens :as lens]
    [clojure.string :as string]))
@@ -32,9 +35,9 @@
    geo-bounding-box-min-lat 48.484
    geo-bounding-box-max-lat 48.550))
 
-(def organization-type :organization)
-(def event-type :event)
-(def offer-type :offer)
+(def organization-type "organization")
+(def event-type "event")
+(def offer-type "offer")
 
 (def thing-type
   (realm/enum
@@ -45,9 +48,9 @@
 (def initial-thing-type-filter
   #{organization-type})
 
-(def elderly-target-group :elderly)
-(def queer-target-group :queer)
-(def immigrants-target-group :immigrants)
+(def elderly-target-group "elderly")
+(def queer-target-group "queer")
+(def immigrants-target-group "immigrants")
 
 (def target-group
   (realm/enum
@@ -75,5 +78,101 @@
        (nil? (query-filter-target-group query))
        (nil? (query-filter-thing-type query))))
 
+(defn serialize-geo-bounding-box [gbb]
+  (geo-bounding-box<->vectors gbb))
+
+(defn deserialize-geo-bounding-box [vctrs]
+  (geo-bounding-box<->vectors nil vctrs))
+
 (defn serialize-query [query]
-  "TODO")
+  {:geo-bounding-box (serialize-geo-bounding-box (query-geo-bounding-box query))
+   :query-fuzzy-search-term (query-fuzzy-search-term query)
+   :query-filter-thing-type (query-filter-thing-type query)
+   :query-filter-target-group (query-filter-target-group query)})
+
+(defn deserialize-query [m]
+  (query
+   query-geo-bounding-box (deserialize-geo-bounding-box (:geo-bounding-box m))
+   query-fuzzy-search-term (:query-fuzzy-search-term m)
+   query-filter-thing-type (:query-filter-thing-type m)
+   query-filter-target-group (:query-filter-target-group m)))
+
+(defn- thing-type->sparql [ty]
+  (condp = ty
+    organization-type "<http://schema.org/Organization>"
+    event-type "<http://schema.org/Event>"
+    offer-type "<http://schema.org/Offer>"))
+
+(defn- target-group->sparql [tg]
+  (condp = tg
+    elderly-target-group "'elderly'"
+    queer-target-group "'queer'"
+    immigrants-target-group "'immigrants'"))
+
+(defn query->sparql [q]
+  (let [geo (query-geo-bounding-box q)
+        min-lat (geo-bounding-box-min-lat geo)
+        max-lat (geo-bounding-box-max-lat geo)
+        min-lon (geo-bounding-box-min-lon geo)
+        max-lon (geo-bounding-box-max-lon geo)
+        thing-type (query-filter-thing-type q)
+        target-group (query-filter-target-group q)
+        ]
+    "CONSTRUCT { ?s ?p ?o . } WHERE { ?s ?p ?o . }"
+    (str "CONSTRUCT {
+            ?s ?p ?o .
+            " (when thing-type "?s a ?type .") "
+            " (when target-group "?s <https://wisen.active-group.de/target-group> ?target .") "
+            ?s <http://schema.org/location> ?location .
+            ?location <http://schema.org/geo> ?coords .
+            ?coords <http://schema.org/latitude> ?lat .
+            ?coords <http://schema.org/longitude> ?long .
+           } 
+          WHERE {
+          ?s ?p ?o .
+
+          "
+
+         (when-let [fuzzy (query-fuzzy-search-term q)]
+           (when-not (string/blank? fuzzy)
+             (str
+              "?s <http://jena.apache.org/text#query> '"
+              fuzzy
+              "~' .\n")))
+
+         (when thing-type "?s a ?type . ")
+         (when target-group "?s <https://wisen.active-group.de/target-group> ?target .")
+       
+         "
+          ?s <http://schema.org/location> ?location .
+          ?location <http://schema.org/geo> ?coords .
+          ?coords <http://schema.org/latitude> ?lat .
+          ?coords <http://schema.org/longitude> ?long .
+
+          \n"
+
+         (when-let [thing-type (query-filter-thing-type q)]
+           (str
+            "FILTER (?type IN ("
+            (string/join ", "
+                         (map (fn [ty] (thing-type->sparql ty)) thing-type))
+            "))\n"))
+
+         (when-let [target-group (query-filter-target-group q)]
+           (str
+            "FILTER (?target IN ("
+            (string/join ", "
+                         (map (fn [ty] (target-group->sparql ty)) target-group))
+            "))\n"))
+         
+         (str
+          "FILTER( ?lat >= "
+          min-lat
+          " && ?lat <= "
+          max-lat
+          " && ?long >= "
+          min-lon
+          " && ?long <= "
+          max-lon
+          ")")
+         "}")))
