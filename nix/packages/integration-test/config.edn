@@ -3,10 +3,10 @@
 
   :openid-profiles
   [{:provider {:name       "SP-EU Authentication"
-               :config-uri "http://acme.test/cloak/realms/SP-EU/.well-known/openid-configuration"}
+               :config-uri "http://fake.active-group.de/cloak/realms/SP-EU/.well-known/openid-configuration"}
 
     :client   {:id             "sp-eu"
                :secret         "tehAhByB5uabP7vAQKgh2wmXVnjTxDU9"
-               :base-uri       "http://acme.test"
+               :base-uri       "http://fake.active-group.de"
                :scopes         ["openid" "profile"]
                :user-info-from :jwt}}]}}

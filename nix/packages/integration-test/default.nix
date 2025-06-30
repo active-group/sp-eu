@@ -2,10 +2,11 @@
   inputs,
   lib,
   testers,
+  active-group,
 }:
 
 let
-  certs = import (inputs.nixpkgs + /nixos/tests/common/acme/server/snakeoil-certs.nix);
+  certs = active-group.snakeoil-certs;
 in
 testers.runNixOSTest (
   { config, ... }:
@@ -53,9 +54,8 @@ testers.runNixOSTest (
             # TODO(Johannes): refactor module option instead
             nginx.virtualHosts.${certs.domain} = {
               enableACME = lib.mkForce false;
-              forceSSL = true;
-              sslCertificate = "${certs.${certs.domain}.cert}";
-              sslCertificateKey = "${certs.${certs.domain}.key}";
+              sslCertificate = "${certs.cert}";
+              sslCertificateKey = "${certs.key}";
             };
           };
 
