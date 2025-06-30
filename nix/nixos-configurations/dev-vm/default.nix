@@ -26,6 +26,7 @@
   virtualisation.vmVariant.virtualisation = {
     diskSize = 10000;
     memorySize = 16000;
+    cores = 2;
     forwardPorts = [
       {
         from = "host";
