@@ -287,7 +287,7 @@
          (fn [ds]
            (if ds
              ds
-             (let [new-ds (TDB2Factory/createDataset) #_(TDB2Factory/connectDataset "new3")]
+             (let [new-ds (TDB2Factory/connectDataset dbname)]
                ;; setup lucene text indexing
                (dataset-add-lucene new-ds))))))
 
