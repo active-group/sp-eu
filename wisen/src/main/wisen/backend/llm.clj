@@ -38,7 +38,7 @@
     guidelines
     prompt)))
 
-(def ollama-model (or (System/getenv "OLLAMA_MODEL") "phi4"))
+(def ollama-model (or (System/getenv "OLLAMA_MODEL") "mistral"))
 
 (defn make-ollama-request-string [prompt]
   (str "{\"model\": \"" ollama-model "\", \"stream\": false, \"prompt\": \"" prompt "\"}"))
