@@ -1,6 +1,7 @@
 {
   imports = [
-    ./sp-eu
+    ./acme.nix
     ./keycloak
+    ./sp-eu
   ];
 }
