@@ -19,7 +19,7 @@ in
         options = {
           enable = lib.mkEnableOption "proxy";
           domain = lib.mkOption {
-            type = types.str;
+            type = types.nonEmptyStr;
           };
         };
       };
