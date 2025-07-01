@@ -393,7 +393,7 @@
 
      (quick-search loading?))
 
-    (c/dynamic
+    #_(c/dynamic
      (comp dom/pre query/query->sparql)
      #_(comp pr-str query/serialize-query))
 
