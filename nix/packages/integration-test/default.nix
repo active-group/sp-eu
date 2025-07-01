@@ -35,6 +35,8 @@ testers.runNixOSTest (
               proxy = {
                 enable = true;
                 inherit (certs) domain;
+                tlsCert = certs.cert;
+                tlsCertKey = certs.key;
               };
             };
             keycloak = {
@@ -45,19 +47,13 @@ testers.runNixOSTest (
               proxy = {
                 enable = true;
                 inherit (certs) domain;
+                tlsCert = certs.cert;
+                tlsCertKey = certs.key;
               };
             };
           };
 
-          services = {
-            openssh.enable = true;
-            # TODO(Johannes): refactor module option instead
-            nginx.virtualHosts.${certs.domain} = {
-              enableACME = lib.mkForce false;
-              sslCertificate = "${certs.cert}";
-              sslCertificateKey = "${certs.key}";
-            };
-          };
+          services.openssh.enable = true;
 
           networking = {
             firewall.enable = false;
