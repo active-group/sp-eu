@@ -44,11 +44,14 @@ in
   config = lib.mkIf cfg.enable {
     assertions = [
       {
-        assertion = cfg.proxy.acme -> (cfg.proxy.tlsCert == null && cfg.proxy.tlsCertKey == null);
+        assertion =
+          cfg.proxy.enable && cfg.proxy.acme -> (cfg.proxy.tlsCert == null && cfg.proxy.tlsCertKey == null);
         message = "Either use ACME *or* set TLS options, not both";
       }
       {
-        assertion = !cfg.proxy.acme -> (cfg.proxy.tlsCert != null && cfg.proxy.tlsCertKey != null);
+        assertion =
+          cfg.proxy.enable && !cfg.proxy.acme
+          -> (cfg.proxy.enable && cfg.proxy.tlsCert != null && cfg.proxy.tlsCertKey != null);
         message = "When not using ACME, you need to specify both TLS options";
       }
     ];
