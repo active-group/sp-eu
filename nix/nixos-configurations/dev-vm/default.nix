@@ -7,6 +7,7 @@
     enable = true;
     realmFiles = [ ./SP-EU-realm.json ];
     dbPasswordFile = "${pkgs.writeText "db_pw" "blubberdiblub"}";
+    proxy.enable = false;
   };
 
   users.users.alice = {
