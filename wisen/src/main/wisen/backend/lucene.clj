@@ -1,5 +1,6 @@
 (ns wisen.backend.lucene
   (:import
+   (java.io File)
    (org.apache.lucene.analysis Analyzer)
    (org.apache.lucene.analysis.standard StandardAnalyzer)
    (org.apache.lucene.document Document KnnVectorField StringField Field Field$Store)
@@ -8,7 +9,7 @@
    (org.apache.lucene.store Directory FSDirectory)))
 
 (def directory
-  (FSDirectory/open (.toPath (File. "lucene-test-3"))))
+  (FSDirectory/open (.toPath (File. "lucene-test"))))
 
 (def analyzer
   (StandardAnalyzer.))
