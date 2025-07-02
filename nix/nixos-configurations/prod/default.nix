@@ -35,6 +35,7 @@
       proxy = {
         enable = true;
         domain = "sp-eu.ci.active-group.de";
+        acme = true;
       };
     };
     keycloak = {
@@ -43,13 +44,9 @@
       proxy = {
         enable = true;
         domain = "sp-eu.ci.active-group.de";
+        acme = true;
       };
     };
-  };
-
-  security.acme = {
-    acceptTerms = true;
-    defaults.email = "admin@active-group.de";
   };
 
   users.users.root.openssh.authorizedKeys.keys = [
