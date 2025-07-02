@@ -64,20 +64,20 @@
 (defn insert! [id vec location]
   (with-writer!
     (fn [writer]
-      (def doc (Document.))
-      (.add doc (KnnVectorField. "embedding" vec))
-      (.add doc (StringField. "id" id Field$Store/YES))
+      (let [doc (Document.)]
+        (.add doc (KnnVectorField. "embedding" vec))
+        (.add doc (StringField. "id" id Field$Store/YES))
 
-      (doall
-       (map
-        (fn [f]
-          (.add doc f))
-        (.createIndexableFields strategy
-                                (location->shape location))))
+        (doall
+         (map
+          (fn [f]
+            (.add doc f))
+          (.createIndexableFields strategy
+                                  (location->shape location))))
 
-      (.add doc (StoredField. (.getFieldName strategy) (pr-str location)))
+        (.add doc (StoredField. (.getFieldName strategy) (pr-str location)))
 
-      (.addDocument writer doc))))
+        (.addDocument writer doc)))))
 
 (insert! "doc1" (float-array [2.3 3.4 4.1]) [1 2])
 (insert! "doc2" (float-array [5.3 5.4 8.1]) [3 4])
