@@ -14,12 +14,26 @@ in
       type = types.nullOr types.str;
       default = null;
     };
+    # TODO(Johannes): refactor into lib (together with the assertions below)
     proxy = lib.mkOption {
       type = types.submodule {
         options = {
           enable = lib.mkEnableOption "proxy";
           domain = lib.mkOption {
-            type = types.str;
+            type = types.nonEmptyStr;
+          };
+          acme = lib.mkOption {
+            type = types.bool;
+            default = false;
+            description = "Whether ACME should be enabled";
+          };
+          tlsCert = lib.mkOption {
+            type = types.nullOr types.path;
+            default = null;
+          };
+          tlsCertKey = lib.mkOption {
+            type = types.nullOr types.path;
+            default = null;
           };
         };
       };
@@ -27,7 +41,23 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion =
+          cfg.proxy.enable && cfg.proxy.acme -> (cfg.proxy.tlsCert == null && cfg.proxy.tlsCertKey == null);
+        message = "Either use ACME *or* set TLS options, not both";
+      }
+      {
+        assertion =
+          cfg.proxy.enable && !cfg.proxy.acme
+          -> (cfg.proxy.enable && cfg.proxy.tlsCert != null && cfg.proxy.tlsCertKey != null);
+        message = "When not using ACME, you need to specify both TLS options";
+      }
+    ];
+
     age.secrets.keycloak_db.file = ../../secrets/keycloak_db.age;
+
+    active-group.acme.enable = cfg.proxy.acme;
 
     services.keycloak = {
       enable = true;
@@ -71,8 +101,10 @@ in
             '';
           };
         };
-        enableACME = true;
         forceSSL = true;
+        enableACME = cfg.proxy.acme;
+        sslCertificate = cfg.proxy.tlsCert;
+        sslCertificateKey = cfg.proxy.tlsCertKey;
       };
     };
   };
