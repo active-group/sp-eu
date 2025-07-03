@@ -11,18 +11,18 @@
 (deftest geocoding-test
   (testing "simple example"
     (is (= [(change-api/make-add
-             (change-api/make-statement "http://example.org/1" "http://schema.org/geo" "http://example.org/1/geo"))
+             (change-api/make-statement "http://example.org/1" "http://schema.org/geo" "http://example.org/1-geo"))
             (change-api/make-add
-             (change-api/make-statement "http://example.org/1/geo"
+             (change-api/make-statement "http://example.org/1-geo"
                                         "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                                         "http://schema.org/GeoCoordinates"))
             (change-api/make-add
-             (change-api/make-statement "http://example.org/1/geo"
+             (change-api/make-statement "http://example.org/1-geo"
                                         "http://schema.org/longitude"
                                         (change-api/make-literal-decimal "9.1")))
 
             (change-api/make-add
-             (change-api/make-statement "http://example.org/1/geo"
+             (change-api/make-statement "http://example.org/1-geo"
                                         "http://schema.org/latitude"
                                         (change-api/make-literal-decimal "48.321")))]
 
@@ -36,18 +36,18 @@
 
   (testing "place->lon-lat returns nil"
     (is (= [(change-api/make-add
-             (change-api/make-statement "http://example.org/1" "http://schema.org/geo" "http://example.org/1/geo"))
+             (change-api/make-statement "http://example.org/1" "http://schema.org/geo" "http://example.org/1-geo"))
             (change-api/make-add
-             (change-api/make-statement "http://example.org/1/geo"
+             (change-api/make-statement "http://example.org/1-geo"
                                         "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
                                         "http://schema.org/GeoCoordinates"))
             (change-api/make-add
-             (change-api/make-statement "http://example.org/1/geo"
+             (change-api/make-statement "http://example.org/1-geo"
                                         "http://schema.org/longitude"
                                         (change-api/make-literal-decimal "9.1")))
 
             (change-api/make-add
-             (change-api/make-statement "http://example.org/1/geo"
+             (change-api/make-statement "http://example.org/1-geo"
                                         "http://schema.org/latitude"
                                         (change-api/make-literal-decimal "48.321")))]
 
