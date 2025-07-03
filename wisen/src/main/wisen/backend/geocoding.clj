@@ -71,7 +71,7 @@
                                                    (:postalCode place)
                                                    (:addressLocality place)
                                                    (:addressCountry place))]
-                (let [geo-uri (str place-uri "/geo")]
+                (let [geo-uri (str place-uri "-geo")]
                   [(change-api/make-add
                     (change-api/make-statement place-uri "http://schema.org/geo" geo-uri))
                    (change-api/make-add
@@ -83,12 +83,12 @@
             places)))
 
 #_(derived-geo-changeset [(change-api/make-add (change-api/make-statement "1" "http://schema.org/address" "2"))
-                        (change-api/make-add (change-api/make-statement "2" "http://schema.org/postalCode" (change-api/make-literal-string "72072")))
-                        (change-api/make-add (change-api/make-statement "2" "http://schema.org/addressCountry" (change-api/make-literal-string "Germany")))]
+                          (change-api/make-add (change-api/make-statement "2" "http://schema.org/postalCode" (change-api/make-literal-string "72072")))
+                          (change-api/make-add (change-api/make-statement "2" "http://schema.org/addressCountry" (change-api/make-literal-string "Germany")))]
 
-                       (fn [street postcode locality country]
-                         (condp = postcode
-                           "72072" [48.12312 8])))
+                         (fn [street postcode locality country]
+                           (condp = postcode
+                             "72072" [48.12312 8])))
 
 (defn add-geo-changeset [changeset place->lon-lat]
   (let [geo-changeset (derived-geo-changeset changeset place->lon-lat)]

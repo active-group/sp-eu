@@ -1,4 +1,6 @@
 (ns wisen.backend.lucene
+  (:require [active.data.record :refer [def-record]]
+            [active.data.realm :as realm])
   (:import
    (java.io File)
    (org.locationtech.spatial4j.context SpatialContext)
@@ -28,6 +30,11 @@
    (org.apache.lucene.store Directory
                             FSDirectory)))
 
+(def-record id-geo-vec
+  [id-geo-vec-id :- realm/string
+   id-geo-vec-geo ;; (make-point ...)
+   id-geo-vec-vec ;; (make-vector ...)
+   ])
 
 (defn make-vector [v]
   (float-array v))
@@ -41,7 +48,7 @@
 ;; ---
 
 (def directory
-  (FSDirectory/open (.toPath (File. "lucene-test-4"))))
+  (FSDirectory/open (.toPath (File. "lucene-test-6"))))
 
 (def analyzer
   (StandardAnalyzer.))
@@ -67,25 +74,30 @@
          min-lat
          max-lat))
 
-(defn insert! [id vec point]
+(defn insert! [id-geo-vec]
+  (let [id (id-geo-vec-id id-geo-vec)
+        point (id-geo-vec-geo id-geo-vec)
+        vec (id-geo-vec-vec id-geo-vec)]
+    (with-writer!
+      (fn [writer]
+        (let [doc (Document.)]
+          (.add doc (KnnVectorField. "embedding" vec))
+          (.add doc (StringField. "id" id Field$Store/YES))
+
+          (doall
+           (map
+            (fn [f]
+              (.add doc f))
+            (.createIndexableFields strategy point)))
+
+          (.add doc (StoredField. (.getFieldName strategy) (pr-str point)))
+
+          (.addDocument writer doc))))))
+
+(defn clear! []
   (with-writer!
     (fn [writer]
-      (let [doc (Document.)]
-        (.add doc (KnnVectorField. "embedding" vec))
-        (.add doc (StringField. "id" id Field$Store/YES))
-
-        (doall
-         (map
-          (fn [f]
-            (.add doc f))
-          (.createIndexableFields strategy point)))
-
-        (.add doc (StoredField. (.getFieldName strategy) (pr-str point)))
-
-        (.addDocument writer doc)))))
-
-#_(insert! "doc1" (float-array [2.3 3.4 4.1]) [1 2])
-#_(insert! "doc2" (float-array [5.3 5.4 8.1]) [3 4])
+      (.deleteAll writer))))
 
 (defn with-searcher! [f]
   (let [r (DirectoryReader/open directory)
@@ -95,7 +107,7 @@
       (finally
         (.close r)))))
 
-(def desired-number-of-search-results 10)
+(def desired-number-of-search-results 2)
 
 (defn search! [vec box]
   (with-searcher!
@@ -105,7 +117,7 @@
             knn-query (KnnVectorQuery. "embedding" vec desired-number-of-search-results)
             query-builder (BooleanQuery$Builder.)
             _ (.add query-builder knn-query BooleanClause$Occur/MUST)
-            _ (.add query-builder geo-query BooleanClause$Occur/SHOULD)
+            _ (.add query-builder geo-query BooleanClause$Occur/MUST)
             query (.build query-builder)
             topDocs (.search searcher query desired-number-of-search-results)]
 
