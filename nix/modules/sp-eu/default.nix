@@ -8,7 +8,7 @@
 let
   inherit (lib) types;
   cfg = config.active-group.sp-eu;
-  tlsOption = import ../tls-option.nix lib;
+  tls = import ../tls-option.nix lib;
 in
 {
   options.active-group.sp-eu = {
@@ -17,24 +17,10 @@ in
       type = types.nullOr types.str;
       default = null;
     };
-    proxy = tlsOption;
+    inherit tls;
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion =
-          cfg.proxy.enable && cfg.proxy.acme -> (cfg.proxy.tlsCert == null && cfg.proxy.tlsCertKey == null);
-        message = "Either use ACME *or* set TLS options, not both";
-      }
-      {
-        assertion =
-          cfg.proxy.enable && !cfg.proxy.acme
-          -> (cfg.proxy.enable && cfg.proxy.tlsCert != null && cfg.proxy.tlsCertKey != null);
-        message = "When not using ACME, you need to specify both TLS options";
-      }
-    ];
-
     systemd.services.sp-eu =
       let
         configArgs = lib.optionalString (cfg.configFile != null) "-c ${cfg.configFile}";
@@ -54,17 +40,24 @@ in
         };
       };
 
-    active-group.acme.enable = cfg.proxy.acme;
+    active-group.acme.enable = cfg.tls.certs == "acme";
 
-    services.nginx = lib.mkIf cfg.proxy.enable {
+    services.nginx = lib.mkIf (cfg.tls != null) {
       enable = true;
-      virtualHosts.${cfg.proxy.domain} = {
-        locations."/".proxyPass = "http://localhost:4321";
-        forceSSL = true;
-        enableACME = cfg.proxy.acme;
-        sslCertificate = cfg.proxy.tlsCert;
-        sslCertificateKey = cfg.proxy.tlsCertKey;
-      };
+      virtualHosts.${cfg.tls.domain} =
+        {
+          locations."/".proxyPass = "http://localhost:4321";
+          forceSSL = true;
+        }
+        // (
+          if cfg.tls.certs == "acme" then
+            { enableACME = cfg.tls.certs == "acme"; }
+          else
+            {
+              sslCertificate = cfg.tls.certs.cert;
+              sslCertificateKey = cfg.tls.certs.key;
+            }
+        );
     };
   };
 }
