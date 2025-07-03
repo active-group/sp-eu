@@ -18,6 +18,7 @@
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.embedding :as embedding]
             [wisen.backend.lucene :as lucene]
+            [wisen.backend.skolem2 :as skolem2]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
             [wisen.backend.overpass :as overpass]
@@ -28,7 +29,8 @@
             [wisen.common.prefix :as prefix]
             [wisen.common.query :as query]
             [active.clojure.logger.event :as event-logger]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [wisen.backend.geocoding :as geocoding]))
 
 (defn mint-resource-url! []
   (str "http://example.org/resource/" (random-uuid)))
@@ -113,14 +115,30 @@
     {:status 200
      :body (jsonld/model->json-ld-string result-model)}))
 
+(defn prepare-changeset [changeset place->geo]
+  (-> changeset
+      (skolem2/skolemize-changeset)
+      (geocoding/add-geo-changeset place->geo)))
+
+(defn place->lon-lat! [street postcode locality country]
+  (let [osm-result (osm/search! (osm/address
+                                 osm/address-country country
+                                 osm/address-locality locality
+                                 osm/address-postcode postcode
+                                 osm/address-street street))]
+    (when (osm/search-success? osm-result)
+      (let [lat (osm/search-success-latitude osm-result)
+            lon (osm/search-success-longitude osm-result)]
+        [lon lat]))))
+
+#_(place->lon-lat! "Hechinger Str. 12/1" "72072" "Tübingen" "Germany")
+
 (defn add-changes [request]
   (let [changeset (change-api/edn->changeset
                    (get-in request
-                           [:body-params :changes]))]
-    (triple-store/edit-model! changeset)
-    ;; TODO: a bit wasteful to derive geo location on _every_ update
-    ;; strictly neccessary only when address is added
-    (triple-store/decorate-geo!)
+                           [:body-params :changes]))
+        skolemized-geocoded-changeset (prepare-changeset changeset place->lon-lat!)]
+    (triple-store/edit-model! skolemized-geocoded-changeset)
     {:status 200}))
 
 (defn osm-lookup [request]
