@@ -29,6 +29,9 @@
                             FSDirectory)))
 
 
+(defn make-vector [v]
+  (float-array v))
+
 (def ctx SpatialContext/GEO)
 
 (def grid (GeohashPrefixTree. ctx 11))
@@ -38,7 +41,7 @@
 ;; ---
 
 (def directory
-  (FSDirectory/open (.toPath (File. "lucene-test"))))
+  (FSDirectory/open (.toPath (File. "lucene-test-4"))))
 
 (def analyzer
   (StandardAnalyzer.))
@@ -51,8 +54,11 @@
       (finally
         (.close w)))))
 
-(defn- location->shape [[lon lat]]
+(defn make-point [lon lat]
   (.makePoint ctx lon lat))
+
+(defn make-bounding-box [min-lat max-lat min-lon max-lon]
+  [[min-lat max-lat] [min-lon max-lon]])
 
 (defn- box->shape [[[min-lat max-lat] [min-lon max-lon]]]
   (.rect (.getShapeFactory ctx)
@@ -61,7 +67,7 @@
          min-lat
          max-lat))
 
-(defn insert! [id vec location]
+(defn insert! [id vec point]
   (with-writer!
     (fn [writer]
       (let [doc (Document.)]
@@ -72,15 +78,14 @@
          (map
           (fn [f]
             (.add doc f))
-          (.createIndexableFields strategy
-                                  (location->shape location))))
+          (.createIndexableFields strategy point)))
 
-        (.add doc (StoredField. (.getFieldName strategy) (pr-str location)))
+        (.add doc (StoredField. (.getFieldName strategy) (pr-str point)))
 
         (.addDocument writer doc)))))
 
-(insert! "doc1" (float-array [2.3 3.4 4.1]) [1 2])
-(insert! "doc2" (float-array [5.3 5.4 8.1]) [3 4])
+#_(insert! "doc1" (float-array [2.3 3.4 4.1]) [1 2])
+#_(insert! "doc2" (float-array [5.3 5.4 8.1]) [3 4])
 
 (defn with-searcher! [f]
   (let [r (DirectoryReader/open directory)
