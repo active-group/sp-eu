@@ -95,17 +95,19 @@
       (finally
         (.close r)))))
 
+(def desired-number-of-search-results 10)
+
 (defn search! [vec box]
   (with-searcher!
     (fn [searcher]
       (let [args (SpatialArgs. SpatialOperation/Intersects (box->shape box))
             geo-query (.makeQuery strategy args)
-            knn-query (KnnVectorQuery. "embedding" vec 1)
+            knn-query (KnnVectorQuery. "embedding" vec desired-number-of-search-results)
             query-builder (BooleanQuery$Builder.)
             _ (.add query-builder knn-query BooleanClause$Occur/MUST)
             _ (.add query-builder geo-query BooleanClause$Occur/SHOULD)
             query (.build query-builder)
-            topDocs (.search searcher query 1)]
+            topDocs (.search searcher query desired-number-of-search-results)]
 
         (doall (map (fn [scoreDoc]
                       (let [foundDoc (.doc searcher (.-doc scoreDoc))]
