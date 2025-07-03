@@ -8,6 +8,7 @@
 let
   inherit (lib) types;
   cfg = config.active-group.sp-eu;
+  tlsOption = import ../tls-option.nix lib;
 in
 {
   options.active-group.sp-eu = {
@@ -16,29 +17,7 @@ in
       type = types.nullOr types.str;
       default = null;
     };
-    proxy = lib.mkOption {
-      type = types.submodule {
-        options = {
-          enable = lib.mkEnableOption "proxy";
-          domain = lib.mkOption {
-            type = types.nonEmptyStr;
-          };
-          acme = lib.mkOption {
-            type = types.bool;
-            default = false;
-            description = "Whether ACME should be enabled";
-          };
-          tlsCert = lib.mkOption {
-            type = types.nullOr types.path;
-            default = null;
-          };
-          tlsCertKey = lib.mkOption {
-            type = types.nullOr types.path;
-            default = null;
-          };
-        };
-      };
-    };
+    proxy = tlsOption;
   };
 
   config = lib.mkIf cfg.enable {

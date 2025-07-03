@@ -1,8 +1,9 @@
 { config, lib, ... }:
 
 let
-  cfg = config.active-group.keycloak;
   inherit (lib) types;
+  cfg = config.active-group.keycloak;
+  tlsOption = import ../tls-option.nix lib;
 in
 {
   options.active-group.keycloak = {
@@ -14,30 +15,7 @@ in
       type = types.nullOr types.str;
       default = null;
     };
-    # TODO(Johannes): refactor into lib (together with the assertions below)
-    proxy = lib.mkOption {
-      type = types.submodule {
-        options = {
-          enable = lib.mkEnableOption "proxy";
-          domain = lib.mkOption {
-            type = types.nonEmptyStr;
-          };
-          acme = lib.mkOption {
-            type = types.bool;
-            default = false;
-            description = "Whether ACME should be enabled";
-          };
-          tlsCert = lib.mkOption {
-            type = types.nullOr types.path;
-            default = null;
-          };
-          tlsCertKey = lib.mkOption {
-            type = types.nullOr types.path;
-            default = null;
-          };
-        };
-      };
-    };
+    proxy = tlsOption;
   };
 
   config = lib.mkIf cfg.enable {
