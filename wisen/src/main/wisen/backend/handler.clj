@@ -202,7 +202,7 @@
 
        ;; print stack-traces for all exceptions
        ::exception/wrap (fn [handler e request]
-                          (event-logger/log-event! :error (pr-str (:uri request)))
+                          (event-logger/log-event! :error (str (:uri request) ": " (pr-str e)))
                           (handler e request))})))
 
 (def handler*
