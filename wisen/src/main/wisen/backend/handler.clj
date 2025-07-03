@@ -16,6 +16,8 @@
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld]
+            [wisen.backend.embedding :as embedding]
+            [wisen.backend.lucene :as lucene]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
             [wisen.backend.overpass :as overpass]
@@ -25,7 +27,8 @@
             [wisen.common.change-api :as change-api]
             [wisen.common.prefix :as prefix]
             [wisen.common.query :as query]
-            [active.clojure.logger.event :as event-logger]))
+            [active.clojure.logger.event :as event-logger]
+            [clojure.string :as string]))
 
 (defn mint-resource-url! []
   (str "http://example.org/resource/" (random-uuid)))
@@ -76,10 +79,36 @@
 (defn search [request]
   (let [q (query/deserialize-query
            (get-in request [:body-params :query]))
-        _ (event-logger/log-event! :info (str "Running query: " (pr-str q)))
-        sparql (query/query->sparql q)
+
+        _ (println (str "Running query: " (pr-str q)))
+
+        bb (query/query-geo-bounding-box q)
+        min-lat (query/geo-bounding-box-min-lat bb)
+        max-lat (query/geo-bounding-box-max-lat bb)
+        min-lon (query/geo-bounding-box-min-lon bb)
+        max-lon (query/geo-bounding-box-max-lon bb)
+
+        emb (embedding/get-embedding (query/query-fuzzy-search-term q))
+
+        _ (event-logger/log-event! :info (str "Embedding: " (pr-str (take 10 emb))))
+
+        uris (lucene/search! (lucene/make-vector emb)
+                             (lucene/make-bounding-box min-lat max-lat min-lon max-lon))
+
+        _ (event-logger/log-event! :info (str "URIs found in index: " (pr-str uris)))
+
+        uris-string (string/join "," (map (fn [uri]
+                                            (str "<" uri ">"))
+                                          uris))
+
+        sparql (str "CONSTRUCT { ?s ?p ?o . }
+                     WHERE { ?s ?p ?o .
+                             FILTER (?s IN ( " uris-string " )) }")
+
         _ (event-logger/log-event! :info (str "Running sparql: " (pr-str sparql)))
+
         result-model (triple-store/run-construct-query! sparql)]
+
     {:status 200
      :body (jsonld/model->json-ld-string result-model)}))
 
