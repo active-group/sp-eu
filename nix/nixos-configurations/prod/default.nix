@@ -32,19 +32,17 @@
     sp-eu = {
       enable = true;
       configFile = config.age.secrets.config_edn.path;
-      proxy = {
-        enable = true;
+      tls = {
         domain = "sp-eu.ci.active-group.de";
-        acme = true;
+        certs = "acme";
       };
     };
     keycloak = {
       enable = true;
       realmFiles = [ config.age.secrets.kc_realm_json.path ];
-      proxy = {
-        enable = true;
+      tls = {
         domain = "sp-eu.ci.active-group.de";
-        acme = true;
+        certs = "acme";
       };
     };
   };
