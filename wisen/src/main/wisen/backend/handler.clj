@@ -103,9 +103,9 @@
                                             (str "<" uri ">"))
                                           uris))
 
-        sparql (str "CONSTRUCT { ?s ?p ?o . ?o ?p2 ?o2 . }
+        sparql (str "CONSTRUCT { ?s ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . }
                      WHERE { ?s ?p ?o .
-                             OPTIONAL { ?o ?p2 ?o2 . }
+                             OPTIONAL { ?o ?p2 ?o2 . OPTIONAL { ?o2 ?p3 ?o3 . } }
                              FILTER (?s IN ( " uris-string " )) }")
 
         _ (event-logger/log-event! :info (str "Running sparql: " (pr-str sparql)))
@@ -133,12 +133,43 @@
 
 #_(place->lon-lat! "Hechinger Str. 12/1" "72072" "Tübingen" "Germany")
 
+(defn get-id-geo-vecs! []
+  (let [res
+        (triple-store/run-select-query!
+         "SELECT ?id ?lon ?lat ?name ?description
+      WHERE {
+       ?id <http://schema.org/name> ?name .
+       ?id <http://schema.org/description> ?description .
+       ?id <http://schema.org/location> ?loc .
+       ?loc <http://schema.org/geo> ?geo .
+       ?geo <http://schema.org/longitude> ?lon .
+       ?geo <http://schema.org/latitude> ?lat .
+      }")]
+    (map (fn [row]
+           (lucene/id-geo-vec
+            lucene/id-geo-vec-id (.getURI (get row "id"))
+            lucene/id-geo-vec-geo (lucene/make-point (.getDouble (get row "lon"))
+                                                     (.getDouble (get row "lat")))
+            lucene/id-geo-vec-vec (lucene/make-vector
+                                   (embedding/get-embedding
+                                    (str (get row "name")
+                                         "\n\n"
+                                         (get row "description"))))))
+         res)))
+
+(defn update-search-index! []
+  (lucene/clear!)
+  (doall
+   (map lucene/insert!
+        (get-id-geo-vecs!))))
+
 (defn add-changes [request]
   (let [changeset (change-api/edn->changeset
                    (get-in request
                            [:body-params :changes]))
         skolemized-geocoded-changeset (prepare-changeset changeset place->lon-lat!)]
     (triple-store/edit-model! skolemized-geocoded-changeset)
+    (update-search-index!)
     {:status 200}))
 
 (defn osm-lookup [request]
