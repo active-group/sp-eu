@@ -100,15 +100,17 @@ testers.runNixOSTest (
 
           services = {
             openssh.enable = true;
+            displayManager = {
+              autoLogin = {
+                user = "alice";
+                enable = true;
+              };
+              defaultSession = lib.mkDefault "none+icewm";
+            };
             xserver = {
               enable = true;
               displayManager = {
                 lightdm.enable = true;
-                autoLogin = {
-                  user = "alice";
-                  enable = true;
-                };
-                defaultSession = lib.mkDefault "none+icewm";
               };
               windowManager.icewm.enable = true;
             };
