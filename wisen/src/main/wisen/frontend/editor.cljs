@@ -916,16 +916,20 @@
       (cond
         (and (= type-uri "http://schema.org/GeoCoordinates")
              (edit-node-is-geo-coordinates-value? enode))
-        (value-node/as-value-node
-         (geo-coordinates-component schema editable? force-editing?))
+        (dom/div
+         {:id (edit-tree/edit-node-uri enode)}
+         (value-node/as-value-node
+          (geo-coordinates-component schema editable? force-editing?)))
 
         (and (= type-uri "http://schema.org/PostalAddress")
              (edit-node-is-postal-address-value? enode))
-        (value-node/as-value-node
-         (postal-address-component schema editable? force-editing?))
+        (dom/div
+         {:id (edit-tree/edit-node-uri enode)}
+         (value-node/as-value-node
+          (postal-address-component schema editable? force-editing?)))
 
         #_#_(and (= type-uri "http://schema.org/OpeningHoursSpecification")
-             (edit-node-is-opening-hours-specification-value? enode))
+                 (edit-node-is-opening-hours-specification-value? enode))
         (value-node/as-value-node
          (opening-hours-specification-component schema editable? force-editing?))
 
