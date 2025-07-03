@@ -101,8 +101,9 @@
                                             (str "<" uri ">"))
                                           uris))
 
-        sparql (str "CONSTRUCT { ?s ?p ?o . }
+        sparql (str "CONSTRUCT { ?s ?p ?o . ?o ?p2 ?o2 . }
                      WHERE { ?s ?p ?o .
+                             OPTIONAL { ?o ?p2 ?o2 . }
                              FILTER (?s IN ( " uris-string " )) }")
 
         _ (event-logger/log-event! :info (str "Running sparql: " (pr-str sparql)))
