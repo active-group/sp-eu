@@ -232,7 +232,19 @@
     [links existentials (make-literal-decimal (rdf/literal-decimal-value x))]
 
     (rdf/literal-boolean? x)
-    [links existentials (make-literal-boolean (rdf/literal-boolean-value x))]
+    (let [raw-bool (rdf/literal-boolean-value x)
+          parsed-bool (cond
+                        (string? raw-bool)
+                        (case raw-bool
+                          "1" true
+                          "0" false)
+
+                        (boolean? raw-bool)
+                        raw-bool
+
+                        :else
+                        false)]
+      [links existentials (make-literal-boolean parsed-bool)])
 
     (rdf/literal-date? x)
     [links existentials (make-literal-date (rdf/literal-date-value x))]
