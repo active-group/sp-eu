@@ -67,7 +67,7 @@
                                           :height "100%"}})))
 
     (dom/div
-     {:style {:flex 1
+     {:style {:flex "1"
               :overflow "auto"}}
 
      (c/with-state-as st
