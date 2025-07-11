@@ -29,6 +29,9 @@
   :backend
   {:extra-deps {ring/ring-jetty-adapter {:mvn/version "1.13.0"}
                 ring/ring-core {:mvn/version "1.13.0"}
+                de.active-group/active-logger  {:mvn/version "0.14.0"}
+                com.taoensso/timbre {:mvn/version "6.7.1"}
+                com.fzakaria/slf4j-timbre {:mvn/version "0.4.1"}
                 org.apache.jena/jena-arq {:mvn/version "5.3.0"}
                 org.apache.jena/jena-core {:mvn/version "5.3.0"}
                 org.apache.jena/jena-rdfpatch {:mvn/version "5.3.0"}
