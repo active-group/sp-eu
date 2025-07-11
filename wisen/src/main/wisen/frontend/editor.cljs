@@ -192,7 +192,8 @@
                               edit-tree/edit-tree-focused?])
                (ds/input+focus {:disabled (when-not editing? "disabled")}))
 
-      (= predicate "http://schema.org/byDay")
+      (and (= predicate "http://schema.org/byDay")
+           (edit-tree/edit-node? etree))
       (day-of-week-component schema editable? editing?)
 
       #_#_(and
