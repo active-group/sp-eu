@@ -32,11 +32,11 @@ testers.runNixOSTest (
             sp-eu = {
               enable = true;
               configFile = "${./config.edn}";
-              proxy = {
-                enable = true;
+              tls = {
                 inherit (certs) domain;
-                tlsCert = certs.cert;
-                tlsCertKey = certs.key;
+                certs = {
+                  inherit (certs) cert key;
+                };
               };
             };
             keycloak = {
@@ -44,11 +44,11 @@ testers.runNixOSTest (
               # TODO(Johannes): patch this instead somehow? needs option adaptation
               realmFiles = [ ./SP-EU-realm-tls.json ];
               dbPasswordFile = "${pkgs.writeText "pw" "washieristdashier"}";
-              proxy = {
-                enable = true;
+              tls = {
                 inherit (certs) domain;
-                tlsCert = certs.cert;
-                tlsCertKey = certs.key;
+                certs = {
+                  inherit (certs) cert key;
+                };
               };
             };
           };
@@ -100,15 +100,17 @@ testers.runNixOSTest (
 
           services = {
             openssh.enable = true;
+            displayManager = {
+              autoLogin = {
+                user = "alice";
+                enable = true;
+              };
+              defaultSession = lib.mkDefault "none+icewm";
+            };
             xserver = {
               enable = true;
               displayManager = {
                 lightdm.enable = true;
-                autoLogin = {
-                  user = "alice";
-                  enable = true;
-                };
-                defaultSession = lib.mkDefault "none+icewm";
               };
               windowManager.icewm.enable = true;
             };

@@ -3,7 +3,7 @@
 let
   inherit (lib) types;
   cfg = config.active-group.keycloak;
-  tlsOption = import ../tls-option.nix lib;
+  tls = import ../tls-option.nix lib;
 in
 {
   options.active-group.keycloak = {
@@ -15,27 +15,13 @@ in
       type = types.nullOr types.str;
       default = null;
     };
-    proxy = tlsOption;
+    inherit tls;
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion =
-          cfg.proxy.enable && cfg.proxy.acme -> (cfg.proxy.tlsCert == null && cfg.proxy.tlsCertKey == null);
-        message = "Either use ACME *or* set TLS options, not both";
-      }
-      {
-        assertion =
-          cfg.proxy.enable && !cfg.proxy.acme
-          -> (cfg.proxy.enable && cfg.proxy.tlsCert != null && cfg.proxy.tlsCertKey != null);
-        message = "When not using ACME, you need to specify both TLS options";
-      }
-    ];
-
     age.secrets.keycloak_db.file = ../../secrets/keycloak_db.age;
 
-    active-group.acme.enable = cfg.proxy.acme;
+    active-group.acme.enable = cfg.tls.certs == "acme";
 
     services.keycloak = {
       enable = true;
@@ -47,8 +33,8 @@ in
           http-port = 8080;
           http-enabled = true;
         }
-        // (lib.optionalAttrs cfg.proxy.enable {
-          hostname = "https://${cfg.proxy.domain}/cloak";
+        // (lib.optionalAttrs (cfg.tls != null) {
+          hostname = "https://${cfg.tls.domain}/cloak";
           proxy-headers = "xforwarded";
         });
       database = {
@@ -60,30 +46,37 @@ in
       };
     };
 
-    services.nginx = lib.mkIf cfg.proxy.enable {
+    services.nginx = lib.mkIf (cfg.tls != null) {
       enable = true;
-      virtualHosts.${cfg.proxy.domain} = {
-        locations = {
-          "/cloak".return = "301 /cloak/";
-          "/cloak/" = {
-            proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
-            extraConfig = ''
-              rewrite /cloak(.*)  $1                 break;
-              proxy_set_header    Host               $host;
-              proxy_set_header    X-Real-IP          $remote_addr;
-              proxy_set_header    X-Forwarded-For    $proxy_add_x_forwarded_for;
-              proxy_set_header    X-Forwarded-Host   $host;
-              proxy_set_header    X-Forwarded-Server $host;
-              proxy_set_header    X-Forwarded-Port   $server_port;
-              proxy_set_header    X-Forwarded-Proto  $scheme;
-            '';
+      virtualHosts.${cfg.tls.domain} =
+        {
+          locations = {
+            "/cloak".return = "301 /cloak/";
+            "/cloak/" = {
+              proxyPass = "http://localhost:${toString config.services.keycloak.settings.http-port}";
+              extraConfig = ''
+                rewrite /cloak(.*)  $1                 break;
+                proxy_set_header    Host               $host;
+                proxy_set_header    X-Real-IP          $remote_addr;
+                proxy_set_header    X-Forwarded-For    $proxy_add_x_forwarded_for;
+                proxy_set_header    X-Forwarded-Host   $host;
+                proxy_set_header    X-Forwarded-Server $host;
+                proxy_set_header    X-Forwarded-Port   $server_port;
+                proxy_set_header    X-Forwarded-Proto  $scheme;
+              '';
+            };
           };
-        };
-        forceSSL = true;
-        enableACME = cfg.proxy.acme;
-        sslCertificate = cfg.proxy.tlsCert;
-        sslCertificateKey = cfg.proxy.tlsCertKey;
-      };
+          forceSSL = true;
+        }
+        // (
+          if cfg.tls.certs == "acme" then
+            { enableACME = cfg.tls.certs == "acme"; }
+          else
+            {
+              sslCertificate = cfg.tls.certs.cert;
+              sslCertificateKey = cfg.tls.certs.key;
+            }
+        );
     };
   };
 }
