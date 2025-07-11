@@ -21,6 +21,14 @@ Note that on macOS only this requires a properly configured and booted
 the manual]] on how to configure your macOS system to automatically dispatch
 =aarch64-linux= builds to the =linux-builder=.
 
+** Java dependencies
+
+After you updated dependencies in `deps.edn` you have to update the corresponding lockfile as well:
+
+#+begin_src shell
+nix run .#update-clj-lockfile
+#+end_src
+
 * Deployment
 
 The live system is hosted at [[https://sp-eu.ci.active-group.de]]. Deployment
