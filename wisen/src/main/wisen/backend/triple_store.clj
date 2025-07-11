@@ -12,7 +12,6 @@
    (org.apache.jena.query ARQ ReadWrite QueryExecutionFactory)
    (org.apache.jena.datatypes.xsd XSDDatatype)
    (org.apache.jena.vocabulary SchemaDO)
-   (org.apache.jena.query.text EntityDefinition TextDatasetFactory TextIndexConfig)
    (org.apache.jena.sparql.util QueryExecUtils)
    (org.apache.lucene.store Directory FSDirectory)))
 
@@ -261,25 +260,6 @@
 
 (def dbname "devdb")
 
-(defn- entity-definition []
-  (let [entDef (EntityDefinition. "uri" "text")]
-    ;; with https
-    (.set entDef "text" (.asNode SchemaDO/name))
-    (.set entDef "text" (.asNode SchemaDO/description))
-    ;; with http
-    (.set entDef "text" (.asNode (ResourceFactory/createProperty "http://schema.org/name")))
-    (.set entDef "text" (.asNode (ResourceFactory/createProperty "http://schema.org/description")))
-    #_(.setPrimaryPredicate entDef (.asNode SchemaDO/name))
-    entDef))
-
-(defn- lucene-directory []
-  (FSDirectory/open (.toPath (File. "lucene-index"))))
-
-(defn- dataset-add-lucene [ds]
-  (let [entDef (entity-definition)
-        dir (lucene-directory)]
-    (TextDatasetFactory/createLucene ds dir (TextIndexConfig. entDef))))
-
 (defn setup! []
   ;; Use POST for federated (SERVICE) queries
   (.set (ARQ/getContext) ARQ/httpServiceSendMode "POST")
@@ -287,11 +267,4 @@
          (fn [ds]
            (if ds
              ds
-             (let [new-ds (TDB2Factory/connectDataset dbname)]
-               ;; setup lucene text indexing
-               (dataset-add-lucene new-ds))))))
-
-(comment
-  ;; Run text queries like this:
-  (run-select-query!
-   "SELECT ?s WHERE { ?s <http://jena.apache.org/text#query> 'Cafeteria~' . }"))
+             (TDB2Factory/connectDataset dbname)))))
