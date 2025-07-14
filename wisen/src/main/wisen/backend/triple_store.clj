@@ -90,9 +90,7 @@
    (let [skolemized-model (skolem/skolemize-model model-to-add "foobar")]
      (mapv (fn [statement]
              (.add base-model statement))
-           (iterator-seq (.listStatements skolemized-model)))
-     ;; Merging two entire models doesn't trigger text indexing
-     #_(.add base-model (skolem/skolemize-model model-to-add "foobar")))))
+           (iterator-seq (.listStatements skolemized-model))))))
 
 (defn- unwrap! [model obj]
   (cond
