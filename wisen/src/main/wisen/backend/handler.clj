@@ -17,7 +17,7 @@
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.embedding :as embedding]
-            [wisen.backend.lucene :as lucene]
+            [wisen.backend.index :as index]
             [wisen.backend.skolem2 :as skolem2]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
@@ -94,8 +94,8 @@
 
         _ (event-logger/log-event! :info (str "Embedding: " (pr-str (take 10 emb))))
 
-        uris (lucene/search! (lucene/make-vector emb)
-                             (lucene/make-bounding-box min-lat max-lat min-lon max-lon))
+        uris (index/search! (index/make-vector emb)
+                            (index/make-bounding-box min-lat max-lat min-lon max-lon))
 
         _ (event-logger/log-event! :info (str "URIs found in index: " (pr-str uris)))
 
@@ -133,43 +133,13 @@
 
 #_(place->lon-lat! "Hechinger Str. 12/1" "72072" "Tübingen" "Germany")
 
-(defn get-id-geo-vecs! []
-  (let [res
-        (triple-store/run-select-query!
-         "SELECT ?id ?lon ?lat ?name ?description
-      WHERE {
-       ?id <http://schema.org/name> ?name .
-       ?id <http://schema.org/description> ?description .
-       ?id <http://schema.org/location> ?loc .
-       ?loc <http://schema.org/geo> ?geo .
-       ?geo <http://schema.org/longitude> ?lon .
-       ?geo <http://schema.org/latitude> ?lat .
-      }")]
-    (map (fn [row]
-           (lucene/id-geo-vec
-            lucene/id-geo-vec-id (.getURI (get row "id"))
-            lucene/id-geo-vec-geo (lucene/make-point (.getDouble (get row "lon"))
-                                                     (.getDouble (get row "lat")))
-            lucene/id-geo-vec-vec (lucene/make-vector
-                                   (embedding/get-embedding
-                                    (str (get row "name")
-                                         "\n\n"
-                                         (get row "description"))))))
-         res)))
-
-(defn update-search-index! []
-  (lucene/clear!)
-  (doall
-   (map lucene/insert!
-        (get-id-geo-vecs!))))
-
 (defn add-changes [request]
   (let [changeset (change-api/edn->changeset
                    (get-in request
                            [:body-params :changes]))
         skolemized-geocoded-changeset (prepare-changeset changeset place->lon-lat!)]
     (triple-store/edit-model! skolemized-geocoded-changeset)
-    (update-search-index!)
+    (index/update-search-index!)
     {:status 200}))
 
 (defn osm-lookup [request]
