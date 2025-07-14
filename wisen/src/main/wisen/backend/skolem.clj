@@ -3,8 +3,7 @@
    (org.apache.jena.rdf.model ResourceFactory ModelFactory)))
 
 (defn- uri-for-bnode [prefix bnode]
-  (str "http://bnode.org/" prefix "/"
-       (.getLabelString (.getId bnode))))
+  (str prefix (.getLabelString (.getId bnode))))
 
 (defn- skolemize-node [prefix node]
   (if (.isAnon node)
