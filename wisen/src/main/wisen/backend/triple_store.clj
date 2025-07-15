@@ -164,26 +164,23 @@
      (fn [base-model]
        (decorate-geo! base-model))))
   ([^Model base-model]
-   ;; 1. search for all schema.org/Place resources with
-   ;; schema.org/address but without schema.org/geo
+   ;; 1. search for all addresses without longitude/latitude
    (let [results (run-select-query!
                   base-model
-                  "SELECT ?place ?country ?locality ?postcode ?street
+                  "SELECT ?address ?country ?locality ?postcode ?street
                    WHERE {
-                     ?place a <http://schema.org/Place> .
-                     ?place <http://schema.org/address> ?address .
                      ?address <http://schema.org/postalCode> ?postcode .
                      ?address <http://schema.org/streetAddress> ?street .
                      ?address <http://schema.org/addressLocality> ?locality .
                      ?address <http://schema.org/addressCountry> ?country .
 
-                     FILTER NOT EXISTS { ?place <http://schema.org/geo> ?geo . }
+                     FILTER NOT EXISTS { ?address <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?long . }
 }")]
 
      ;; 2. for all results:
      ;;    fetch geo coordinates from OSM/Nominatim
      (doseq [result results]
-       (let [place (get result "place")
+       (let [address (get result "address")
              postcode (get result "postcode")
              street (get result "street")
              locality (get result "locality")
@@ -198,34 +195,18 @@
          (if (osm/search-success? osm-result)
            ;; 3. write back geo triples
            (let [lat (osm/search-success-latitude osm-result)
-                 long (osm/search-success-longitude osm-result)
-                 geo-uri (prefix/resource (random-uuid))
-                 geo (.createResource base-model geo-uri)
-                 geo-coordinates-type (.createResource base-model "http://schema.org/GeoCoordinates")]
-
-             ;; place has geo
-             (.add base-model
-                   #_(.createResource base-model place-uri)
-                   place
-                   (.createProperty base-model "http://schema.org/geo")
-                   geo)
-
-             ;; geo has type GeoCoordinates
-             (.add base-model
-                   geo
-                   (.createProperty base-model "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-                   geo-coordinates-type)
+                 long (osm/search-success-longitude osm-result)]
 
              ;; geo has longitude
              (.add base-model
-                   geo
-                   (.createProperty base-model "http://schema.org/longitude")
+                   address
+                   (.createProperty base-model "http://www.w3.org/2003/01/geo/wgs84_pos#long")
                    (.createTypedLiteral base-model long XSDDatatype/XSDdecimal))
 
              ;; geo has latitude
              (.add base-model
-                   geo
-                   (.createProperty base-model "http://schema.org/latitude")
+                   address
+                   (.createProperty base-model "http://www.w3.org/2003/01/geo/wgs84_pos#lat")
                    (.createTypedLiteral base-model lat XSDDatatype/XSDdecimal)))
 
            ;; TODO: what to do on error decorating? should the entire transaction fail?
