@@ -7,15 +7,16 @@
 (defn get-id-geo-vecs! []
   (let [res
         (triple-store/run-select-query!
-         "SELECT ?id ?lon ?lat ?name ?description
-      WHERE {
-       ?id <http://schema.org/name> ?name .
-       ?id <http://schema.org/description> ?description .
-       ?id <http://schema.org/location> ?loc .
-       ?loc <http://schema.org/geo> ?geo .
-       ?geo <http://schema.org/longitude> ?lon .
-       ?geo <http://schema.org/latitude> ?lat .
-      }")]
+         "PREFIX schema: <http://schema.org/>
+          PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+          SELECT ?id ?lon ?lat ?name ?description
+          WHERE {
+            ?id schema:name ?name .
+            ?id schema:description ?description .
+            ?id (schema:location? / schema:address? / schema:geo?) ?geo .
+            ?geo (schema:longitude | wgs84:long)  ?lon .
+            ?geo (schema:latitue | wgs84:lat) ?lat .
+          }")]
     (map (fn [row]
            (lucene/id-geo-vec
             lucene/id-geo-vec-id (.getURI (get row "id"))
