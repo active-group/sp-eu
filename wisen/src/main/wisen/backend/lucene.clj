@@ -116,7 +116,7 @@
             geo-query (.makeQuery strategy args)
             knn-query (KnnVectorQuery. "embedding" vec desired-number-of-search-results)
             query-builder (BooleanQuery$Builder.)
-            _ (.add query-builder knn-query BooleanClause$Occur/MUST)
+            _ (.add query-builder knn-query BooleanClause$Occur/SHOULD)
             _ (.add query-builder geo-query BooleanClause$Occur/MUST)
             query (.build query-builder)
             topDocs (.search searcher query desired-number-of-search-results)]
