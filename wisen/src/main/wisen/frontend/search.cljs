@@ -412,8 +412,10 @@
             (parse-double (tree/literal-string-value obj))
             ))]
   (defn- node-geo-position [node]
-    (let [lat ((tree/node-object-for-predicate "http://schema.org/latitude") node)
-          long ((tree/node-object-for-predicate "http://schema.org/longitude") node)]
+    (let [lat (or ((tree/node-object-for-predicate "http://schema.org/latitude") node)
+                  ((tree/node-object-for-predicate "http://www.w3.org/2003/01/geo/wgs84_pos#lat") node))
+          long (or ((tree/node-object-for-predicate "http://schema.org/longitude") node)
+                   ((tree/node-object-for-predicate "http://www.w3.org/2003/01/geo/wgs84_pos#long") node))]
       (when-let [lt (unwrap lat)]
         (when-let [lng (unwrap long)]
           (let [node-uri (tree/node-uri node)]
