@@ -2,14 +2,16 @@
   (:require [clojure.tools.cli :as cli]
             [wisen.backend.server :as server]
             [wisen.backend.triple-store :as triple-store]
-            [wisen.backend.skolemizer :as skolemizer])
+            [wisen.backend.skolemizer :as skolemizer]
+            [wisen.backend.importer :as importer])
   (:gen-class))
 
 (def opts
   [["-h" "--help" "Show this help about the command line arguments"]
    ["-c" "--config CONFIG" "Path to the configuration file (default: ./etc/config.edn)"
     :default "./etc/config.edn"]
-   ["-s" "--skolemize FILE" "Skolemize a given JSON-LD file"]])
+   ["-s" "--skolemize FILE" "Skolemize a given JSON-LD file"]
+   ["-i" "--import FILE" "Import a given JSON-LD file. Contents must be skolemized."]])
 
 (defn print-usage [opts-map]
   (println "Usage: wisen [options]")
@@ -32,6 +34,10 @@
     (string? (:skolemize (:options opts)))
     (let [path (:skolemize (:options opts))]
       (skolemizer/skolemize-file path))
+
+    (string? (:import (:options opts)))
+    (let [path (:import (:options opts))]
+      (importer/import-file path))
 
     :else
     (let [options (:options opts)
