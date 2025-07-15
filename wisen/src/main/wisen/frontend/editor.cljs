@@ -408,7 +408,7 @@
   (c/with-state-as node
     (c/local-state
      (let [uri (edit-tree/tree-uri node)]
-       [uri (wisen.frontend.forms/make-selected 0 (count uri))])
+       [uri (wisen.frontend.forms/make-selected 0 (count (str uri)))])
      (dom/div
       (modal/padded
        (dom/h3 "Set as reference to another node")
