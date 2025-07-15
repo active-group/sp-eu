@@ -229,7 +229,7 @@
                                   :placeholder "https://example.com"
                                   :disabled (when-not editing? "disabled")})))
 
-      (and
+      #_#_(and
        (= predicate "http://schema.org/address")
        (edit-tree/edit-node? etree)
        (= (tree/type-uri (edit-node-type etree)) "http://schema.org/PostalAddress")
@@ -922,7 +922,7 @@
          (value-node/as-value-node
           (geo-coordinates-component schema editable? force-editing?)))
 
-        (and (= type-uri "http://schema.org/PostalAddress")
+        #_#_(and (= type-uri "http://schema.org/PostalAddress")
              (edit-node-is-postal-address-value? enode))
         (dom/div
          {:id (edit-tree/edit-node-uri enode)}
