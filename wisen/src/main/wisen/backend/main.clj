@@ -3,13 +3,15 @@
             [wisen.backend.server :as server]
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.skolemizer :as skolemizer]
-            [wisen.backend.importer :as importer])
+            [wisen.backend.importer :as importer]
+            [nrepl.server :as nrepl])
   (:gen-class))
 
 (def opts
   [["-h" "--help" "Show this help about the command line arguments"]
    ["-c" "--config CONFIG" "Path to the configuration file (default: ./etc/config.edn)"
     :default "./etc/config.edn"]
+   ["-r" "--nrepl PORT" "Start an nrepl server on port PORT"]
    ["-s" "--skolemize FILE" "Skolemize a given JSON-LD file"]
    ["-i" "--import FILE" "Import a given JSON-LD file. Contents must be skolemized."]])
 
@@ -17,6 +19,8 @@
   (println "Usage: wisen [options]")
   (println "Options:")
   (println (:summary opts-map)))
+
+(defonce nrepl-server (atom nil))
 
 (defn main [opts]
   (cond
@@ -42,8 +46,13 @@
     :else
     (let [options (:options opts)
           config-path (:config options)]
+
       (triple-store/setup!)
-      (server/start! config-path))))
+      (server/start! config-path)
+
+      (when-let [port (:nrepl (:options opts))]
+        (reset! nrepl-server
+                (nrepl/start-server :port (Integer/parseInt port)))))))
 
 (defn -main
   [& args]
