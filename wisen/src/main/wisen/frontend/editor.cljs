@@ -252,12 +252,14 @@
        (when editing?
          (c/focus (edit-tree/make-edit-tree-kind-lens
                    (partial default/default-tree-for-predicate-and-kind predicate))
-                  (apply
-                   ds/select
-                   {:disabled (when-not editing? "disabled")}
-                   (map (fn [kind]
-                          (forms/option {:value kind} (label-for-kind kind)))
-                        (schema/kinds-for-predicate schema predicate)))))
+                  (c/with-state-as kind
+                    (apply
+                     ds/select
+                     {:disabled (when-not editing? "disabled")}
+                     (map (fn [kind]
+                            (forms/option {:value kind} (label-for-kind kind)))
+                          (conj (schema/kinds-for-predicate schema predicate)
+                                kind))))))
        (edit-tree-component
         schema
         (schema/types-for-predicate schema predicate)
