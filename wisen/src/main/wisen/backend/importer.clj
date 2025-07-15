@@ -1,6 +1,7 @@
 (ns wisen.backend.importer
   (:require [wisen.backend.triple-store :as triple-store]
-            [wisen.backend.jsonld :as jsonld]))
+            [wisen.backend.jsonld :as jsonld]
+            [wisen.backend.index :as index]))
 
 (defn import-file [path]
   (let [s (slurp path)
