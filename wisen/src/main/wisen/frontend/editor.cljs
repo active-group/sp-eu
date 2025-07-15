@@ -258,8 +258,9 @@
                      {:disabled (when-not editing? "disabled")}
                      (map (fn [kind]
                             (forms/option {:value kind} (label-for-kind kind)))
-                          (conj (schema/kinds-for-predicate schema predicate)
-                                kind))))))
+                          (distinct
+                           (conj (schema/kinds-for-predicate schema predicate)
+                                 kind)))))))
        (edit-tree-component
         schema
         (schema/types-for-predicate schema predicate)
