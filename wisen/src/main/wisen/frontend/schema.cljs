@@ -66,6 +66,12 @@
       "http://schema.org/closes"
       "Closes"
 
+      "http://www.w3.org/2003/01/geo/wgs84_pos#long"
+      "Longitude"
+
+      "http://www.w3.org/2003/01/geo/wgs84_pos#lat"
+      "Latitude"
+
       nil))
 
 (defn label-for-predicate [schema predicate]
