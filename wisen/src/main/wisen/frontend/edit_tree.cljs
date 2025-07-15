@@ -765,7 +765,11 @@
        tree/ref
 
        (edit-node? etree)
-       tree/node))
+       tree/node
+
+       (exists? etree)
+       tree/node
+       ))
     ([etree kind]
      (if (= kind ((make-edit-tree-kind-lens default-tree-for-kind) etree))
        etree
