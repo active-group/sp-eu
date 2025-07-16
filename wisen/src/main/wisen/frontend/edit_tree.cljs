@@ -892,3 +892,140 @@
 (defn changed? [x]
   (and (is-a? maybe-changed x)
        (not (same? x))))
+
+(defn- etree-matches-uri? [etree uri]
+  (and (or (node? etree)
+           (ref? etree))
+       (= (tree-uri etree)
+          uri)))
+
+(defn- set-reference* [etree subject-uri predicate from-object-uri to-object]
+  (println "set-reference*" (pr-str subject-uri predicate from-object-uri to-object))
+  (cond
+    (many? etree)
+    (lens/overhaul etree
+                   many-edit-trees
+                   (fn [etrees]
+                     (map (fn [etree]
+                            (set-reference* etree subject-uri predicate from-object-uri to-object))
+                          etrees)))
+
+    (edit-node? etree)
+    (let [subject-matches? (= (edit-node-uri etree)
+                              subject-uri)]
+      (lens/overhaul etree edit-node-properties
+                     (fn [eprops]
+                       (into {}
+                             (map (fn [[predicate* markeds]]
+                                    (let [predicate-matches? (= predicate* predicate)]
+                                      [predicate*
+                                       (map (fn [marked]
+                                              (cond
+                                                (added? marked)
+                                                (lens/overhaul
+                                                 marked
+                                                 added-result-value
+                                                 (fn [e]
+                                                   (println "checking" (pr-str e))
+                                                   (let [object-matches? (etree-matches-uri? e from-object-uri)]
+                                                     (if (and
+                                                          subject-matches?
+                                                          predicate-matches?
+                                                          object-matches?)
+                                                       to-object
+                                                       (set-reference* e subject-uri predicate from-object-uri to-object)))))
+
+                                                (deleted? marked)
+                                                marked
+
+                                                (maybe-changed? marked)
+                                                (lens/overhaul
+                                                 marked
+                                                 maybe-changed-result-value
+                                                 (fn [e]
+                                                   (println "checking" (pr-str e))
+                                                   (let [object-matches? (etree-matches-uri? e from-object-uri)]
+                                                     (if (and
+                                                          subject-matches?
+                                                          predicate-matches?
+                                                          object-matches?)
+                                                       to-object
+                                                       (set-reference* e subject-uri predicate from-object-uri to-object)))))))
+                                            markeds)]))
+                                  eprops)))))
+
+    (exists? etree)
+    (exists
+     exists-k
+     (fn [ex]
+       (set-reference* ((exists-k etree) ex)
+                       subject-uri
+                       predicate
+                       from-object-uri
+                       to-object)))
+
+    :else
+    etree))
+
+(defn some-edit-tree-uri [pred etree]
+  (cond
+    (many? etree)
+    (reduce (fn [acc et]
+              (if-let [res (some-edit-tree-uri pred et)]
+                (reduced res)
+                acc))
+            false
+            (many-edit-trees etree))
+
+    (edit-node? etree)
+    (or (pred (edit-node-uri etree))
+        (reduce
+         (fn [acc markeds]
+           (reduce (fn [acc marked]
+                     (println "checking" (pr-str marked))
+                     (cond
+                       (added? marked)
+                       (or acc
+                           (some-edit-tree-uri pred (added-result-value marked)))
+
+                       (deleted? marked)
+                       acc
+
+                       (maybe-changed? marked)
+                       (or acc
+                           (some-edit-tree-uri pred (maybe-changed-result-value marked)))))
+                   acc
+                   markeds))
+         false
+         (vals (edit-node-properties etree))))
+
+    (exists? etree)
+    (let [ex 0]
+      ;; TODO: setting existentials to always 0 is probably problematic
+      (some-edit-tree-uri pred ((exists-k etree) ex)))
+
+    (ref? etree)
+    (pred (ref-uri etree))
+
+    :else
+    false))
+
+(defn set-reference [etree subject-uri predicate from-object-uri to-object-uri]
+  (assert (tree/uri? to-object-uri)
+          "set-reference can only be called with global URI, not with existential")
+  (println "set-reference" (pr-str to-object-uri))
+  (if (= from-object-uri to-object-uri)
+    etree
+    ;; else check if `to-object-uri` already exists in etree
+    ;; if so: put a ref
+    ;; if not: put a node
+    (let [to-object (if (some-edit-tree-uri #{to-object-uri} etree)
+                      (do
+                        (println "set-reference making a ref")
+                        (make-ref to-object-uri))
+                      (do
+                        (println "set-reference making a node")
+                        (edit-node
+                         edit-node-uri to-object-uri
+                         edit-node-properties {})))]
+      (set-reference* etree subject-uri predicate from-object-uri to-object))))
