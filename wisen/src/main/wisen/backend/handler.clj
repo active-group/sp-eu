@@ -90,11 +90,7 @@
         min-lon (query/geo-bounding-box-min-lon bb)
         max-lon (query/geo-bounding-box-max-lon bb)
 
-        emb (embedding/get-embedding (query/query-fuzzy-search-term q))
-
-        _ (event-logger/log-event! :info (str "Embedding: " (pr-str (take 10 emb))))
-
-        uris (index/search! (index/make-vector emb)
+        uris (index/search! (query/query-fuzzy-search-term q)
                             (index/make-bounding-box min-lat max-lat min-lon max-lon))
 
         _ (event-logger/log-event! :info (str "URIs found in index: " (pr-str uris)))
