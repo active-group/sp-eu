@@ -32,6 +32,13 @@
   [discard-edit-action-predicate
    discard-edit-action-index])
 
+(def-record set-reference-action
+  [set-reference-action-old-uri :- realm/string
+   set-reference-action-new-uri :- realm/string
+   set-reference-action-predicate :- (realm/optional realm/string)
+   set-reference-action-subject-uri :- (realm/optional realm/string)
+   ])
+
 (defn- style-for-marked [marked]
   (cond
     (edit-tree/deleted? marked)
@@ -149,7 +156,7 @@
 (def edit-node-type
   (edit-tree/make-edit-node-type-lens default/default-node-for-type))
 
-(declare edit-tree-component)
+(declare edit-tree-component*)
 
 (let [d 0.001]
   (defn- view-box-around [[lat long]]
@@ -261,7 +268,7 @@
                           (distinct
                            (conj (schema/kinds-for-predicate schema predicate)
                                  kind)))))))
-       (edit-tree-component
+       (edit-tree-component*
         schema
         (schema/types-for-predicate schema predicate)
         editable?
@@ -419,8 +426,11 @@
        (ds/button-secondary {:onClick #(c/return :action close-action)}
                             "Cancel")
        (ds/button-primary {:onClick
-                           (fn [[_ [uri _]]]
-                             (c/return :state [(edit-tree/make-ref uri) uri]))}
+                           (fn [[node [new-uri _]]]
+                             (let [old-uri (edit-tree/tree-uri node)]
+                               (c/return :action (set-reference-action
+                                                  set-reference-action-old-uri old-uri
+                                                  set-reference-action-new-uri new-uri))))}
                           "Set reference"))))))
 
 (defn- refresh-node-request [uri]
@@ -590,9 +600,15 @@
 
      (let [ks (sort schemaorg/compare-predicate (keys properties))]
        (map-indexed (fn [idx predicate]
-                      (c/focus (lens/member predicate)
-                               (let [last? (= idx (dec (count ks)))]
-                                 (property-object-component schema predicate editable? force-editing? last? background-color exgen))))
+                      (-> (c/focus (lens/member predicate)
+                                   (let [last? (= idx (dec (count ks)))]
+                                     (property-object-component schema predicate editable? force-editing? last? background-color exgen)))
+                          (c/handle-action
+                           (fn [_ action]
+                             (if (and (is-a? set-reference-action action)
+                                      (nil? (set-reference-action-predicate action)))
+                               (c/return :action (set-reference-action-predicate action predicate))
+                               (c/return :action action))))))
 
                     ks)))))
 
@@ -695,10 +711,17 @@
                            (properties-component schema editable? editing? background-color exgen)))))
              (c/handle-action
               (fn [node action]
-                (if (is-a? discard-edit-action action)
+                (cond
+                  (is-a? discard-edit-action action)
                   (edit-tree/discard-edit node
                                           (discard-edit-action-predicate action)
                                           (discard-edit-action-index action))
+
+                  (and (is-a? set-reference-action action)
+                       (nil? (set-reference-action-subject-uri action)))
+                  (c/return :action (set-reference-action-subject-uri action (edit-tree/node-uri node)))
+
+                  :else
                   (c/return :action action)))))
 
          (when editing?
@@ -940,7 +963,7 @@
         :else
         (node-component schema editable? force-editing? background-color exgen)))))
 
-(c/defn-item edit-tree-component [schema types editable? force-editing? & [background-color existential-generator]]
+(c/defn-item edit-tree-component* [schema types editable? force-editing? & [background-color existential-generator]]
   (c/with-state-as etree
     (let [bgc (or background-color "#eee")
           exgen (or existential-generator existential/existential-generator)]
@@ -1009,7 +1032,7 @@
                           (let [[exgen1 exgen2] (existential/split-existential-generator exgen)]
                             [(conj items
                                    (c/focus (lens/at-index idx)
-                                            (edit-tree-component schema types editable? force-editing? bgc exgen1)))
+                                            (edit-tree-component* schema types editable? force-editing? bgc exgen1)))
                              exgen2]))
                         [[] exgen]
                         (map vector
@@ -1019,7 +1042,7 @@
         (edit-tree/exists? etree)
         (let [[ex exgen*] (existential/next-existential+generator exgen)]
           (c/focus (lens/>> edit-tree/exists-k (util/fn-at ex))
-                   (edit-tree-component schema types editable? force-editing? bgc exgen*)))
+                   (edit-tree-component* schema types editable? force-editing? bgc exgen*)))
 
         (edit-tree/node? etree)
         (dom/div
@@ -1033,6 +1056,21 @@
                           (or types
                               [(edit-node-type etree)])))))
          (node-component-for-type (edit-node-type etree) schema editable? force-editing? bgc exgen))))))
+
+(c/defn-item edit-tree-component [schema types editable? force-editing? & [background-color existential-generator]]
+  (-> (edit-tree-component* schema types editable? force-editing? background-color existential-generator)
+      (c/handle-action (fn [etree action]
+                         (if (is-a? set-reference-action action)
+                           (do
+                             (println "setting reference from action" (pr-str action))
+                             (println "etree: " (pr-str etree))
+                             (edit-tree/set-reference etree
+                                                      (set-reference-action-subject-uri action)
+                                                      (set-reference-action-predicate action)
+                                                      (set-reference-action-old-uri action)
+                                                      (set-reference-action-new-uri action)))
+                           ;; else
+                           (c/return :action action))))))
 
 (c/defn-item edit-graph [schema editable? force-editing? graph & [background-color]]
   (c/isolate-state (edit-tree/graph->edit-tree graph)
