@@ -237,7 +237,9 @@
                         (string? raw-bool)
                         (case raw-bool
                           "1" true
-                          "0" false)
+                          "true" true
+                          "0" false
+                          "false" false)
 
                         (boolean? raw-bool)
                         raw-bool
