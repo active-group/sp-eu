@@ -35,8 +35,10 @@
    (map lucene/insert!
         (get-id-geo-vecs!))))
 
-(defn search! [vec box]
-  (lucene/search! vec box))
+(defn search! [text box]
+  (lucene/search! (lucene/make-vector
+                   (embedding/get-embedding text))
+                  box))
 
 (defn make-vector [v]
   (lucene/make-vector v))
