@@ -210,3 +210,133 @@
                                  [(tree/make-property "pred" (tree/make-literal-string "b"))])
            (et/edit-node et/edit-node-uri "uri"
                          et/edit-node-properties {"pred" [metree tri-metree]})))))
+
+(deftest some-edit-tree-uri-test
+
+  (testing "simple"
+    (let [etree (et/many
+                 et/many-edit-trees
+                 [(et/edit-node
+                   et/edit-node-uri "sub"
+                   et/edit-node-properties {"pred" [(et/mark-added
+                                                     (et/make-literal-string "added string"))
+                                                    (et/make-maybe-changed
+                                                     (et/make-ref "deleted-ref")
+                                                     (et/make-ref "inserted-ref"))
+                                                    (et/mark-added
+                                                     (et/edit-node
+                                                      et/edit-node-uri "obj"
+                                                      et/edit-node-properties {}))
+                                                    (et/mark-added
+                                                     (et/exists
+                                                      et/exists-k
+                                                      (fn [ex]
+                                                        (et/edit-node
+                                                         et/edit-node-uri ex
+                                                         et/edit-node-properties
+                                                         {"prid"
+                                                          [(et/mark-added
+                                                            (et/edit-node
+                                                             et/edit-node-uri "foo"
+                                                             et/edit-node-properties {}))]}))))]})])]
+      (is (= "sub"
+             (et/some-edit-tree-uri #{"sub"} etree)))
+      (is (= "obj"
+             (et/some-edit-tree-uri #{"obj"} etree)))
+      (is (= false
+             (et/some-edit-tree-uri #{"bla"} etree)))
+      (is (= "inserted-ref"
+             (et/some-edit-tree-uri #{"inserted-ref"} etree)))
+      (is (= false
+             (et/some-edit-tree-uri #{"deleted-ref"} etree)))
+      (is (= "foo"
+             (et/some-edit-tree-uri #{"foo"} etree))))))
+
+(deftest set-reference-test
+
+  (testing "simple"
+    (let [etree (et/edit-node
+                 et/edit-node-uri "sub"
+                 et/edit-node-properties {"pred" [(et/mark-added
+                                                   (et/make-literal-string "added string"))
+                                                  (et/mark-added
+                                                   (et/edit-node
+                                                    et/edit-node-uri "obj"
+                                                    et/edit-node-properties {}))]})]
+      (is (= (et/edit-node
+              et/edit-node-uri "sub"
+              et/edit-node-properties {"pred" [(et/mark-added
+                                                (et/make-literal-string "added string"))
+                                               (et/mark-added
+                                                (et/edit-node
+                                                 et/edit-node-uri "obj-replaced"
+                                                 et/edit-node-properties {}))]})
+             (et/set-reference etree
+                               "sub"
+                               "pred"
+                               "obj"
+                               "obj-replaced")))))
+
+  (testing "many"
+    (let [etree (et/many
+                 et/many-edit-trees
+                 [(et/edit-node
+                   et/edit-node-uri "sub"
+                   et/edit-node-properties {"pred" [(et/mark-added
+                                                     (et/edit-node
+                                                      et/edit-node-uri "obj"
+                                                      et/edit-node-properties {}))]})])]
+      (is (= (et/many
+              et/many-edit-trees
+              [(et/edit-node
+                et/edit-node-uri "sub"
+                et/edit-node-properties {"pred" [(et/mark-added
+                                                  (et/edit-node
+                                                   et/edit-node-uri "obj-replaced"
+                                                   et/edit-node-properties {}))]})])
+             (et/set-reference etree
+                               "sub"
+                               "pred"
+                               "obj"
+                               "obj-replaced")))))
+
+  (testing "passing exists"
+    (let [etree (et/exists
+                 et/exists-k
+                 (fn [ex]
+                   (et/edit-node
+                    et/edit-node-uri ex
+                    et/edit-node-properties
+                    {"prid"
+                     [(et/mark-added
+                       (et/edit-node
+                        et/edit-node-uri "foo"
+                        et/edit-node-properties
+                        {"prod"
+                         [(et/mark-added
+                           (et/edit-node
+                            et/edit-node-uri "bar"
+                            et/edit-node-properties {}))]}))]})))
+
+          result (et/set-reference etree
+                                   "foo"
+                                   "prod"
+                                   "bar"
+                                   "bar-replaced")]
+
+      (is (et/exists? result))
+      (is (= (et/edit-node
+              et/edit-node-uri 123
+              et/edit-node-properties
+              {"prid"
+               [(et/mark-added
+                 (et/edit-node
+                  et/edit-node-uri "foo"
+                  et/edit-node-properties
+                  {"prod"
+                   [(et/mark-added
+                     (et/edit-node
+                      et/edit-node-uri "bar-replaced"
+                      et/edit-node-properties {}))]}))]})
+             ((et/exists-k result) 123)
+             )))))
