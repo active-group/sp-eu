@@ -904,7 +904,7 @@
   (c/focus (lens/pattern [edit-tree/tree-uri
                           edit-tree/edit-tree-focused?])
            (ds/select+focus
-            {:disabled (when-not editable? "disabled")
+            {:disabled (when-not force-editing? "disabled")
              :style {:padding "7px 8px"}}
             (forms/option {:value "http://schema.org/Monday"} "Monday")
             (forms/option {:value "http://schema.org/Tuesday"} "Tuesday")
