@@ -4,6 +4,7 @@
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.skolemizer :as skolemizer]
             [wisen.backend.importer :as importer]
+            [active.clojure.logger.event :as event-logger]
             [nrepl.server :as nrepl])
   (:gen-class))
 
@@ -37,10 +38,12 @@
 
     (string? (:skolemize (:options opts)))
     (let [path (:skolemize (:options opts))]
+      (event-logger/log-event! :info (str "Skolemizing file: " path))
       (skolemizer/skolemize-file path))
 
     (string? (:import (:options opts)))
     (let [path (:import (:options opts))]
+      (event-logger/log-event! :info (str "Importing file: " path))
       (importer/import-file path))
 
     :else
