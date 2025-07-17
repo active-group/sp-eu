@@ -72,6 +72,45 @@
       "http://www.w3.org/2003/01/geo/wgs84_pos#lat"
       "Latitude"
 
+      "http://schema.org/contactPoint"
+      "Contact point"
+
+      "http://schema.org/eventSchedule"
+      "Event schedule"
+
+      "http://schema.org/email"
+      "Email"
+
+      "http://schema.org/telephone"
+      "Telephone"
+
+      "http://schema.org/byDay"
+      "Day"
+
+      "http://schema.org/startTime"
+      "Start time"
+
+      "http://schema.org/endTime"
+      "End time"
+
+      "http://schema.org/repeatFrequency"
+      "Repeat frequency"
+
+      "http://schema.org/contactType"
+      "Contact type"
+
+      "http://schema.org/audience"
+      "Audience"
+
+      "http://schema.org/audienceType"
+      "Audience type"
+
+      "http://schema.org/accessibilityFeature"
+      "Accessibility feature"
+
+      "http://schema.org/geographicArea"
+      "Geographic area"
+
       nil))
 
 (defn label-for-predicate [schema predicate]
