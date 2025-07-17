@@ -177,7 +177,8 @@
         (schema/label-for-type schema (edit-tree/edit-tree-result-tree node)))
 
       (and (= predicate "http://schema.org/dayOfWeek")
-           (edit-tree/edit-node? etree))
+           (or (edit-tree/edit-node? etree)
+               (edit-tree/ref? etree)))
       (day-of-week-component schema editable? editing?)
 
       (= predicate "http://schema.org/name")
@@ -200,7 +201,8 @@
                (ds/input+focus {:disabled (when-not editing? "disabled")}))
 
       (and (= predicate "http://schema.org/byDay")
-           (edit-tree/edit-node? etree))
+           (or (edit-tree/edit-node? etree)
+               (edit-tree/ref? etree)))
       (day-of-week-component schema editable? editing?)
 
       (and (= predicate "http://schema.org/email")
