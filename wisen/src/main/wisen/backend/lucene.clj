@@ -28,7 +28,8 @@
                              BooleanQuery$Builder
                              BooleanClause$Occur)
    (org.apache.lucene.store Directory
-                            FSDirectory)))
+                            FSDirectory
+                            ByteBuffersDirectory)))
 
 (def-record id-geo-vec
   [id-geo-vec-id :- realm/string
@@ -47,15 +48,18 @@
 
 ;; ---
 
-(def directory
+(def file-system-directory
   (FSDirectory/open (.toPath (File. "lucene-test-6"))))
+
+(defn make-in-memory-directory []
+  (ByteBuffersDirectory.))
 
 (def analyzer
   (StandardAnalyzer.))
 
-(defn with-writer! [f]
+(defn with-writer! [f & [dir]]
   (let [cfg (IndexWriterConfig. analyzer)
-        w (IndexWriter. directory cfg)]
+        w (IndexWriter. (or dir file-system-directory) cfg)]
     (try
       (f w)
       (finally
@@ -74,7 +78,7 @@
          min-lat
          max-lat))
 
-(defn insert! [id-geo-vec]
+(defn insert! [id-geo-vec & [dir]]
   (let [id (id-geo-vec-id id-geo-vec)
         point (id-geo-vec-geo id-geo-vec)
         vec (id-geo-vec-vec id-geo-vec)]
@@ -92,15 +96,17 @@
 
           (.add doc (StoredField. (.getFieldName strategy) (pr-str point)))
 
-          (.addDocument writer doc))))))
+          (.addDocument writer doc)))
+      dir)))
 
-(defn clear! []
+(defn clear! [& [dir]]
   (with-writer!
     (fn [writer]
-      (.deleteAll writer))))
+      (.deleteAll writer))
+    dir))
 
-(defn with-searcher! [f]
-  (let [r (DirectoryReader/open directory)
+(defn with-searcher! [f & [dir]]
+  (let [r (DirectoryReader/open (or dir file-system-directory))
         s (IndexSearcher. r)]
     (try
       (f s)
@@ -109,14 +115,14 @@
 
 (def desired-number-of-search-results 2)
 
-(defn search! [vec box]
+(defn search! [vec box & [dir]]
   (with-searcher!
     (fn [searcher]
       (let [args (SpatialArgs. SpatialOperation/Intersects (box->shape box))
             geo-query (.makeQuery strategy args)
             knn-query (KnnVectorQuery. "embedding" vec desired-number-of-search-results)
             query-builder (BooleanQuery$Builder.)
-            _ (.add query-builder knn-query BooleanClause$Occur/SHOULD)
+            _ (.add query-builder knn-query BooleanClause$Occur/MUST)
             _ (.add query-builder geo-query BooleanClause$Occur/MUST)
             query (.build query-builder)
             topDocs (.search searcher query desired-number-of-search-results)]
@@ -124,6 +130,7 @@
         (doall (map (fn [scoreDoc]
                       (let [foundDoc (.doc searcher (.-doc scoreDoc))]
                         (.get foundDoc "id")))
-                    (seq (.scoreDocs topDocs))))))))
+                    (seq (.scoreDocs topDocs))))))
+    dir))
 
 #_(search! (float-array [2.0 3.2 4.2]) [[0 10] [0 10]])

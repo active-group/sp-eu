@@ -10,7 +10,18 @@
 (defn- prepare-for-query [text]
   (str text))
 
-(defn get-id-geo-vecs! []
+(defn insert! [id lon lat name description & [dir]]
+  (lucene/insert!
+   (lucene/id-geo-vec
+    lucene/id-geo-vec-id id
+    lucene/id-geo-vec-geo (lucene/make-point lon lat)
+    lucene/id-geo-vec-vec (lucene/make-vector
+                           (embedding/get-embedding
+                            (prepare-for-retrieval name description))))
+   dir))
+
+(defn update-search-index! [& [dir]]
+  (lucene/clear! dir)
   (let [res
         (triple-store/run-select-query!
          "PREFIX schema: <http://schema.org/>
@@ -23,28 +34,27 @@
             ?geo (schema:longitude | wgs84:long)  ?lon .
             ?geo (schema:latitue | wgs84:lat) ?lat .
           }")]
-    (map (fn [row]
-           (lucene/id-geo-vec
-            lucene/id-geo-vec-id (.getURI (get row "id"))
-            lucene/id-geo-vec-geo (lucene/make-point (.getDouble (get row "lon"))
-                                                     (.getDouble (get row "lat")))
-            lucene/id-geo-vec-vec (lucene/make-vector
-                                   (embedding/get-embedding
-                                    (prepare-for-retrieval (get row "name")
-                                                           (get row "description"))))))
-         res)))
+    (doall
+     (map (fn [row]
+            (insert! (.getURI (get row "id"))
+                     (.getDouble (get row "lon"))
+                     (.getDouble (get row "lat"))
+                     (get row "name")
+                     (get row "description")
+                     dir))
+          res))))
 
-(defn update-search-index! []
-  (lucene/clear!)
-  (doall
-   (map lucene/insert!
-        (get-id-geo-vecs!))))
-
-(defn search! [text box]
+(defn search! [text box & [dir]]
   (lucene/search! (lucene/make-vector
                    (embedding/get-embedding
                     (prepare-for-query text)))
-                  box))
+                  box
+                  dir))
+
+(def file-system-index lucene/file-system-directory)
+
+(defn make-in-memory-index []
+  (lucene/make-in-memory-directory))
 
 (defn make-vector [v]
   (lucene/make-vector v))
