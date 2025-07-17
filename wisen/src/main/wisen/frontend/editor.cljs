@@ -217,6 +217,16 @@
         (dom/a {:href s}
                (strip-mailto-prefix s)))
 
+      (and (= predicate "http://schema.org/url")
+           (not editing?)
+           (or (edit-tree/literal-string? etree)
+               (and (edit-tree/edit-node? etree)
+                    (tree/uri? (edit-tree/edit-node-uri etree)))))
+      (let [uri (cond
+                  (edit-tree/literal-string? etree) (edit-tree/literal-string-value etree)
+                  (edit-tree/edit-node? etree) (edit-tree/edit-node-uri etree))]
+        (dom/a {:href uri} uri))
+
       #_#_(and
            (= predicate "http://schema.org/openingHoursSpecification")
            (edit-tree/edit-node? etree)
