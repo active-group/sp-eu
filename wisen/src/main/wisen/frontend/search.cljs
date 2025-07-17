@@ -27,7 +27,9 @@
             ["jsonld" :as jsonld]
             [wisen.frontend.create :as create]
             [wisen.frontend.schema :as schema]
-            [wisen.common.query :as query]))
+            [wisen.common.query :as query]
+            [wisen.frontend.localstorage :as ls]
+            [cljs.reader :as reader]))
 
 (def-record focus-query-action
   [focus-query-action-query :- query/query])
@@ -378,28 +380,56 @@
                      (mod (hash uri) 26))]
     (char ascii-int)))
 
-(c/defn-item map-search [schema loading? pins]
+(def ^:private startup-query-local-storage-key
+  "startup-query")
+
+(defn- query->string [q]
+  (pr-str (query/serialize-query q)))
+
+(defn- string->query [s]
+  (query/deserialize-query
+   (reader/read-string s)))
+
+(c/defn-item ^:private with-startup-query [item]
   (c/isolate-state
-   query/initial-query
-   (dom/div
-    {:style {:position "relative"
-             :border-bottom "1px solid #bbb"}}
+   nil
+   (c/with-state-as query
+     (cond
+       (nil? query)
+       ;; try loading intial query from local state
+       (c/handle-action
+        (ls/get! startup-query-local-storage-key)
+        (fn [_ s]
+          (try
+            (string->query s)
+            (catch js/Object e
+              query/initial-query))))
+
+       (record/is-a? query/query query)
+       (c/fragment
+        item
+        (c/once
+         (fn [q]
+           (c/return :action (ls/set! startup-query-local-storage-key
+                                      (query->string q))))))))))
+
+(c/defn-item map-search [schema loading? pins]
+  (with-startup-query
     (dom/div
-     {:style {:position "absolute"
-              :bottom 0
-              :left 0
-              :z-index 999
-              :width "100%"}}
+     {:style {:position "relative"
+              :border-bottom "1px solid #bbb"}}
+     (dom/div
+      {:style {:position "absolute"
+               :bottom 0
+               :left 0
+               :z-index 999
+               :width "100%"}}
 
-     (quick-search loading?))
+      (quick-search loading?))
 
-    #_(c/dynamic
-     (comp dom/pre query/query->sparql)
-     #_(comp pr-str query/serialize-query))
-
-    (c/focus (lens/>> query/query-geo-bounding-box
-                      query/geo-bounding-box<->vectors)
-             (leaflet/main {:style {:height 560}} pins)))))
+     (c/focus (lens/>> query/query-geo-bounding-box
+                       query/geo-bounding-box<->vectors)
+              (leaflet/main {:style {:height 560}} pins)))))
 
 (declare tree-geo-positions)
 
