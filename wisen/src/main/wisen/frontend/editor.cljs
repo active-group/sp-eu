@@ -203,6 +203,18 @@
            (edit-tree/edit-node? etree))
       (day-of-week-component schema editable? editing?)
 
+      (and (= predicate "http://schema.org/email")
+           (edit-tree/literal-string? etree)
+           (not editing?))
+      (let [s (edit-tree/literal-string-value etree)
+            strip-mailto-prefix (fn [s]
+                                  (if (re-find #"^mailto:" s)
+                                    (subs s
+                                          (count "mailto:"))
+                                    s))]
+        (dom/a {:href s}
+               (strip-mailto-prefix s)))
+
       #_#_(and
            (= predicate "http://schema.org/openingHoursSpecification")
            (edit-tree/edit-node? etree)
