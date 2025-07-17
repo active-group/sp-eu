@@ -20,8 +20,7 @@
                             (prepare-for-retrieval name description))))
    dir))
 
-(defn update-search-index! [& [dir]]
-  (lucene/clear! dir)
+(defn- insert-direct! [dir]
   (let [res
         (triple-store/run-select-query!
          "PREFIX schema: <http://schema.org/>
@@ -29,7 +28,7 @@
           SELECT ?id ?lon ?lat ?name ?description
           WHERE {
             ?id schema:name ?name .
-            ?id schema:description ?description .
+            OPTIONAL { ?id schema:description ?description . }
             ?id (schema:location? / schema:address? / schema:geo?) ?geo .
             ?geo (schema:longitude | wgs84:long)  ?lon .
             ?geo (schema:latitue | wgs84:lat) ?lat .
@@ -43,6 +42,60 @@
                      (get row "description")
                      dir))
           res))))
+
+(defn- insert-via-event! [dir]
+  (let [res
+        (triple-store/run-select-query!
+         "PREFIX schema: <http://schema.org/>
+          PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+          SELECT ?id ?lon ?lat ?name ?description
+          WHERE {
+            ?id schema:name ?name .
+            OPTIONAL { ?id schema:description ?description . }
+            ?parent (schema:event | schema:events) ?id .
+            ?parent (schema:location? / schema:address? / schema:geo?) ?geo .
+            ?geo (schema:longitude | wgs84:long)  ?lon .
+            ?geo (schema:latitue | wgs84:lat) ?lat .
+          }")]
+    (doall
+     (map (fn [row]
+            (insert! (.getURI (get row "id"))
+                     (.getDouble (get row "lon"))
+                     (.getDouble (get row "lat"))
+                     (get row "name")
+                     (get row "description")
+                     dir))
+          res))))
+
+(defn- insert-via-contactPoint! [dir]
+  (let [res
+        (triple-store/run-select-query!
+         "PREFIX schema: <http://schema.org/>
+          PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+          SELECT ?id ?lon ?lat ?name ?description
+          WHERE {
+            ?id schema:name ?name .
+            OPTIONAL { ?id schema:description ?description . }
+            ?parent schema:contactPoint ?id .
+            ?parent (schema:location? / schema:address? / schema:geo?) ?geo .
+            ?geo (schema:longitude | wgs84:long)  ?lon .
+            ?geo (schema:latitue | wgs84:lat) ?lat .
+          }")]
+    (doall
+     (map (fn [row]
+            (insert! (.getURI (get row "id"))
+                     (.getDouble (get row "lon"))
+                     (.getDouble (get row "lat"))
+                     (get row "name")
+                     (get row "description")
+                     dir))
+          res))))
+
+(defn update-search-index! [& [dir]]
+  (lucene/clear! dir)
+  (insert-direct! dir)
+  (insert-via-event! dir)
+  (insert-via-contactPoint! dir))
 
 (defn search! [text box & [dir]]
   (lucene/search! (lucene/make-vector
