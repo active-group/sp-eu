@@ -78,4 +78,8 @@
 
     (is (= "gleichstellungsbeauftragte"
            (first
-            (search! "gleichstellung"))))))
+            (search! "gleichstellung"))))
+
+    (is (= "senioren"
+           (first
+            (search! "Alte Menschen"))))))
