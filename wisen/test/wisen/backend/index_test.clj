@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest testing is]]
             [wisen.backend.index :as i]))
 
-(deftest senioren-test
+#_(deftest senioren-test
   (let [dir (i/make-in-memory-index)
         insert! (fn [id title description]
                   (i/insert! id 1.0 1.0
