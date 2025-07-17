@@ -295,7 +295,7 @@
                             ul, ol {margin: 0; padding: 0; padding-left: 1.4em;}
                             hr {margin: 0; padding: 0; border: 0; border-bottom: 1px solid gray;}
                             a, button { position: relative; }
-                            a:active, button:active { top: 1px; opacity: 0.7; }
+                            a:active, button:active { padding-top: 1px !important; opacity: 0.7; }
 
     @keyframes rotation {
     0% {
