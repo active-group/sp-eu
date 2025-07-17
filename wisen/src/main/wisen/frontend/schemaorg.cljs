@@ -21,6 +21,7 @@
    "http://schema.org/openingHoursSpecification"
 
    "http://schema.org/email"
+   "http://schema.org/url"
 
    "http://schema.org/dayOfWeek"
    "http://schema.org/opens"
