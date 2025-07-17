@@ -4,6 +4,12 @@
             [wisen.backend.triple-store :as triple-store]
             ))
 
+(defn- prepare-for-retrieval [name description]
+  (str name "\n" description))
+
+(defn- prepare-for-query [text]
+  (str text))
+
 (defn get-id-geo-vecs! []
   (let [res
         (triple-store/run-select-query!
@@ -24,9 +30,8 @@
                                                      (.getDouble (get row "lat")))
             lucene/id-geo-vec-vec (lucene/make-vector
                                    (embedding/get-embedding
-                                    (str (get row "name")
-                                         "\n\n"
-                                         (get row "description"))))))
+                                    (prepare-for-retrieval (get row "name")
+                                                           (get row "description"))))))
          res)))
 
 (defn update-search-index! []
@@ -37,7 +42,8 @@
 
 (defn search! [text box]
   (lucene/search! (lucene/make-vector
-                   (embedding/get-embedding text))
+                   (embedding/get-embedding
+                    (prepare-for-query text)))
                   box))
 
 (defn make-vector [v]
