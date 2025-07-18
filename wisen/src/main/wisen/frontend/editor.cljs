@@ -36,7 +36,7 @@
   [set-reference-action-old-uri :- realm/string
    set-reference-action-new-uri :- realm/string
    set-reference-action-predicate :- (realm/optional realm/string)
-   set-reference-action-subject-uri :- (realm/optional realm/string)
+   set-reference-action-subject-uri :- (realm/optional tree/URI)
    ])
 
 (defn- style-for-marked [marked]
