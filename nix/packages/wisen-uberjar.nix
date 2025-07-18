@@ -10,7 +10,12 @@
 }:
 
 let
-  inherit (active-group) cljDeps npmDeps;
+  inherit (active-group)
+    cljDeps
+    npmDeps
+    embeddingModel
+    modelConfig
+    ;
 in
 stdenv.mkDerivation {
   name = "wisen-uber-jar";
@@ -42,6 +47,8 @@ stdenv.mkDerivation {
   '';
 
   doCheck = true;
+  TS_MODEL_NAME = modelConfig.name;
+  TS_MODEL_DIR = embeddingModel;
   checkPhase = "clj -T:build test-clj";
 
   installPhase = ''
