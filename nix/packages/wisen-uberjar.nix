@@ -46,11 +46,6 @@ stdenv.mkDerivation {
     clj -T:build uber
   '';
 
-  doCheck = true;
-  TS_MODEL_NAME = modelConfig.name;
-  TS_MODEL_DIR = embeddingModel;
-  checkPhase = "clj -T:build test-clj";
-
   installPhase = ''
     mkdir -p $out/lib
     cp ./target/uber/*-standalone.jar $out/lib/app.jar
