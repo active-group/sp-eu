@@ -889,7 +889,6 @@
           uri)))
 
 (defn- set-reference* [etree subject-uri predicate from-object-uri to-object]
-  (println "set-reference*" (pr-str subject-uri predicate from-object-uri to-object))
   (cond
     (many? etree)
     (lens/overhaul etree
@@ -915,7 +914,6 @@
                                                  marked
                                                  added-result-value
                                                  (fn [e]
-                                                   (println "checking" (pr-str e))
                                                    (let [object-matches? (etree-matches-uri? e from-object-uri)]
                                                      (if (and
                                                           subject-matches?
@@ -932,7 +930,6 @@
                                                  marked
                                                  maybe-changed-result-value
                                                  (fn [e]
-                                                   (println "checking" (pr-str e))
                                                    (let [object-matches? (etree-matches-uri? e from-object-uri)]
                                                      (if (and
                                                           subject-matches?
@@ -971,7 +968,6 @@
         (reduce
          (fn [acc markeds]
            (reduce (fn [acc marked]
-                     (println "checking" (pr-str marked))
                      (cond
                        (added? marked)
                        (or acc
@@ -1002,19 +998,14 @@
 (defn set-reference [etree subject-uri predicate from-object-uri to-object-uri]
   (assert (tree/uri? to-object-uri)
           "set-reference can only be called with global URI, not with existential")
-  (println "set-reference" (pr-str to-object-uri))
   (if (= from-object-uri to-object-uri)
     etree
     ;; else check if `to-object-uri` already exists in etree
     ;; if so: put a ref
     ;; if not: put a node
     (let [to-object (if (some-edit-tree-uri #{to-object-uri} etree)
-                      (do
-                        (println "set-reference making a ref")
-                        (make-ref to-object-uri))
-                      (do
-                        (println "set-reference making a node")
-                        (edit-node
-                         edit-node-uri to-object-uri
-                         edit-node-properties {})))]
+                      (make-ref to-object-uri)
+                      (edit-node
+                       edit-node-uri to-object-uri
+                       edit-node-properties {}))]
       (set-reference* etree subject-uri predicate from-object-uri to-object))))
