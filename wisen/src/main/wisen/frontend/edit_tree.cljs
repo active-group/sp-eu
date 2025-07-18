@@ -680,10 +680,6 @@
 
 ;; re-implementations of wisen.frontend.tree stuff
 
-(def node? (partial is-a? edit-node))
-
-(def node-uri edit-node-uri)
-
 (defn tree-uri
   ([etree]
    (cond
@@ -887,7 +883,7 @@
        (not (same? x))))
 
 (defn- etree-matches-uri? [etree uri]
-  (and (or (node? etree)
+  (and (or (edit-node? etree)
            (ref? etree))
        (= (tree-uri etree)
           uri)))

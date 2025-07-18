@@ -385,7 +385,7 @@
         (ds/button-primary
          {:onClick (fn [[node local-state]]
                      (let [place-node (edit-tree/graph->edit-tree (:graph local-state))]
-                       (assert (edit-tree/node? place-node))
+                       (assert (edit-tree/edit-node? place-node))
                        (c/return :state [(osm/organization-do-link-osm
                                           node
                                           (:osm-uri local-state)
@@ -669,7 +669,7 @@
 (defn- node-component [schema types editable? force-editing? background-color exgen]
   (c/with-state-as [node editing? :local force-editing?]
 
-    (let [uri (edit-tree/node-uri node)]
+    (let [uri (edit-tree/edit-node-uri node)]
 
       (dom/div
 
@@ -748,7 +748,7 @@
 
                   (and (is-a? set-reference-action action)
                        (nil? (set-reference-action-subject-uri action)))
-                  (c/return :action (set-reference-action-subject-uri action (edit-tree/node-uri node)))
+                  (c/return :action (set-reference-action-subject-uri action (edit-tree/edit-node-uri node)))
 
                   :else
                   (c/return :action action)))))
@@ -1073,7 +1073,7 @@
           (c/focus (lens/>> edit-tree/exists-k (util/fn-at ex))
                    (edit-tree-component* schema types editable? force-editing? bgc exgen*)))
 
-        (edit-tree/node? etree)
+        (edit-tree/edit-node? etree)
         (node-component-for-type (edit-tree/edit-node-type etree)
                                  schema
                                  types
