@@ -8,16 +8,16 @@
 ;; first argument is always a (parsed) rdf graph of the
 ;; schema (probably always schema.org)
 
-(defn label-for-type [schema type]
+(defn label-for-type [schema type-uri]
   (if-let [res (first
                 (rdf/subject-predicate-objects
                  schema
-                 (rdf/make-symbol (tree/type-uri type))
+                 (rdf/make-symbol type-uri)
                  (rdf/make-symbol "http://www.w3.org/2000/01/rdf-schema#label")))]
     (if (rdf/literal-string? res)
       (rdf/literal-string-value res)
-      (tree/type-uri type))
-    (tree/type-uri type)))
+      type-uri)
+    type-uri))
 
 (defn nice-name [x]
   (case x
@@ -240,5 +240,5 @@
 (defn types-for-predicate [schema predicate]
   (mapcat (fn [sort]
             (when (tree/node? sort)
-              [sort]))
+              [(tree/node-uri sort)]))
           (sorts-for-predicate schema predicate)))

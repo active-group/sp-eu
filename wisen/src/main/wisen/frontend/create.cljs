@@ -13,8 +13,8 @@
             [wisen.frontend.commit :as commit]
             [reacl-c-basics.ajax :as ajax]))
 
-(def organization-type (tree/make-node "http://schema.org/Organization"))
-(def event-type (tree/make-node "http://schema.org/Event"))
+(def organization-type "http://schema.org/Organization")
+(def event-type "http://schema.org/Event")
 
 (defonce ^:private initial-organization
   default/default-organization)
