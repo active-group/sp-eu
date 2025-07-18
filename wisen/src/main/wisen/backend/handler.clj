@@ -298,7 +298,9 @@
                    [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
                    [:link {:rel "icon" :href "favicon.png" :type "image/png"}]
                    [:style "html, body {margin: 0; padding: 0;
-                                        font-family: 'Helvetica Neue', Helvetica, sans-serif;}
+                                        font-family: 'Helvetica Neue', Helvetica, sans-serif;
+                                        font-size: 13px;
+                                        line-height: 20px;}
                             ul, ol {margin: 0; padding: 0; padding-left: 1.4em;}
                             hr {margin: 0; padding: 0; border: 0; border-bottom: 1px solid gray;}
                             a, button { position: relative; }
