@@ -18,6 +18,7 @@
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.embedding :as embedding]
             [wisen.backend.index :as index]
+            [wisen.backend.indexer :as indexer]
             [wisen.backend.skolem2 :as skolem2]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
@@ -129,13 +130,19 @@
 
 #_(place->lon-lat! "Hechinger Str. 12/1" "72072" "Tübingen" "Germany")
 
+(def indexer (atom nil))
+
+(defn setup-new-indexer! []
+  (reset! indexer
+          (indexer/run-new-indexer!)))
+
 (defn add-changes [request]
   (let [changeset (change-api/edn->changeset
                    (get-in request
                            [:body-params :changes]))
         skolemized-geocoded-changeset (prepare-changeset changeset place->lon-lat!)]
     (triple-store/edit-model! skolemized-geocoded-changeset)
-    (index/update-search-index!)
+    (indexer/add-task! @indexer indexer/index-all-task)
     {:status 200}))
 
 (defn osm-lookup [request]
