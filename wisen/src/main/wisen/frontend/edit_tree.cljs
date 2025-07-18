@@ -782,16 +782,9 @@
           {}
           m))
 
-(defn make-edit-node-type-lens [default-node-for-type]
-  "TODO: This must be developed closer to a spec."
-  (fn
-    ([enode]
-     (edit-tree-result-tree
-      (node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" enode)))
-    ([enode type]
-     (if (= type ((make-edit-node-type-lens default-node-for-type) enode))
-       enode
-       (make-added-edit-tree (default-node-for-type type))))))
+(defn edit-node-type [enode]
+  (edit-tree-result-tree
+   (node-object-for-predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" enode)))
 
 (defn organization? [node]
   (= "http://schema.org/Organization"
