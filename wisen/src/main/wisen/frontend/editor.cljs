@@ -26,7 +26,8 @@
             [wisen.common.prefix :as prefix]
             [wisen.frontend.value-node :as value-node]
             [wisen.common.wisen-uri :as wisen-uri]
-            [wisen.frontend.ask-ai :as ask-ai]))
+            [wisen.frontend.ask-ai :as ask-ai]
+            [clojure.string :as string]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -440,6 +441,10 @@
 
               (modal/modal-button (ds/lightbulb-icon "21") (partial ask-ai schema))))))
 
+(defn- valid-uri? [x]
+  (and (string? x)
+       (re-find #"https?://[a-zA-z0-9]+" x)))
+
 (defn- set-reference [close-action]
   (c/with-state-as node
     (c/local-state
@@ -454,13 +459,18 @@
       (modal/toolbar
        (ds/button-secondary {:onClick #(c/return :action close-action)}
                             "Cancel")
-       (ds/button-primary {:onClick
-                           (fn [[node [new-uri _]]]
-                             (let [old-uri (edit-tree/tree-uri node)]
-                               (c/return :action (set-reference-action
-                                                  set-reference-action-old-uri old-uri
-                                                  set-reference-action-new-uri new-uri))))}
-                          "Set reference"))))))
+       (c/with-state-as state
+         (let [text (first (second state))
+               disabled? (not (valid-uri? text))]
+           (ds/button-primary {:onClick
+                               (fn [[node [new-uri _]]]
+                                 (let [old-uri (edit-tree/tree-uri node)]
+                                   (c/return :action (set-reference-action
+                                                      set-reference-action-old-uri old-uri
+                                                      set-reference-action-new-uri new-uri))))
+                               :disabled disabled?
+                               :style (when disabled? {:color "gray"})}
+                              "Set reference"))))))))
 
 (defn- refresh-node-request [uri]
   (ajax/GET uri
