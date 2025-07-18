@@ -2,7 +2,7 @@
   (:require [clojure.test :refer [deftest testing is]]
             [wisen.backend.index :as i]))
 
-#_(deftest senioren-test
+(deftest senioren-test
   (let [dir (i/make-in-memory-index)
         insert! (fn [id title description]
                   (i/insert! id 1.0 1.0
@@ -64,7 +64,7 @@
              Ansprechpartnerin für alle Beschäftigten des Bezirksamtes
              und für die Bürgerinnen und Bürger Neuköllns.")
 
-    #_#_#_#_#_(is (= "senioren"
+    (is (= "senioren"
            (first
             (search! "Senioren"))))
 
