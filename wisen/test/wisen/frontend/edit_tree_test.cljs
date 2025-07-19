@@ -138,17 +138,16 @@
 
   (testing "add inside add with blank nodes"
     (is (= (et/edit-tree-changeset
-            (et/exists
-             et/exists-k
-             (fn [ex]
-               (et/edit-node
-                et/edit-node-uri "A"
-                et/edit-node-properties {"http://example.org/foo"
-                                         [(et/mark-added
-                                           (et/edit-node
-                                            et/edit-node-uri ex
-                                            et/edit-node-properties {"http://schema.org/name"
-                                                                     [(et/mark-added (et/make-literal-string "Foobar"))]}))]}))))
+            (et/make-exists
+             0
+             (et/edit-node
+              et/edit-node-uri "A"
+              et/edit-node-properties {"http://example.org/foo"
+                                       [(et/mark-added
+                                         (et/edit-node
+                                          et/edit-node-uri 0
+                                          et/edit-node-properties {"http://schema.org/name"
+                                                                   [(et/mark-added (et/make-literal-string "Foobar"))]}))]})))
            [(change/make-with-blank-node
              0
              [(change/make-add
@@ -166,13 +165,12 @@
              et/edit-node-uri "A"
              et/edit-node-properties {"http://example.org/foo"
                                       [(et/mark-added
-                                        (et/exists
-                                         et/exists-k
-                                         (fn [ex]
-                                           (et/edit-node
-                                            et/edit-node-uri ex
-                                            et/edit-node-properties {"http://schema.org/name"
-                                                                     [(et/mark-added (et/make-literal-string "Foobar"))]}))))]}))
+                                        (et/make-exists
+                                         0
+                                         (et/edit-node
+                                          et/edit-node-uri 0
+                                          et/edit-node-properties {"http://schema.org/name"
+                                                                   [(et/mark-added (et/make-literal-string "Foobar"))]})))]}))
            [(change/make-with-blank-node
              0
              [(change/make-add
@@ -228,17 +226,16 @@
                                                       et/edit-node-uri "obj"
                                                       et/edit-node-properties {}))
                                                     (et/mark-added
-                                                     (et/exists
-                                                      et/exists-k
-                                                      (fn [ex]
-                                                        (et/edit-node
-                                                         et/edit-node-uri ex
-                                                         et/edit-node-properties
-                                                         {"prid"
-                                                          [(et/mark-added
-                                                            (et/edit-node
-                                                             et/edit-node-uri "foo"
-                                                             et/edit-node-properties {}))]}))))]})])]
+                                                     (et/make-exists
+                                                      0
+                                                      (et/edit-node
+                                                       et/edit-node-uri 0
+                                                       et/edit-node-properties
+                                                       {"prid"
+                                                        [(et/mark-added
+                                                          (et/edit-node
+                                                           et/edit-node-uri "foo"
+                                                           et/edit-node-properties {}))]})))]})])]
       (is (= "sub"
              (et/some-edit-tree-uri #{"sub"} etree)))
       (is (= "obj"
@@ -301,22 +298,21 @@
                                "obj-replaced")))))
 
   (testing "passing exists"
-    (let [etree (et/exists
-                 et/exists-k
-                 (fn [ex]
-                   (et/edit-node
-                    et/edit-node-uri ex
-                    et/edit-node-properties
-                    {"prid"
-                     [(et/mark-added
-                       (et/edit-node
-                        et/edit-node-uri "foo"
-                        et/edit-node-properties
-                        {"prod"
-                         [(et/mark-added
-                           (et/edit-node
-                            et/edit-node-uri "bar"
-                            et/edit-node-properties {}))]}))]})))
+    (let [etree (et/make-exists
+                 0
+                 (et/edit-node
+                  et/edit-node-uri 0
+                  et/edit-node-properties
+                  {"prid"
+                   [(et/mark-added
+                     (et/edit-node
+                      et/edit-node-uri "foo"
+                      et/edit-node-properties
+                      {"prod"
+                       [(et/mark-added
+                         (et/edit-node
+                          et/edit-node-uri "bar"
+                          et/edit-node-properties {}))]}))]}))
 
           result (et/set-reference etree
                                    "foo"
@@ -326,7 +322,7 @@
 
       (is (et/exists? result))
       (is (= (et/edit-node
-              et/edit-node-uri 123
+              et/edit-node-uri 0
               et/edit-node-properties
               {"prid"
                [(et/mark-added
@@ -338,5 +334,73 @@
                      (et/edit-node
                       et/edit-node-uri "bar-replaced"
                       et/edit-node-properties {}))]}))]})
-             ((et/exists-k result) 123)
+             (et/exists-edit-tree result)
+             ))))
+
+  (testing "can set-reference with existential subject"
+    (let [etree (et/make-exists
+                 0
+                 (et/edit-node
+                  et/edit-node-uri 0
+                  et/edit-node-properties
+                  {"prid"
+                   [(et/mark-added
+                     (et/edit-node
+                      et/edit-node-uri "foo"
+                      et/edit-node-properties
+                      {"prod"
+                       [(et/mark-added
+                         (et/edit-node
+                          et/edit-node-uri "bar"
+                          et/edit-node-properties {}))]}))]}))
+
+          result (et/set-reference etree
+                                   0
+                                   "prid"
+                                   "foo"
+                                   "foo-replaced")]
+
+      (is (et/exists? result))
+      (is (= (et/edit-node
+              et/edit-node-uri 0
+              et/edit-node-properties
+              {"prid"
+               [(et/mark-added
+                 (et/edit-node
+                  et/edit-node-uri "foo-replaced"
+                  et/edit-node-properties
+                  {}))]})
+             (et/exists-edit-tree result)
+             ))))
+
+  (testing "can set-reference with existential before-object"
+    (let [etree (et/make-exists
+                 0
+                 (et/edit-node
+                  et/edit-node-uri "sub"
+                  et/edit-node-properties
+                  {"pred"
+                   [(et/mark-added
+                     (et/edit-node
+                      et/edit-node-uri 0
+                      et/edit-node-properties
+                      {}))]}))
+
+          result (et/set-reference etree
+                                   "sub"
+                                   "pred"
+                                   0
+                                   "obj")]
+
+      (is (et/exists? result))
+      (is (= (et/edit-node
+              et/edit-node-uri "sub"
+              et/edit-node-properties
+              {"pred"
+               [(et/mark-added
+                 (et/edit-node
+                  et/edit-node-uri "obj"
+                  et/edit-node-properties
+                  {}))]})
+             (et/exists-edit-tree result)
              )))))

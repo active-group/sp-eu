@@ -120,7 +120,13 @@
 ;;
 
 (def-record exists
-  [exists-k])
+  [exists-existential :- existential/existential
+   exists-edit-tree :- edit-tree])
+
+(defn make-exists [ex etree]
+  (exists
+   exists-existential ex
+   exists-edit-tree etree))
 
 (defn exists? [x]
   (is-a? exists x))
@@ -274,10 +280,7 @@
     (lens/overhaul etree (lens/>> many-edit-trees lens/first) focus)
 
     (is-a? exists etree)
-    (exists exists-k
-            (fn [ex]
-              (focus
-               ((exists-k etree) ex))))
+    (lens/overhaul etree exists-edit-tree focus)
 
     (is-a? edit-node etree)
     ;; focus the left-most neighbour
@@ -316,53 +319,52 @@
 
 (declare edit-tree-original)
 
-(letfn [(k [make-edit-tree tree cns ex]
-          (make-edit-tree
-           ((tree/exists-k tree) ex)
-           cns))]
-  (defn- make-edit-tree [tree cns]
-    (cond
-      (tree/many? tree)
-      (many
-       many-edit-trees
-       (map #(make-edit-tree % cns)
-            (tree/many-trees tree)))
+(defn- make-edit-tree [tree cns]
+  (cond
+    (tree/many? tree)
+    (many
+     many-edit-trees
+     (map #(make-edit-tree % cns)
+          (tree/many-trees tree)))
 
-      (tree/exists? tree)
-      (exists
-       exists-k (f/partial k make-edit-tree tree cns))
+    (tree/exists? tree)
+    (exists
+     exists-existential (tree/exists-existential tree)
+     exists-edit-tree (make-edit-tree
+                       (tree/exists-tree tree)
+                       cns))
 
-      (tree/ref? tree)
-      (make-ref (tree/ref-uri tree))
+    (tree/ref? tree)
+    (make-ref (tree/ref-uri tree))
 
-      (tree/literal-string? tree)
-      (make-literal-string (tree/literal-string-value tree))
+    (tree/literal-string? tree)
+    (make-literal-string (tree/literal-string-value tree))
 
-      (tree/literal-decimal? tree)
-      (make-literal-decimal (tree/literal-decimal-value tree))
+    (tree/literal-decimal? tree)
+    (make-literal-decimal (tree/literal-decimal-value tree))
 
-      (tree/literal-boolean? tree)
-      (make-literal-boolean (tree/literal-boolean-value tree))
+    (tree/literal-boolean? tree)
+    (make-literal-boolean (tree/literal-boolean-value tree))
 
-      (tree/literal-time? tree)
-      (make-literal-time (tree/literal-time-value tree))
+    (tree/literal-time? tree)
+    (make-literal-time (tree/literal-time-value tree))
 
-      (tree/literal-date? tree)
-      (make-literal-date (tree/literal-date-value tree))
+    (tree/literal-date? tree)
+    (make-literal-date (tree/literal-date-value tree))
 
-      (tree/node? tree)
-      (edit-node
-       edit-node-uri (tree/node-uri tree)
-       edit-node-properties (reduce (fn [eprops prop]
-                                      (update eprops
-                                              (tree/property-predicate prop)
-                                              conj
-                                              (cns
-                                               (make-edit-tree
-                                                (tree/property-object prop)
-                                                cns))))
-                                    {}
-                                    (tree/node-properties tree))))))
+    (tree/node? tree)
+    (edit-node
+     edit-node-uri (tree/node-uri tree)
+     edit-node-properties (reduce (fn [eprops prop]
+                                    (update eprops
+                                            (tree/property-predicate prop)
+                                            conj
+                                            (cns
+                                             (make-edit-tree
+                                              (tree/property-object prop)
+                                              cns))))
+                                  {}
+                                  (tree/node-properties tree)))))
 
 (defn make-added-edit-tree [tree]
   (make-edit-tree tree mark-added))
@@ -437,209 +439,117 @@
                            (mark-added (focus
                                         (make-added-edit-tree object-tree)))))))
 
-(declare edit-tree-changeset*)
 
-(defn- edit-tree-changeset** [constructor subject predicate etree exgen]
+(declare edit-tree-changeset)
+
+(defn- edit-tree-changeset* [constructor subject predicate etree]
   (cond
     (ref? etree)
-    [[(constructor (change/make-statement subject predicate (ref-uri etree)))]
-     exgen]
+    [(constructor (change/make-statement subject predicate (ref-uri etree)))]
 
     (literal-string? etree)
-    [[(constructor (change/make-statement subject predicate (tree/make-literal-string (literal-string-value etree))))]
-     exgen]
+    [(constructor (change/make-statement subject predicate (tree/make-literal-string (literal-string-value etree))))]
 
     (literal-decimal? etree)
-    [[(constructor (change/make-statement subject predicate (tree/make-literal-decimal (literal-decimal-value etree))))]
-     exgen]
+    [(constructor (change/make-statement subject predicate (tree/make-literal-decimal (literal-decimal-value etree))))]
 
     (literal-boolean? etree)
-    [[(constructor (change/make-statement subject predicate (tree/make-literal-boolean (literal-boolean-value etree))))]
-     exgen]
+    [(constructor (change/make-statement subject predicate (tree/make-literal-boolean (literal-boolean-value etree))))]
 
     (literal-time? etree)
-    [[(constructor (change/make-statement subject predicate (tree/make-literal-time (literal-time-value etree))))]
-     exgen]
+    [(constructor (change/make-statement subject predicate (tree/make-literal-time (literal-time-value etree))))]
 
     (literal-date? etree)
-    [[(constructor (change/make-statement subject predicate (tree/make-literal-date (literal-date-value etree))))]
-     exgen]
+    [(constructor (change/make-statement subject predicate (tree/make-literal-date (literal-date-value etree))))]
 
     (many? etree)
-    (reduce (fn [[changeset exgen] etree]
-              (let [[changeset* exgen*] (edit-tree-changeset** constructor subject predicate etree exgen)]
-                [(concat changeset changeset*) exgen*]))
-            [[] exgen]
+    (mapcat #(edit-tree-changeset* constructor subject predicate %)
             (many-edit-trees etree))
 
     (exists? etree)
-    (existential/with-fresh-existential-2
-      exgen
-      (fn [ex exgen]
-        (let [binder ex
-              change* (constructor (change/make-statement subject predicate binder))
-              [changes* exgen*] (edit-tree-changeset* ((exists-k etree) binder) exgen)]
-          [[(change/make-with-blank-node binder (conj changes*
-                                                      change*))]
-           exgen*])))
+    (let [binder (exists-existential etree)
+          change* (constructor (change/make-statement subject predicate binder))
+          changes* (edit-tree-changeset (exists-edit-tree etree))]
+      [(change/make-with-blank-node binder (conj changes*
+                                                 change*))])
 
     (is-a? edit-node etree)
     (let [uri (edit-node-uri etree)
-          [changes* exgen*] (edit-tree-changeset* etree exgen)
+          changes* (edit-tree-changeset etree)
           change* (constructor (change/make-statement subject predicate uri))]
-      [(conj changes* change*) exgen*])))
+      (conj changes* change*))))
 
 (declare same? changed?)
 
-(defn- edit-tree-changeset* [etree exgen]
+(defn edit-tree-changeset [etree]
   (cond
     (ref? etree)
-    [[] exgen]
+    []
 
     (literal-string? etree)
-    [[] exgen]
+    []
 
     (literal-decimal? etree)
-    [[] exgen]
+    []
 
     (literal-boolean? etree)
-    [[] exgen]
+    []
 
     (literal-time? etree)
-    [[] exgen]
+    []
 
     (literal-date? etree)
-    [[] exgen]
+    []
 
     (many? etree)
-    (reduce (fn [[changeset exgen] etree]
-              (let [[changeset* exgen*] (edit-tree-changeset* etree exgen)]
-                [(concat changeset changeset*) exgen*]))
-            [[] exgen]
+    (mapcat edit-tree-changeset*
             (many-edit-trees etree))
 
     (exists? etree)
-    (existential/with-fresh-existential-2
-      exgen
-      (fn [ex exgen]
-        (let [[changes* exgen*] (edit-tree-changeset* ((exists-k etree) ex) exgen)]
-          [[(change/make-with-blank-node ex changes*)] exgen*])))
+    [(change/make-with-blank-node
+      (exists-existential etree)
+      (edit-tree-changeset
+       (exists-edit-tree etree)))]
 
     (is-a? edit-node etree)
     (let [subject (edit-node-uri etree)]
-      (reduce (fn [[changeset exgen] [predicate metrees]]
-                (let [[changeset* exgen*]
-                      (reduce (fn [[changeset exgen] metree]
-                                (let [[changeset** exgen**]
-                                      (cond
-                                        (same? metree)
-                                        (let [[cs1 exgen1] (edit-tree-changeset* (maybe-changed-original-value metree) exgen)
-                                              [cs2 exgen2] (edit-tree-changeset* (maybe-changed-result-value metree) exgen1)]
-                                          [(concat cs1 cs2) exgen2])
+      (mapcat (fn [[predicate metrees]]
+                (mapcat (fn [metree]
+                          (cond
+                            (same? metree)
+                            (let [cs1 (edit-tree-changeset (maybe-changed-original-value metree))
+                                  cs2 (edit-tree-changeset (maybe-changed-result-value metree))]
+                              (concat cs1 cs2))
 
-                                        (changed? metree)
-                                        (let [[cs1 exgen1] (edit-tree-changeset**
-                                                            change/make-delete
-                                                            subject
-                                                            predicate
-                                                            (maybe-changed-original-value metree)
-                                                            exgen)
-                                              [cs2 exgen2] (edit-tree-changeset**
-                                                            change/make-add
-                                                            subject
-                                                            predicate
-                                                            (maybe-changed-result-value metree)
-                                                            exgen1)]
-                                          [(concat cs1 cs2) exgen2])
+                            (changed? metree)
+                            (let [cs1 (edit-tree-changeset*
+                                       change/make-delete
+                                       subject
+                                       predicate
+                                       (maybe-changed-original-value metree))
+                                  cs2 (edit-tree-changeset*
+                                       change/make-add
+                                       subject
+                                       predicate
+                                       (maybe-changed-result-value metree))]
+                              (concat cs1 cs2))
 
-                                        (is-a? added metree)
-                                        (edit-tree-changeset**
-                                         change/make-add
-                                         subject
-                                         predicate
-                                         (added-result-value metree)
-                                         exgen)
+                            (is-a? added metree)
+                            (edit-tree-changeset*
+                             change/make-add
+                             subject
+                             predicate
+                             (added-result-value metree))
 
-                                        (is-a? deleted metree)
-                                        (edit-tree-changeset**
-                                         change/make-delete
-                                         subject
-                                         predicate
-                                         (deleted-original-value metree)
-                                         exgen))]
-
-                                  [(concat changeset changeset**) exgen**]))
-
-                              [[] exgen]
-                              metrees)]
-
-                  [(concat changeset changeset*) exgen*]))
-
-              [[] exgen]
+                            (is-a? deleted metree)
+                            (edit-tree-changeset*
+                             change/make-delete
+                             subject
+                             predicate
+                             (deleted-original-value metree))))
+                        metrees))
 
               (edit-node-properties etree)))))
-
-(defn edit-tree-changeset [etree]
-  (existential/with-exgen-2
-    (fn [exgen]
-      (first
-       (edit-tree-changeset* etree exgen)))))
-
-(defn edit-tree-commit-changes
-  [etree]
-  (cond
-    (ref? etree)
-    etree
-
-    (literal-string? etree)
-    etree
-
-    (literal-decimal? etree)
-    etree
-
-    (literal-boolean? etree)
-    etree
-
-    (literal-time? etree)
-    etree
-
-    (literal-date? etree)
-    etree
-
-    (many? etree)
-    (lens/overhaul etree many-edit-trees
-                   #(map edit-tree-commit-changes %))
-
-    (exists? etree)
-    (exists
-     exists-k
-     (fn [ex]
-       (edit-tree-commit-changes
-        ((exists-k etree) ex))))
-
-    (is-a? edit-node etree)
-    (let [subject (edit-node-uri etree)]
-      (edit-node-properties
-       etree
-       (reduce (fn [props* [predicate metrees]]
-                 (assoc props* predicate
-                        (mapcat
-                         (fn [metree]
-                           (cond
-                             (is-a? maybe-changed metree)
-                             [(mark-same (edit-tree-commit-changes
-                                          (maybe-changed-result-value metree)))]
-
-                             (is-a? added metree)
-                             [(mark-same (edit-tree-commit-changes
-                                          (added-result-value metree)))]
-
-                             (is-a? deleted metree)
-                             []))
-                         metrees)
-                        ))
-               {}
-               (edit-node-properties etree))))))
 
 (defn can-discard-edit? [x]
   (or (changed? x)
@@ -764,19 +674,13 @@
        tree/node
 
        (exists? etree)
-       tree/node
-       ))
+       ((make-edit-tree-kind-lens default-tree-for-kind)
+        (exists-edit-tree etree))))
     ([etree kind]
      (if (= kind ((make-edit-tree-kind-lens default-tree-for-kind) etree))
        etree
        (make-added-edit-tree
         (default-tree-for-kind kind))))))
-
-(defn- map-values [f m]
-  (reduce (fn [acc [k v]]
-            (assoc acc k (f v)))
-          {}
-          m))
 
 (defn edit-node-type [enode]
   (edit-tree-result-tree
@@ -815,68 +719,67 @@
 (defn insert-properties [edit-node tree-properties]
   (reduce insert-property edit-node tree-properties))
 
-(defn- same?* [x]
+(defn- same?* [orig res]
+  (cond
+    (and (ref? orig)
+         (ref? res))
+    (= (ref-uri orig)
+       (ref-uri res))
+
+    (and (literal-string? orig)
+         (literal-string? res))
+    (= (literal-string-value orig)
+       (literal-string-value res))
+
+    (and (literal-decimal? orig)
+         (literal-decimal? res))
+    (= (literal-decimal-value orig)
+       (literal-decimal-value res))
+
+    (and (literal-boolean? orig)
+         (literal-boolean? res))
+    (= (literal-boolean-value orig)
+       (literal-boolean-value res))
+
+    (and (literal-time? orig)
+         (literal-time? res))
+    (= (literal-time-value orig)
+       (literal-time-value res))
+
+    (and (literal-date? orig)
+         (literal-date? res))
+    (= (literal-date-value orig)
+       (literal-date-value res))
+
+    (and (many? orig)
+         (many? res))
+    (every? identity
+            (map same?*
+                 (many-edit-trees orig)
+                 (many-edit-trees res)))
+
+    (and (exists? orig)
+         (exists? res))
+    (and
+     (= (exists-existential orig)
+        (exists-existential res))
+     (same?* (exists-edit-tree orig)
+             (exists-edit-tree res)))
+
+    (and (is-a? edit-node orig)
+         (is-a? edit-node res))
+    (= (edit-node-uri orig)
+       (edit-node-uri res))
+
+    :else
+    false
+    ))
+
+(defn same? [x]
   (and (is-a? maybe-changed x)
        (let [orig (maybe-changed-original-value x)
              res (maybe-changed-result-value x)]
-         (cond
-           (and (ref? orig)
-                (ref? res))
-           (= (ref-uri orig)
-              (ref-uri res))
-
-           (and (literal-string? orig)
-                (literal-string? res))
-           (= (literal-string-value orig)
-              (literal-string-value res))
-
-           (and (literal-decimal? orig)
-                (literal-decimal? res))
-           (= (literal-decimal-value orig)
-              (literal-decimal-value res))
-
-           (and (literal-boolean? orig)
-                (literal-boolean? res))
-           (= (literal-boolean-value orig)
-              (literal-boolean-value res))
-
-           (and (literal-time? orig)
-                (literal-time? res))
-           (= (literal-time-value orig)
-              (literal-time-value res))
-
-           (and (literal-date? orig)
-                (literal-date? res))
-           (= (literal-date-value orig)
-              (literal-date-value res))
-
-           (and (many? orig)
-                (many? res))
-           (every? identity
-                   (map same?*
-                        (many-edit-trees orig)
-                        (many-edit-trees res)))
-
-           (and (exists? orig)
-                (exists? res))
-           (existential/with-fresh-existential
-             (fn [ex]
-               (same?* ((exists-k orig) ex)
-                       ((exists-k res) ex))))
-
-           (and (is-a? edit-node orig)
-                (is-a? edit-node res))
-           (= (edit-node-uri orig)
-              (edit-node-uri res))
-
-           :else
-           false
-           ))))
-
-(defn same? [x]
-  (existential/with-exgen
-    (fn []
-      (same?* x))))
+         (same?* orig res))))
 
 (defn changed? [x]
   (and (is-a? maybe-changed x)
@@ -941,14 +844,11 @@
                                   eprops)))))
 
     (exists? etree)
-    (exists
-     exists-k
-     (fn [ex]
-       (set-reference* ((exists-k etree) ex)
-                       subject-uri
-                       predicate
-                       from-object-uri
-                       to-object)))
+    ;; TODO: normalize (remove unneccessary exists nodes) after this step
+    (lens/overhaul etree
+                   exists-edit-tree
+                   (fn [etree]
+                     (set-reference* etree subject-uri predicate from-object-uri to-object)))
 
     :else
     etree))
@@ -985,9 +885,7 @@
          (vals (edit-node-properties etree))))
 
     (exists? etree)
-    (let [ex 0]
-      ;; TODO: setting existentials to always 0 is probably problematic
-      (some-edit-tree-uri pred ((exists-k etree) ex)))
+    (recur pred (exists-edit-tree etree))
 
     (ref? etree)
     (pred (ref-uri etree))

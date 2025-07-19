@@ -167,7 +167,7 @@
          edit-node-is-postal-address-value?
          edit-node-is-opening-hours-specification-value?)
 
-(c/defn-item ^:private component-for-predicate [predicate schema types editable? editing? background-color exgen]
+(c/defn-item ^:private component-for-predicate [predicate schema types editable? editing? background-color]
   (c/with-state-as etree
     (cond
       (and (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
@@ -303,8 +303,7 @@
         (schema/types-for-predicate schema predicate)
         editable?
         editing?
-        background-color
-        exgen)))))
+        background-color)))))
 
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [node predicate :local schemaorg/default-predicate]
@@ -518,7 +517,7 @@
                   :height "27px"}}
          children))
 
-(c/defn-item property-object-component [schema types predicate editable? force-editing? last? background-color exgen]
+(c/defn-item property-object-component [schema types predicate editable? force-editing? last? background-color]
   (c/with-state-as marked-edit-trees
     (apply dom/div
            {:style {:display "flex"
@@ -605,30 +604,30 @@
                                       (cond
                                         (edit-tree/deleted? marked-edit-tree)
                                         (c/focus edit-tree/deleted-original-value
-                                                 (component-for-predicate predicate schema types editable? force-editing? background-color exgen))
+                                                 (component-for-predicate predicate schema types editable? force-editing? background-color))
 
                                         (edit-tree/added? marked-edit-tree)
                                         (c/focus edit-tree/added-result-value
-                                                 (component-for-predicate predicate schema types editable? force-editing? background-color exgen))
+                                                 (component-for-predicate predicate schema types editable? force-editing? background-color))
 
                                         (edit-tree/same? marked-edit-tree)
                                         (c/focus edit-tree/maybe-changed-result-value
-                                                 (component-for-predicate predicate schema types editable? force-editing? background-color exgen))
+                                                 (component-for-predicate predicate schema types editable? force-editing? background-color))
 
                                         (edit-tree/changed? marked-edit-tree)
                                         (before-after
                                          ;; before
                                          (c/focus edit-tree/maybe-changed-original-value
-                                                  (component-for-predicate predicate schema types false false background-color exgen))
+                                                  (component-for-predicate predicate schema types false false background-color))
                                          ;; after
                                          (c/focus edit-tree/maybe-changed-result-value
-                                                  (component-for-predicate predicate schema types editable? force-editing? background-color exgen))
+                                                  (component-for-predicate predicate schema types editable? force-editing? background-color))
 
                                          background-color))))))
 
                         marked-edit-trees))))
 
-(c/defn-item properties-component [schema types editable? force-editing? background-color exgen]
+(c/defn-item properties-component [schema types editable? force-editing? background-color]
   (c/with-state-as properties
 
     (apply
@@ -641,7 +640,7 @@
        (map-indexed (fn [idx predicate]
                       (-> (c/focus (lens/member predicate)
                                    (let [last? (= idx (dec (count ks)))]
-                                     (property-object-component schema types predicate editable? force-editing? last? background-color exgen)))
+                                     (property-object-component schema types predicate editable? force-editing? last? background-color)))
                           (c/handle-action
                            (fn [_ action]
                              (if (and (is-a? set-reference-action action)
@@ -676,7 +675,7 @@
 (c/defn-effect copy-to-clipboard! [s]
   (.writeText (.-clipboard js/navigator) s))
 
-(defn- node-component [schema types editable? force-editing? background-color exgen]
+(defn- node-component [schema types editable? force-editing? background-color]
   (c/with-state-as [node editing? :local force-editing?]
 
     (let [uri (edit-tree/edit-node-uri node)]
@@ -747,7 +746,7 @@
                                     :border-left "1px solid gray"
                                     :padding-bottom "2ex"}}
 
-                           (properties-component schema types editable? editing? background-color exgen)))))
+                           (properties-component schema types editable? editing? background-color)))))
              (c/handle-action
               (fn [node action]
                 (cond
@@ -976,7 +975,7 @@
             (forms/option {:value "http://schema.org/Saturday"} "Saturday")
             (forms/option {:value "http://schema.org/Sunday"} "Sunday"))))
 
-(c/defn-item ^:private node-component-for-type [type schema types editable? force-editing? background-color exgen]
+(c/defn-item ^:private node-component-for-type [type schema types editable? force-editing? background-color]
   (c/with-state-as enode
     (let [type-uri (tree/type-uri type)]
       (cond
@@ -1000,12 +999,11 @@
          (opening-hours-specification-component schema editable? force-editing?))
 
         :else
-        (node-component schema types editable? force-editing? background-color exgen)))))
+        (node-component schema types editable? force-editing? background-color)))))
 
-(c/defn-item edit-tree-component* [schema types editable? force-editing? & [background-color existential-generator]]
+(c/defn-item edit-tree-component* [schema types editable? force-editing? & [background-color]]
   (c/with-state-as etree
-    (let [bgc (or background-color "#eee")
-          exgen (or existential-generator existential/existential-generator)]
+    (let [bgc (or background-color "#eee")]
       (cond
         (edit-tree/literal-string? etree)
         (c/focus (lens/pattern [edit-tree/literal-string-value
@@ -1065,23 +1063,15 @@
                       {:style {:display "flex"
                                :flex-direction "column"
                                :gap "4ex"}}
-                      (first
-                       (reduce
-                        (fn [[items exgen] [idx etree]]
-                          (let [[exgen1 exgen2] (existential/split-existential-generator exgen)]
-                            [(conj items
-                                   (c/focus (lens/at-index idx)
-                                            (edit-tree-component* schema types editable? force-editing? bgc exgen1)))
-                             exgen2]))
-                        [[] exgen]
-                        (map vector
-                             (range)
-                             etrees)))))))
+                      (map-indexed
+                       (fn [idx etree]
+                         (c/focus (lens/at-index idx)
+                                  (edit-tree-component* schema types editable? force-editing? bgc)))
+                       etrees)))))
 
         (edit-tree/exists? etree)
-        (let [[ex exgen*] (existential/next-existential+generator exgen)]
-          (c/focus (lens/>> edit-tree/exists-k (util/fn-at ex))
-                   (edit-tree-component* schema types editable? force-editing? bgc exgen*)))
+        (c/focus edit-tree/exists-edit-tree
+                 (edit-tree-component* schema types editable? force-editing? bgc))
 
         (edit-tree/edit-node? etree)
         (node-component-for-type (edit-tree/edit-node-type etree)
@@ -1089,11 +1079,10 @@
                                  types
                                  editable?
                                  force-editing?
-                                 bgc
-                                 exgen)))))
+                                 bgc)))))
 
-(c/defn-item edit-tree-component [schema types editable? force-editing? & [background-color existential-generator]]
-  (-> (edit-tree-component* schema types editable? force-editing? background-color existential-generator)
+(c/defn-item edit-tree-component [schema types editable? force-editing? & [background-color]]
+  (-> (edit-tree-component* schema types editable? force-editing? background-color)
       (c/handle-action (fn [etree action]
                          (if (is-a? set-reference-action action)
                            (do

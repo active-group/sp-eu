@@ -40,11 +40,14 @@
 ;;
 
 (def-record exists
-  [exists-k])
+  [exists-existential :- existential/existential
+   exists-tree :- tree
+   ])
 
 (defn make-exists
-  ([k]
-   (exists exists-k k)))
+  ([ex tree]
+   (exists exists-existential ex
+           exists-tree tree)))
 
 (defn exists? [x]
   (record/is-a? exists x))
@@ -265,56 +268,8 @@
 (defn- node->tree [graph links existentials x]
   (node->tree* graph links existentials x))
 
-(letfn [(over-uri [over tree]
-          (cond
-            (many? tree)
-            (many many-trees
-                  (map (fn [tree]
-                         (over-uri over tree))
-                       (many-trees tree)))
-
-            (exists? tree)
-            (make-exists
-             (fn+ [x*]
-                  (let [tree* ((exists-k tree) x*)]
-                    (over-uri over tree*))))
-
-            (ref? tree)
-            (lens/overhaul tree ref-uri over)
-
-            (literal-string? tree)
-            tree
-
-            (literal-decimal? tree)
-            tree
-
-            (literal-boolean? tree)
-            tree
-
-            (literal-time? tree)
-            tree
-
-            (literal-date? tree)
-            tree
-
-            (node? tree)
-            (-> tree
-                (lens/overhaul node-uri over)
-                (lens/overhaul node-properties (fn [props]
-                                                 (map (fn [prop]
-                                                        (-> prop
-                                                            (lens/overhaul property-predicate over)
-                                                            (lens/overhaul property-object (partial over-uri over))))
-                                                      props))))))]
-
-  (defn- wrap-ex [tree ex]
-    (make-exists
-     (fn+ [x]
-          (over-uri (fn+ [uri]
-                         (if (= uri ex)
-                           x
-                           uri))
-                    tree)))))
+(defn- wrap-ex [tree ex]
+  (make-exists ex tree))
 
 (defn graph->tree [g]
   (let [[_links existentials trees]
@@ -348,15 +303,13 @@
     (ref? type)
     (ref-uri type)))
 
-(defn- tree-properties* [tree]
+(defn tree-properties [tree]
   (cond
     (many? tree)
-    (mapcat tree-properties* (many-trees tree))
+    (mapcat tree-properties (many-trees tree))
 
     (exists? tree)
-    (existential/with-fresh-existential
-      (fn [ex]
-        (tree-properties* ((exists-k tree) ex))))
+    (tree-properties (exists-tree tree))
 
     (ref? tree)
     []
@@ -378,47 +331,3 @@
 
     (node? tree)
     (node-properties tree)))
-
-(defn tree-properties [tree]
-  (existential/with-exgen
-    (fn []
-      (tree-properties* tree))))
-
-(defn- skolemize* [tree]
-  (cond
-    (many? tree)
-    (lens/overhaul tree many-trees #(map skolemize* %))
-
-    (exists? tree)
-    (existential/with-fresh-existential
-      (fn [ex]
-        (skolemize* ((exists-k tree) ex))))
-
-    (ref? tree)
-    tree
-
-    (literal-string? tree)
-    tree
-
-    (literal-decimal? tree)
-    tree
-
-    (literal-boolean? tree)
-    tree
-
-    (literal-time? tree)
-    tree
-
-    (literal-date? tree)
-    tree
-
-    (node? tree)
-    (lens/overhaul tree node-properties (fn [props]
-                                          (map (fn [prop]
-                                                 (lens/overhaul prop property-object skolemize*))
-                                               props)))))
-
-(defn skolemize [tree]
-  (existential/with-exgen
-    (fn []
-      (skolemize* tree))))
