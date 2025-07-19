@@ -392,7 +392,6 @@
                                    0
                                    "obj")]
 
-      (is (et/exists? result))
       (is (= (et/edit-node
               et/edit-node-uri "sub"
               et/edit-node-properties
@@ -402,5 +401,47 @@
                   et/edit-node-uri "obj"
                   et/edit-node-properties
                   {}))]})
-             (et/exists-edit-tree result)
+             result
+             ))))
+
+  (testing "can set-reference with existential after-object"
+    (let [etree (et/make-exists
+                 0
+                 (et/edit-node
+                  et/edit-node-uri "sub"
+                  et/edit-node-properties
+                  {"pred1"
+                   [(et/mark-added
+                     (et/edit-node
+                      et/edit-node-uri 0
+                      et/edit-node-properties
+                      {}))]
+                   "pred2"
+                   [(et/mark-added
+                     (et/edit-node
+                      et/edit-node-uri "foo"
+                      et/edit-node-properties
+                      {}))]}))
+
+          result (et/set-reference etree
+                                   "sub"
+                                   "pred2"
+                                   "foo"
+                                   0)]
+
+      (is (= (et/make-exists
+              0
+              (et/edit-node
+               et/edit-node-uri "sub"
+               et/edit-node-properties
+               {"pred1"
+                [(et/mark-added
+                  (et/edit-node
+                   et/edit-node-uri 0
+                   et/edit-node-properties
+                   {}))]
+                "pred2"
+                [(et/mark-added
+                  (et/make-ref 0))]}))
+             result
              )))))

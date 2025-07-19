@@ -844,7 +844,6 @@
                                   eprops)))))
 
     (exists? etree)
-    ;; TODO: normalize (remove unneccessary exists nodes) after this step
     (lens/overhaul etree
                    exists-edit-tree
                    (fn [etree]
@@ -893,9 +892,51 @@
     :else
     false))
 
+(defn- map-values [f m]
+  (into {}
+        (map (fn [[k v]]
+               [k (f v)])
+             m)))
+
+(defn- normalize [etree]
+  (cond
+    (many? etree)
+    (lens/overhaul etree
+                   many-edit-trees
+                   (fn [trees]
+                     (map normalize trees)))
+
+    (edit-node? etree)
+    (lens/overhaul etree
+                   edit-node-properties
+                   (fn [eprops]
+                     (map-values
+                      (fn [metrees]
+                        (map (fn [metree]
+                               (cond
+                                 (added? metree)
+                                 (lens/overhaul metree added-result-value normalize)
+
+                                 (deleted? metree)
+                                 metree
+
+                                 (maybe-changed? metree)
+                                 (lens/overhaul metree maybe-changed-result-value normalize)))
+                             metrees))
+                      eprops)))
+
+    (exists? etree)
+    (let [ex (exists-existential etree)
+          etree* (normalize
+                  (exists-edit-tree etree))]
+      (if (some-edit-tree-uri #{ex} etree*)
+        (make-exists ex etree*)
+        etree*))
+
+    :else
+    etree))
+
 (defn set-reference [etree subject-uri predicate from-object-uri to-object-uri]
-  (assert (tree/uri? to-object-uri)
-          "set-reference can only be called with global URI, not with existential")
   (if (= from-object-uri to-object-uri)
     etree
     ;; else check if `to-object-uri` already exists in etree
@@ -906,4 +947,5 @@
                       (edit-node
                        edit-node-uri to-object-uri
                        edit-node-properties {}))]
-      (set-reference* etree subject-uri predicate from-object-uri to-object))))
+      (normalize
+       (set-reference* etree subject-uri predicate from-object-uri to-object)))))
