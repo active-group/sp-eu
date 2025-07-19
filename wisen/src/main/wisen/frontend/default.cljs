@@ -18,8 +18,9 @@
   (let [props* (conj props
                      (tree/make-property type-uri
                                          (tree/make-node (schema type))))]
-    (tree/make-exists
-     (fn [ex]
+    (let [ex (hash [type props])]
+      (tree/make-exists
+       ex
        (-> (tree/make-node ex)
            (tree/node-properties props*))))))
 
@@ -39,7 +40,7 @@
    (property "longitude" (lit-d "9.054090697517525"))))
 
 (def default-postal-address
-  (make-value
+  (make-node
    "PostalAddress"
    (property "streetAddress" (lit-s "Hechinger Str. 12/1"))
    (property "postalCode" (lit-s "72072"))
