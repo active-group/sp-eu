@@ -34,8 +34,8 @@
    discard-edit-action-index])
 
 (def-record set-reference-action
-  [set-reference-action-old-uri :- realm/string
-   set-reference-action-new-uri :- realm/string
+  [set-reference-action-old-uri :- tree/URI
+   set-reference-action-new-uri :- tree/URI
    set-reference-action-predicate :- (realm/optional realm/string)
    set-reference-action-subject-uri :- (realm/optional tree/URI)
    ])
@@ -459,16 +459,18 @@
        (ds/button-secondary {:onClick #(c/return :action close-action)}
                             "Cancel")
        (c/with-state-as state
-         (let [text (first (second state))
-               disabled? (not (valid-uri? text))]
+         (let [text (first (second state))]
+
            (ds/button-primary {:onClick
                                (fn [[node [new-uri _]]]
                                  (let [old-uri (edit-tree/tree-uri node)]
                                    (c/return :action (set-reference-action
                                                       set-reference-action-old-uri old-uri
-                                                      set-reference-action-new-uri new-uri))))
-                               :disabled disabled?
-                               :style (when disabled? {:color "gray"})}
+                                                      set-reference-action-new-uri (or
+                                                                                    (existential/string->existential new-uri)
+
+                                                                                    new-uri))
+                                             :action close-action)))}
                               "Set reference"))))))))
 
 (defn- refresh-node-request [uri]

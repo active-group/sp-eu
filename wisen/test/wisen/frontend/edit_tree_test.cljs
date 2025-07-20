@@ -444,4 +444,62 @@
                 [(et/mark-added
                   (et/make-ref 0))]}))
              result
+             ))))
+
+  (testing "form a loop"
+    (let [etree (et/edit-node
+                 et/edit-node-uri "sub"
+                 et/edit-node-properties
+                 {"pred"
+                  [(et/mark-added
+                    (et/edit-node
+                     et/edit-node-uri "obj"
+                     et/edit-node-properties
+                     {}))]})
+
+          result (et/set-reference etree
+                                   "sub"
+                                   "pred"
+                                   "obj"
+                                   "sub")]
+
+      (is (= (et/edit-node
+              et/edit-node-uri "sub"
+              et/edit-node-properties
+              {"pred"
+               [(et/mark-added
+                 (et/make-ref "sub"))]})
+             result
+             ))))
+
+  (testing "form a loop, exists"
+    (let [etree (et/exists
+                 et/exists-existential 0
+                 et/exists-edit-tree
+                 (et/edit-node
+                  et/edit-node-uri 0
+                  et/edit-node-properties
+                  {"pred"
+                   [(et/mark-added
+                     (et/edit-node
+                      et/edit-node-uri "obj"
+                      et/edit-node-properties
+                      {}))]}))
+
+          result (et/set-reference etree
+                                   0
+                                   "pred"
+                                   "obj"
+                                   0)]
+
+      (is (= (et/exists
+              et/exists-existential 0
+              et/exists-edit-tree
+              (et/edit-node
+               et/edit-node-uri 0
+               et/edit-node-properties
+               {"pred"
+                [(et/mark-added
+                  (et/make-ref 0))]}))
+             result
              )))))

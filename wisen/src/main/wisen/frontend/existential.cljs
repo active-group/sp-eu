@@ -13,32 +13,18 @@
     uri
     (hash uri)))
 
-(def existential-generator 0)
+(defn string->existential [s]
+  (println "trying")
+  (println (pr-str s))
+  (when (re-matches #"^[0-9]+$" s)
+    (println "yep")
+    (js/parseInt s)))
 
-(defn next-existential+generator [ex]
-  [ex (inc ex)])
 
-(defn split-existential-generator [ex]
-  [ex (+ ex 1000)])
 
-;; convenience API
 
-(def ^:dynamic exgen)
 
-(defn with-exgen [f]
-  (binding [exgen (atom existential-generator)]
-    (f)))
 
-(defn with-fresh-existential [f]
-  (assert exgen)
-  (let [[ex exgen*] (next-existential+generator @exgen)]
-    (reset! exgen exgen*)
-    (f ex)))
 
-(defn with-exgen-2 [f]
-  (f existential-generator))
 
-(defn with-fresh-existential-2 [exgen f]
-  (assert exgen)
-  (let [[ex exgen*] (next-existential+generator exgen)]
-    (f ex exgen*)))
+
