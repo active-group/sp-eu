@@ -115,22 +115,34 @@
 
 (def desired-number-of-search-results 2)
 
-(defn search! [vec box & [dir]]
+(defn geo-query [box]
+  (let [args (SpatialArgs. SpatialOperation/Intersects (box->shape box))
+        geo-query (.makeQuery strategy args)]
+    geo-query))
+
+(defn knn-query [vec]
+  (KnnVectorQuery. "embedding" vec desired-number-of-search-results))
+
+(defn combine-queries [q1 q2]
+  (let [query-builder (BooleanQuery$Builder.)
+        _ (.add query-builder q1 BooleanClause$Occur/MUST)
+        _ (.add query-builder q2 BooleanClause$Occur/MUST)]
+    (.build query-builder)))
+
+(defn run-query! [query & [dir]]
   (with-searcher!
     (fn [searcher]
-      (let [args (SpatialArgs. SpatialOperation/Intersects (box->shape box))
-            geo-query (.makeQuery strategy args)
-            knn-query (KnnVectorQuery. "embedding" vec desired-number-of-search-results)
-            query-builder (BooleanQuery$Builder.)
-            _ (.add query-builder knn-query BooleanClause$Occur/MUST)
-            _ (.add query-builder geo-query BooleanClause$Occur/MUST)
-            query (.build query-builder)
-            topDocs (.search searcher query desired-number-of-search-results)]
-
+      (let [topDocs (.search searcher query desired-number-of-search-results)]
         (doall (map (fn [scoreDoc]
                       (let [foundDoc (.doc searcher (.-doc scoreDoc))]
                         (.get foundDoc "id")))
                     (seq (.scoreDocs topDocs))))))
     dir))
+
+(defn search! [vec box & [dir]]
+  (run-query! (combine-queries
+               (geo-query box)
+               (knn-query vec))
+              dir))
 
 #_(search! (float-array [2.0 3.2 4.2]) [[0 10] [0 10]])
