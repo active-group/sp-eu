@@ -51,117 +51,21 @@
   (semantic-area-search-action semantic-area-search-action-query query
                                semantic-area-search-action-bbox bbox))
 
+(def-record search-response
+  [search-response-graph-string :- realm/string
+   search-response-uri-order :- (realm/sequence-of realm/string)])
+
 (defn sparql-request [query]
   (-> (ajax/POST "/api/search"
                  {:body (js/JSON.stringify (clj->js {:query (query/serialize-query query)}))
                   :headers {:content-type "application/json"}
                   #_#_:response-format "application/ld+json"})
-      #_(ajax/map-ok-response
+      (ajax/map-ok-response
        (fn [body]
-         (js/JSON.parse body)))))
-
-(defn- organization->sparql [m]
-  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
-    (str "CONSTRUCT { ?s ?p ?o .
-                      ?s a <http://schema.org/Organization> .
-                      ?s <https://wisen.active-group.de/target-group> ?target .
-                      ?s <http://schema.org/keywords> ?keywords .
-                      ?s <http://schema.org/location> ?location .
-                      ?location a <http://schema.org/Place> .
-                      ?location <http://schema.org/geo> ?coords .
-                      ?coords <http://schema.org/latitude> ?lat .
-                      ?coords <http://schema.org/longitude> ?long .
-                      ?location ?locationp ?locationo .
-                    }
-          WHERE { ?s ?p ?o .
-                  ?s <http://jena.apache.org/text#query> '" (:text m) "~' .
-                  ?s a <http://schema.org/Organization> .
-                  ?s <https://wisen.active-group.de/target-group> ?target .
-                  ?s <http://schema.org/keywords> ?keywords .
-                  ?s <http://schema.org/location> ?location .
-                  ?location a <http://schema.org/Place> .
-                  ?location <http://schema.org/geo> ?coords .
-                  ?coords <http://schema.org/latitude> ?lat .
-                  ?coords <http://schema.org/longitude> ?long .
-
-                      OPTIONAL {
-                        ?location ?locationp ?locationo .
-                      }
-                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
-                  }")))
-
-(defn- offer->sparql [m]
-  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
-    (str "CONSTRUCT { ?s ?p ?o .
-                      ?s a <http://schema.org/Offer> .
-                      ?s <https://wisen.active-group.de/target-group> ?target .
-                      ?s <http://schema.org/keywords> ?keywords .
-                      ?s <http://schema.org/location> ?location .
-                      ?location a <http://schema.org/Place> .
-                      ?location <http://schema.org/geo> ?coords .
-                      ?coords <http://schema.org/latitude> ?lat .
-                      ?coords <http://schema.org/longitude> ?long .
-                      ?location ?locationp ?locationo .
-                    }
-          WHERE { ?s ?p ?o .
-                  ?s a <http://schema.org/Offer> .
-                  ?s <https://wisen.active-group.de/target-group> ?target .
-                  ?s <http://schema.org/keywords> ?keywords .
-                  ?s <http://schema.org/availableAtOrFrom> ?location .
-                  ?location a <http://schema.org/Place> .
-                  ?location <http://schema.org/geo> ?coords .
-                  ?coords <http://schema.org/latitude> ?lat .
-                  ?coords <http://schema.org/longitude> ?long .
-
-                      OPTIONAL {
-                        ?location ?locationp ?locationo .
-                      }
-                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
-                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
-                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
-                  }")))
-
-(defn- event->sparql [m]
-  (let [[[min-lat max-lat] [min-long max-long]] (:location m)]
-    (str "CONSTRUCT { ?s ?p ?o .
-                      ?s a <http://schema.org/Event> .
-                      ?s <https://wisen.active-group.de/target-group> ?target .
-                      ?s <http://schema.org/keywords> ?keywords .
-                      ?s <http://schema.org/location> ?location .
-                      ?location a <http://schema.org/Place> .
-                      ?location <http://schema.org/geo> ?coords .
-                      ?coords <http://schema.org/latitude> ?lat .
-                      ?coords <http://schema.org/longitude> ?long .
-                      ?location ?locationp ?locationo .
-                    }
-          WHERE { ?s ?p ?o .
-                  ?s a <http://schema.org/Event> .
-                  ?s <https://wisen.active-group.de/target-group> ?target .
-                  ?s <http://schema.org/keywords> ?keywords .
-                  ?s <http://schema.org/location> ?location .
-                  ?location a <http://schema.org/Place> .
-                  ?location <http://schema.org/geo> ?coords .
-                  ?coords <http://schema.org/latitude> ?lat .
-                  ?coords <http://schema.org/longitude> ?long .
-
-                      OPTIONAL {
-                        ?location ?locationp ?locationo .
-                      }
-                  FILTER( ?lat >= " min-lat " && ?lat <= " max-lat " && ?long >= " min-long " && ?long <= " max-long " )
-                  FILTER(CONTAINS(LCASE(STR(?keywords)), \"" (first (:tags m)) "\"))
-                  FILTER(CONTAINS(LCASE(STR(?target)), \"" (:target m) "\"))
-                  }")))
-
-(defn- quick-search->sparql [m]
-  (case (:type m)
-    :organization
-    (organization->sparql m)
-
-    :offer
-    (offer->sparql m)
-
-    :event
-    (event->sparql m)))
+         (let [m (reader/read-string body)]
+           (search-response
+            search-response-graph-string (:model m)
+            search-response-uri-order (:relevance m)))))))
 
 #_(defn area-search! [params]
   (ajax/POST "/osm/search-area"
@@ -331,8 +235,36 @@
                     (c/focus query/query-filter-target-group
                              (filter-target-group-component))))))))))
 
+(def-record search-response*
+  [search-response*-graph ;; parsed rdflib graph
+   search-response*-uri-order :- (realm/sequence-of realm/string)
+   ])
+
 (defn run-query [q]
-  (util/load-json-ld (sparql-request q)))
+  (let [request (sparql-request q)]
+    (c/isolate-state
+     {}
+     (c/with-state-as responses
+       (c/fragment
+        (c/focus (lens/member request)
+                 (ajax/fetch request))
+
+        (when-let [current-response (get responses request)]
+          (if (ajax/response-ok? current-response)
+            (let [resp-val (ajax/response-value current-response)]
+              (util/json-ld-string->graph
+               (search-response-graph-string resp-val)
+               (fn [response-graph]
+                 (c/once
+                  (fn [_]
+                    (c/return :action (make-success
+                                       (search-response*
+                                        search-response*-graph response-graph
+                                        search-response*-uri-order (search-response-uri-order resp-val)))))))))
+            ;; else
+            (c/once
+             (fn [_]
+               (c/return :action (make-error (ajax/response-value current-response))))))))))))
 
 (defn- unwrap-rdf-literal-decimal [x]
   (assert (or (rdf/literal-decimal? x)
@@ -522,13 +454,13 @@
                                  (tree-geo-positions (edit-tree/edit-tree-result-tree etree))))))
 
             ;; display when we have a graph
-            (c/with-state-as state
-              (when state
+            (c/with-state-as etree
+              (when etree
                 (ds/padded-2
                  (dom/h2 "Results")
                  (dom/div
                   {:style {:padding-bottom "1em"}}
-                  (editor/edit-tree-component schema nil true false)))))
+                  (editor/edit-tree-component schema nil true false nil (:uri-order state))))))
 
             (when-let [sugg-graphs (:sugg-graphs state)]
               (let [background-color "#e1e1e1"]
@@ -583,7 +515,8 @@
                                (if (success? ac)
                                  (c/return :state
                                            (-> st
-                                               (assoc :graph (success-value ac))
+                                               (assoc :graph (search-response*-graph (success-value ac)))
+                                               (assoc :uri-order (search-response*-uri-order (success-value ac)))
                                                (dissoc :last-focus-query)))
                                  (c/return :action ac)))))))
 
