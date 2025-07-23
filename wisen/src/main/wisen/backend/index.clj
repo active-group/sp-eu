@@ -97,12 +97,28 @@
   (insert-via-event! dir)
   (insert-via-contactPoint! dir))
 
-(defn search! [text box & [dir]]
-  (lucene/search! (lucene/make-vector
-                   (embedding/get-embedding
-                    (prepare-for-query text)))
-                  box
-                  dir))
+(defn make-geo-query [box]
+  (lucene/geo-query box))
+
+(defn make-fuzzy-text-query [text]
+  (lucene/knn-query (lucene/make-vector
+                     (embedding/get-embedding
+                      (prepare-for-query text)))))
+
+(defn combine-queries [q1 q2]
+  (lucene/combine-queries q1 q2))
+
+(defn search-geo! [box & [dir]]
+  (lucene/run-query!
+   (make-geo-query box)
+   dir))
+
+(defn search-text-and-geo! [text box & [dir]]
+  (lucene/run-query!
+   (combine-queries
+    (make-geo-query box)
+    (make-fuzzy-text-query text))
+   dir))
 
 (def file-system-index lucene/file-system-directory)
 
