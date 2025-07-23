@@ -701,20 +701,20 @@
                  :gap "1em"}}
 
         (dom/div {:style {:border "1px solid #777"
-                          :padding ".5ex 1em .5ex .5ex"
+                          :padding "0.5em 1.2em"
+                          :background "white"
                           :border-radius "25px"
                           :display "flex"
                           :gap "0.8em"
                           :align-items "center"}}
-                 (the-circle (when (existential/existential? uri)
-                               (dom/div {:style {:display "flex"
-                                                 :justify-content "center"
-                                                 :align-items "center"
-                                                 :height "100%"
-                                                 :color "green"}}
-                                        ds/plus-icon)))
                  (if (existential/existential? uri)
-                   (pr-uri uri)
+                   (dom/div
+                    {:style {:display "flex" :gap "0.5em" :align-items "baseline"}}
+                    (dom/div {:style {:color "green"
+                                      :position "relative"
+                                      :top "3px"}}
+                             ds/plus-icon)
+                    (pr-uri uri))
                    (dom/a
                     {:id (tree/uri-string uri)
                      :href (tree/uri-string uri)}
