@@ -171,16 +171,26 @@
   (c/with-state-as etree
     (cond
       (and (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
-           (edit-tree/edit-node? etree))
-      (c/focus edit-tree/edit-node-uri
+           (or (edit-tree/edit-node? etree)
+               (edit-tree/ref? etree)))
+      (c/focus edit-tree/tree-uri
                (apply
                 ds/select
-                {:disabled (when-not editable? "disabled")}
+                {:value (edit-tree/tree-uri etree)
+                 :onChange (fn [old-uri e]
+                             (let [new-uri (.-value (.-target e))]
+                               (c/return :action (set-reference-action
+                                                  set-reference-action-old-uri old-uri
+                                                  set-reference-action-new-uri new-uri
+                                                  set-reference-action-predicate predicate))))
+                 :disabled (when-not editing? "disabled")}
                 (map (fn [type-uri]
-                       (forms/option {:value type-uri} (schema/label-for-type schema type-uri)))
-                     (distinct
-                      (conj types
-                            (edit-tree/edit-node-uri etree))))))
+                       (dom/option {:value type-uri}
+                                   (schema/label-for-type schema type-uri)))
+                     (sort
+                      (distinct
+                       (conj types
+                             (edit-tree/tree-uri etree)))))))
 
       (and (= predicate "http://schema.org/dayOfWeek")
            (or (edit-tree/edit-node? etree)
