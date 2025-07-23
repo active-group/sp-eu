@@ -91,8 +91,13 @@
         min-lon (query/geo-bounding-box-min-lon bb)
         max-lon (query/geo-bounding-box-max-lon bb)
 
-        uris (index/search! (query/query-fuzzy-search-term q)
-                            (index/make-bounding-box min-lat max-lat min-lon max-lon))
+        index-bb (index/make-bounding-box min-lat max-lat min-lon max-lon)
+
+        uris (if (query/everything-query? q)
+               (index/search-geo! index-bb)
+               (index/search-text-and-geo!
+                (query/query-fuzzy-search-term q)
+                index-bb))
 
         _ (event-logger/log-event! :info (str "URIs found in index: " (pr-str uris)))
 
