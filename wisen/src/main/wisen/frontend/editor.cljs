@@ -167,7 +167,7 @@
          edit-node-is-postal-address-value?
          edit-node-is-opening-hours-specification-value?)
 
-(c/defn-item ^:private component-for-predicate [predicate schema types editable? editing? background-color]
+(c/defn-item ^:private component-for-predicate [predicate schema types editable? editing? background-color compare-edit-tree]
   (c/with-state-as etree
     (cond
       (and (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
@@ -313,7 +313,8 @@
         (schema/types-for-predicate schema predicate)
         editable?
         editing?
-        background-color)))))
+        background-color
+        compare-edit-tree)))))
 
 (c/defn-item add-property-button [schema predicates]
   (c/with-state-as [node predicate :local schemaorg/default-predicate]
@@ -529,7 +530,7 @@
                   :height "27px"}}
          children))
 
-(c/defn-item property-object-component [schema types predicate editable? force-editing? last? background-color]
+(c/defn-item property-object-component [schema types predicate editable? force-editing? last? background-color compare-edit-tree]
   (c/with-state-as marked-edit-trees
     (apply dom/div
            {:style {:display "flex"
@@ -616,30 +617,30 @@
                                       (cond
                                         (edit-tree/deleted? marked-edit-tree)
                                         (c/focus edit-tree/deleted-original-value
-                                                 (component-for-predicate predicate schema types editable? force-editing? background-color))
+                                                 (component-for-predicate predicate schema types false false background-color compare-edit-tree))
 
                                         (edit-tree/added? marked-edit-tree)
                                         (c/focus edit-tree/added-result-value
-                                                 (component-for-predicate predicate schema types editable? force-editing? background-color))
+                                                 (component-for-predicate predicate schema types editable? force-editing? background-color compare-edit-tree))
 
                                         (edit-tree/same? marked-edit-tree)
                                         (c/focus edit-tree/maybe-changed-result-value
-                                                 (component-for-predicate predicate schema types editable? force-editing? background-color))
+                                                 (component-for-predicate predicate schema types editable? force-editing? background-color compare-edit-tree))
 
                                         (edit-tree/changed? marked-edit-tree)
                                         (before-after
                                          ;; before
                                          (c/focus edit-tree/maybe-changed-original-value
-                                                  (component-for-predicate predicate schema types false false background-color))
+                                                  (component-for-predicate predicate schema types false false background-color compare-edit-tree))
                                          ;; after
                                          (c/focus edit-tree/maybe-changed-result-value
-                                                  (component-for-predicate predicate schema types editable? force-editing? background-color))
+                                                  (component-for-predicate predicate schema types editable? force-editing? background-color compare-edit-tree))
 
                                          background-color))))))
 
                         marked-edit-trees))))
 
-(c/defn-item properties-component [schema types editable? force-editing? background-color]
+(c/defn-item properties-component [schema types editable? force-editing? background-color compare-edit-tree]
   (c/with-state-as properties
 
     (apply
@@ -652,7 +653,7 @@
        (map-indexed (fn [idx predicate]
                       (-> (c/focus (lens/member predicate)
                                    (let [last? (= idx (dec (count ks)))]
-                                     (property-object-component schema types predicate editable? force-editing? last? background-color)))
+                                     (property-object-component schema types predicate editable? force-editing? last? background-color compare-edit-tree)))
                           (c/handle-action
                            (fn [_ action]
                              (if (and (is-a? set-reference-action action)
@@ -687,7 +688,7 @@
 (c/defn-effect copy-to-clipboard! [s]
   (.writeText (.-clipboard js/navigator) s))
 
-(defn- node-component [schema types editable? force-editing? background-color]
+(defn- node-component [schema types editable? force-editing? background-color compare-edit-tree]
   (c/with-state-as [node editing? :local force-editing?]
 
     (let [uri (edit-tree/edit-node-uri node)]
@@ -758,7 +759,7 @@
                                     :border-left "1px solid gray"
                                     :padding-bottom "2ex"}}
 
-                           (properties-component schema types editable? editing? background-color)))))
+                           (properties-component schema types editable? editing? background-color compare-edit-tree)))))
              (c/handle-action
               (fn [node action]
                 (cond
@@ -987,7 +988,7 @@
             (forms/option {:value "http://schema.org/Saturday"} "Saturday")
             (forms/option {:value "http://schema.org/Sunday"} "Sunday"))))
 
-(c/defn-item ^:private node-component-for-type [type schema types editable? force-editing? background-color]
+(c/defn-item ^:private node-component-for-type [type schema types editable? force-editing? background-color compare-edit-tree]
   (c/with-state-as enode
     (let [type-uri (tree/type-uri type)]
       (cond
@@ -1011,9 +1012,17 @@
          (opening-hours-specification-component schema editable? force-editing?))
 
         :else
-        (node-component schema types editable? force-editing? background-color)))))
+        (node-component schema types editable? force-editing? background-color compare-edit-tree)))))
 
-(c/defn-item edit-tree-component* [schema types editable? force-editing? & [background-color]]
+(defn- index-of [v elem]
+  (some (fn [[i x]]
+          (when (= x elem)
+            i))
+        (map-indexed vector v)))
+
+
+
+(c/defn-item edit-tree-component* [schema types editable? force-editing? & [background-color compare-edit-tree]]
   (c/with-state-as etree
     (let [bgc (or background-color "#eee")]
       (cond
@@ -1075,15 +1084,17 @@
                       {:style {:display "flex"
                                :flex-direction "column"
                                :gap "4ex"}}
-                      (map-indexed
-                       (fn [idx etree]
+                      (map
+                       (fn [[idx etree]]
                          (c/focus (lens/at-index idx)
                                   (edit-tree-component* schema types editable? force-editing? bgc)))
-                       etrees)))))
+                       (sort-by second
+                                (comp - compare-edit-tree)
+                                (map vector (range) etrees)))))))
 
         (edit-tree/exists? etree)
         (c/focus edit-tree/exists-edit-tree
-                 (edit-tree-component* schema types editable? force-editing? bgc))
+                 (edit-tree-component* schema types editable? force-editing? bgc compare-edit-tree))
 
         (edit-tree/edit-node? etree)
         (node-component-for-type (edit-tree/edit-node-type etree)
@@ -1091,20 +1102,59 @@
                                  types
                                  editable?
                                  force-editing?
-                                 bgc)))))
+                                 bgc
+                                 compare-edit-tree)))))
 
-(c/defn-item edit-tree-component [schema types editable? force-editing? & [background-color]]
-  (-> (edit-tree-component* schema types editable? force-editing? background-color)
+(defn- make-compare-with-uri-order [uri-order]
+  (let [get-position (fn [etree]
+                       (cond
+                         (edit-tree/edit-node? etree)
+                         (index-of
+                          uri-order
+                          (edit-tree/edit-node-uri etree))
+
+                         (edit-tree/ref? etree)
+                         (index-of
+                          uri-order
+                          (edit-tree/ref-uri etree))))]
+    (fn [etree-1 etree-2]
+      (let [pos-1 (get-position etree-1)
+            pos-2 (get-position etree-2)]
+        (cond
+          (and (nil? pos-1)
+               (nil? pos-2))
+          ;; fallback
+          (compare etree-1 etree-2)
+
+          (nil? pos-1)
+          -1
+
+          (nil? pos-2)
+          +1
+
+          (<= pos-1 pos-2)
+          +1
+
+          (> pos-1 pos-2)
+          -1
+
+          :else
+          0)))))
+
+(c/defn-item edit-tree-component [schema types editable? force-editing? & [background-color uri-order]]
+  (-> (edit-tree-component* schema
+                            types
+                            editable?
+                            force-editing?
+                            background-color
+                            (make-compare-with-uri-order uri-order))
       (c/handle-action (fn [etree action]
                          (if (is-a? set-reference-action action)
-                           (do
-                             (println "setting reference from action" (pr-str action))
-                             (println "etree: " (pr-str etree))
-                             (edit-tree/set-reference etree
-                                                      (set-reference-action-subject-uri action)
-                                                      (set-reference-action-predicate action)
-                                                      (set-reference-action-old-uri action)
-                                                      (set-reference-action-new-uri action)))
+                           (edit-tree/set-reference etree
+                                                    (set-reference-action-subject-uri action)
+                                                    (set-reference-action-predicate action)
+                                                    (set-reference-action-old-uri action)
+                                                    (set-reference-action-new-uri action))
                            ;; else
                            (c/return :action action))))))
 
