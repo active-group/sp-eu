@@ -115,7 +115,9 @@
         result-model (triple-store/run-construct-query! sparql)]
 
     {:status 200
-     :body (jsonld/model->json-ld-string result-model)}))
+     :body (pr-str
+            {:model (jsonld/model->json-ld-string result-model)
+             :relevance uris})}))
 
 (defn prepare-changeset [changeset place->geo]
   (-> changeset
