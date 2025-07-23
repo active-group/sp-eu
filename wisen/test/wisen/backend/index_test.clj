@@ -10,11 +10,11 @@
                              description
                              dir))
         search! (fn [text]
-                  (i/search! text
-                             (i/make-bounding-box
-                              0.0 2.0
-                              0.0 2.0)
-                             dir))]
+                  (i/search-text-and-geo! text
+                                          (i/make-bounding-box
+                                           0.0 2.0
+                                           0.0 2.0)
+                                          dir))]
 
     (insert! "senioren"
 
