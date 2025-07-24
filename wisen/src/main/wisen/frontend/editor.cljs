@@ -77,6 +77,11 @@
               (tree/uri-string uri))
     (tree/uri-string uri)))
 
+(defn- pr-boolean [on?]
+  (if on?
+    "True"
+    "False"))
+
 (c/defn-item ^:private before-after [before-item after-item background-color]
   (c/with-state-as [state before-or-after :local ::after]
     (dom/div
@@ -1044,9 +1049,19 @@
         (edit-tree/literal-boolean? etree)
         (c/focus (lens/pattern [edit-tree/literal-boolean-value
                                 edit-tree/literal-boolean-focused?])
-                 (ds/input+focus {:type "checkbox"
-                                  :disabled (when-not force-editing?
-                                              "disabled")}))
+                 (dom/div
+                  {:style {:display "flex"
+                           :align-items "center"
+                           :gap "0.5em"
+                           :height "100%"}}
+                  (ds/input+focus {:type "checkbox"
+                                   :style {:width "20px"
+                                           :height "20px"
+                                           :margin "0"}
+                                   :disabled (when-not force-editing?
+                                               "disabled")})
+                  (dom/div
+                   (c/dynamic pr-boolean))))
 
         (edit-tree/literal-time? etree)
         (c/focus (lens/pattern [edit-tree/literal-time-value
