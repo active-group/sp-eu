@@ -372,7 +372,7 @@
                                             config/auth-section)
         wrap-sso      (auth/mk-sso-mw free-for-all? openid-config)]
 
-    (-> handler*
+    (-> #'handler*
         (ring.middleware.resource/wrap-resource "/")
         (wrap-caching "max-age=0")
         (wrap-client-routes routes/routes client-response)
