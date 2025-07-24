@@ -310,8 +310,8 @@
                                         line-height: 20px;}
                             ul, ol {margin: 0; padding: 0; padding-left: 1.4em;}
                             hr {margin: 0; padding: 0; border: 0; border-bottom: 1px solid gray;}
-                            a, button { position: relative; }
-                            a:active, button:active { padding-top: 1px !important; opacity: 0.7; }
+                            a, button { position: relative; padding-bottom: 1px !important; }
+                            a:active, button:active { padding-top: 1px !important; padding-bottom: 0px !important; opacity: 0.7; }
 
     @keyframes rotation {
     0% {
