@@ -159,6 +159,7 @@
                       (c/return :action (make-focus-query-action query)))
           :style {:display "flex"
                   :align-items "baseline"
+                  :margin "0"
                   :gap "10px"
                   :border "1px solid rgba(255,255,255,0.8)"
                   :background "rgba(255,255,255,0.5)"
@@ -347,21 +348,20 @@
 
 (c/defn-item map-search [schema loading? pins]
   (with-startup-query
-    (dom/div
-     {:style {:position "relative"
-              :border-bottom "1px solid #bbb"}}
-     (dom/div
-      {:style {:position "absolute"
-               :bottom 0
-               :left 0
-               :z-index 999
-               :width "100%"}}
-
-      (quick-search loading?))
+    (c/fragment
 
      (c/focus (lens/>> query/query-geo-bounding-box
                        query/geo-bounding-box<->vectors)
-              (leaflet/main {:style {:height 560}} pins)))))
+              (leaflet/main {:style {:height 560}} pins))
+
+     (dom/div
+      {:style {:position "sticky"
+               :top 0
+               :z-index 999
+               :background "#eee"
+               :border-bottom ds/border}}
+
+      (quick-search loading?)))))
 
 (declare tree-geo-positions)
 
