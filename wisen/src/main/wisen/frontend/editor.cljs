@@ -301,6 +301,10 @@
 
       :else
       (dom/div
+       {:style {:display "flex"
+                :flex-wrap "wrap"
+                :align-items "flex-start"
+                :gap "0.5em"}}
        (when editing?
          (c/focus (edit-tree/make-edit-tree-kind-lens
                    (partial default/default-tree-for-predicate-and-kind predicate))
@@ -709,7 +713,8 @@
                  :gap "1em"}}
 
         (dom/div {:style {:border "1px solid #777"
-                          :padding "0.5em 1.2em"
+                          :padding "4px 20px"
+                          :font-size "13px"
                           :background "white"
                           :border-radius "25px"
                           :display "flex"

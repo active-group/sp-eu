@@ -105,7 +105,7 @@
                                        :style
                                        {:background-color (if disabled? "#eee" "#fefefe")
                                         :border (if disabled? "1px solid #bbb" "1px solid #888")
-                                        :padding "4px 8px"
+                                        :padding "5px 8px"
                                         :font-size "14px"
                                         :color "#333"
                                         :border-radius "3px"}}
