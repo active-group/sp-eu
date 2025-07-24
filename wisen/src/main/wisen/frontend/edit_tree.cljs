@@ -425,8 +425,10 @@
     (is-a? edit-node etree)
     (edit-node-result-node etree)))
 
+(declare unchanged?)
+
 (defn set-edit-node-original [enode new-node]
-  (assert (empty? (edit-node-properties enode)))
+  (assert (unchanged? enode))
   (edit-node-properties enode
                         (edit-node-properties (make-edit-tree new-node mark-same))))
 
@@ -584,9 +586,15 @@
                          (dissoc eprops predicate)
                          (assoc eprops predicate result-metrees)))))))
 
+(defn unchanged? [enode]
+  (every? same?
+          (apply concat
+                 (vals
+                  (edit-node-properties enode)))))
+
 (defn can-refresh? [etree]
   (and (is-a? edit-node etree)
-       (empty? (edit-node-properties etree))))
+       (unchanged? etree)))
 
 ;; re-implementations of wisen.frontend.tree stuff
 
