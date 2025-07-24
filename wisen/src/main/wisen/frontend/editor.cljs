@@ -530,7 +530,7 @@
                   :height "27px"}}
          children))
 
-(c/defn-item property-object-component [schema types predicate editable? force-editing? last? background-color compare-edit-tree]
+(c/defn-item property-object-component [schema types predicate editable? force-editing? last-property? background-color compare-edit-tree]
   (c/with-state-as marked-edit-trees
     (apply dom/div
            {:style {:display "flex"
@@ -544,17 +544,19 @@
                                                :display "flex"
                                                :position "relative"}}
 
-                                      (when last?
-                                        (dom/div {:style {:width "1px"
-                                                          :border-left (if force-editing?
-                                                                         "1px dashed gray"
-                                                                         (str "1px solid " background-color))
-                                                          :height "100%"
-                                                          :position "absolute"
-                                                          :top "15px"
-                                                          :z-index "5"
-                                                          :left "-1px"
-                                                          :background background-color}}))
+                                      (let [last-marked-edit-tree? (= idx (dec (count marked-edit-trees)))]
+                                        (when (and last-property?
+                                                   last-marked-edit-tree?)
+                                          (dom/div {:style {:width "1px"
+                                                            :border-left (if force-editing?
+                                                                           "1px dashed gray"
+                                                                           (str "1px solid " background-color))
+                                                            :height "100%"
+                                                            :position "absolute"
+                                                            :top "15px"
+                                                            :z-index "5"
+                                                            :left "-1px"
+                                                            :background background-color}})))
 
                                       (dom/div
                                        {:style {:min-width "15em"
