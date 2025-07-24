@@ -1047,19 +1047,18 @@
                                               "disabled")}))
 
         (edit-tree/literal-boolean? etree)
-        (c/focus (lens/pattern [edit-tree/literal-boolean-value
-                                edit-tree/literal-boolean-focused?])
+        (c/focus edit-tree/literal-boolean-value
                  (dom/div
                   {:style {:display "flex"
                            :align-items "center"
                            :gap "0.5em"
                            :height "100%"}}
-                  (ds/input+focus {:type "checkbox"
-                                   :style {:width "20px"
-                                           :height "20px"
-                                           :margin "0"}
-                                   :disabled (when-not force-editing?
-                                               "disabled")})
+                  (ds/input {:type "checkbox"
+                             :style {:width "20px"
+                                     :height "20px"
+                                     :margin "0"}
+                             :disabled (when-not force-editing?
+                                         "disabled")})
                   (dom/div
                    (c/dynamic pr-boolean))))
 
