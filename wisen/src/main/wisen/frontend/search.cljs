@@ -460,7 +460,20 @@
                  (dom/h2 "Results")
                  (dom/div
                   {:style {:padding-bottom "1em"}}
-                  (editor/edit-tree-component schema nil true false nil (:uri-order state))))))
+                  (editor/edit-tree-component schema nil true false nil (:uri-order state)
+                                              (into {}
+                                                    (map (fn [[coords uri]]
+                                                           [uri (dom/div
+                                                                 {:style {:background (color-for-coordinates coords)
+                                                                          :width "20px"
+                                                                          :height "20px"
+                                                                          :color "white"
+                                                                          :font-weight "bold"
+                                                                          :border-radius "100%"
+                                                                          :text-align "center"}}
+                                                                 (map-label-for-uri uri)
+                                                                 )])
+                                                         (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))))))
 
             (when-let [sugg-graphs (:sugg-graphs state)]
               (let [background-color "#e1e1e1"]
