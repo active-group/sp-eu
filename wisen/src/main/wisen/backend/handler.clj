@@ -56,8 +56,24 @@
           WHERE { <"
                uri
                "> ?p ?o . }")
-            result-model
-            (triple-store/run-construct-query! q)]
+
+            base-model
+            (triple-store/run-construct-query! q)
+
+            add-q (str
+                "CONSTRUCT {<"
+                uri
+                "> ?p1 ?o1 . ?o1 ?p2 ?o2 . }
+          WHERE { <"
+                uri
+                "> ?p1 ?o1 . ?o1 ?p2 ?o2 . }"
+                "LIMIT 30")
+
+            additional-model
+            (triple-store/run-construct-query! add-q)
+
+            result-model (.add base-model additional-model)
+            ]
         {:status 200
          ;; We have to take the "Accept" header of the request
          ;; into account for the cache key in the
