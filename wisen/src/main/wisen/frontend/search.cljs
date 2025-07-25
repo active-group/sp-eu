@@ -37,12 +37,6 @@
 (defn make-focus-query-action [q]
   (focus-query-action focus-query-action-query q))
 
-#_(def-record area-search-action
-  [area-search-action-params])
-
-#_(defn make-area-search-action [x]
-  (area-search-action area-search-action-params x))
-
 (def-record semantic-area-search-action
   [semantic-area-search-action-query
    semantic-area-search-action-bbox])
@@ -68,11 +62,6 @@
             search-response-graph-string (:model m)
             search-response-uri-order (:relevance m)
             search-response-total-hits (:total-hits m)))))))
-
-#_(defn area-search! [params]
-  (ajax/POST "/osm/search-area"
-             {:body (.stringify js/JSON (clj->js params))
-              :headers {:content-type "application/json"}}))
 
 (defn semantic-area-search! [params]
   (ajax/POST "/osm/semantic-area-search"
@@ -519,10 +508,6 @@
               (record/is-a? focus-query-action ac)
               (assoc st :last-focus-query (focus-query-action-query ac))
 
-              #_#_(record/is-a? area-search-action ac)
-              (assoc st :area-search-params (area-search-action-params ac)
-                     :area-search-response nil)
-
               (record/is-a? semantic-area-search-action ac)
               (assoc st :semantic-area-search-params {:semantic-area-search-query (semantic-area-search-action-query ac)
                                                       :semantic-area-search-bbox (semantic-area-search-action-bbox ac)}
@@ -575,10 +560,7 @@
 (c/defn-item main [schema]
   (c/isolate-state
    {:last-focus-query nil
-    :last-expand-by-query nil
     :graph nil
-    ;; :area-search-params nil
-    ;; :area-search-response nil
     :semantic-area-search-params nil
     :semantic-area-search-response nil}
    (c/with-state-as state
