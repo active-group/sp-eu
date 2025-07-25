@@ -37,6 +37,10 @@
    id-geo-vec-vec ;; (make-vector ...)
    ])
 
+(def-record search-result
+  [search-result-total-hits :- realm/integer
+   search-result-uris :- (realm/sequence-of realm/string)])
+
 (defn make-vector [v]
   (float-array v))
 
@@ -113,7 +117,7 @@
       (finally
         (.close r)))))
 
-(def desired-number-of-search-results 2)
+(def desired-number-of-search-results 5)
 
 (defn geo-query [box]
   (let [args (SpatialArgs. SpatialOperation/Intersects (box->shape box))
@@ -129,20 +133,20 @@
         _ (.add query-builder q2 BooleanClause$Occur/MUST)]
     (.build query-builder)))
 
-(defn run-query! [query & [dir]]
+(defn run-query!
+  "Takes query built with `knn-query`, `geo-query`, or
+  `combine-queries`. Returns `search-result`."
+  [query & [dir]]
   (with-searcher!
     (fn [searcher]
-      (let [topDocs (.search searcher query desired-number-of-search-results)]
-        (doall (map (fn [scoreDoc]
-                      (let [foundDoc (.doc searcher (.-doc scoreDoc))]
-                        (.get foundDoc "id")))
-                    (seq (.scoreDocs topDocs))))))
+      (let [topDocs (.search searcher query desired-number-of-search-results)
+            total-hits (.-value (.totalHits topDocs))]
+        (search-result
+         search-result-total-hits total-hits
+         search-result-uris (doall (map (fn [scoreDoc]
+                                          (let [foundDoc (.doc searcher (.-doc scoreDoc))]
+                                            (.get foundDoc "id")))
+                                        (seq (.scoreDocs topDocs)))))))
     dir))
-
-(defn search! [vec box & [dir]]
-  (run-query! (combine-queries
-               (geo-query box)
-               (knn-query vec))
-              dir))
 
 #_(search! (float-array [2.0 3.2 4.2]) [[0 10] [0 10]])
