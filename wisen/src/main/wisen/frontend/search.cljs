@@ -53,7 +53,8 @@
 
 (def-record search-response
   [search-response-graph-string :- realm/string
-   search-response-uri-order :- (realm/sequence-of realm/string)])
+   search-response-uri-order :- (realm/sequence-of realm/string)
+   search-response-total-hits :- realm/integer])
 
 (defn sparql-request [query]
   (-> (ajax/POST "/api/search"
@@ -65,7 +66,8 @@
          (let [m (reader/read-string body)]
            (search-response
             search-response-graph-string (:model m)
-            search-response-uri-order (:relevance m)))))))
+            search-response-uri-order (:relevance m)
+            search-response-total-hits (:total-hits m)))))))
 
 #_(defn area-search! [params]
   (ajax/POST "/osm/search-area"
@@ -239,6 +241,7 @@
 (def-record search-response*
   [search-response*-graph ;; parsed rdflib graph
    search-response*-uri-order :- (realm/sequence-of realm/string)
+   search-response*-total-hits :- realm/integer
    ])
 
 (defn run-query [q]
@@ -261,7 +264,8 @@
                     (c/return :action (make-success
                                        (search-response*
                                         search-response*-graph response-graph
-                                        search-response*-uri-order (search-response-uri-order resp-val)))))))))
+                                        search-response*-uri-order (search-response-uri-order resp-val)
+                                        search-response*-total-hits (search-response-total-hits resp-val)))))))))
             ;; else
             (c/once
              (fn [_]
@@ -458,6 +462,14 @@
               (when etree
                 (ds/padded-2
                  (dom/h2 "Results")
+                 (dom/div {:style {:color "#555"
+                                   :font-weight "normal"
+                                   :margin-bottom "1em"}}
+                          (str
+                           "Showing 1-"
+                           (count (:uri-order state))
+                           " of "
+                           (:total-hits state)))
                  (dom/div
                   {:style {:padding-bottom "1em"}}
                   (editor/edit-tree-component schema nil true false nil (:uri-order state)
@@ -530,6 +542,7 @@
                                            (-> st
                                                (assoc :graph (search-response*-graph (success-value ac)))
                                                (assoc :uri-order (search-response*-uri-order (success-value ac)))
+                                               (assoc :total-hits (search-response*-total-hits (success-value ac)))
                                                (dissoc :last-focus-query)))
                                  (c/return :action ac)))))))
 

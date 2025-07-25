@@ -4,6 +4,10 @@
             [wisen.backend.triple-store :as triple-store]
             ))
 
+(def search-result lucene/search-result)
+(def search-result-total-hits lucene/search-result-total-hits)
+(def search-result-uris lucene/search-result-uris)
+
 (defn- prepare-for-retrieval [name description]
   (str name "\n" description))
 

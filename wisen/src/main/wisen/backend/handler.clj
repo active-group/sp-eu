@@ -109,11 +109,15 @@
 
         index-bb (index/make-bounding-box min-lat max-lat min-lon max-lon)
 
-        uris (if (query/everything-query? q)
-               (index/search-geo! index-bb)
-               (index/search-text-and-geo!
-                (query/query-fuzzy-search-term q)
-                index-bb))
+        search-result (if (query/everything-query? q)
+                        (index/search-geo! index-bb)
+                        (index/search-text-and-geo!
+                         (query/query-fuzzy-search-term q)
+                         index-bb))
+
+        total-hits (index/search-result-total-hits search-result)
+
+        uris (index/search-result-uris search-result)
 
         _ (event-logger/log-event! :info (str "URIs found in index: " (pr-str uris)))
 
@@ -133,7 +137,8 @@
     {:status 200
      :body (pr-str
             {:model (jsonld/model->json-ld-string result-model)
-             :relevance uris})}))
+             :relevance uris
+             :total-hits total-hits})}))
 
 (defn prepare-changeset [changeset place->geo]
   (-> changeset
