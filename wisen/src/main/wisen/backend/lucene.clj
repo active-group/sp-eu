@@ -136,17 +136,19 @@
 (defn run-query!
   "Takes query built with `knn-query`, `geo-query`, or
   `combine-queries`. Returns `search-result`."
-  [query & [dir]]
+  [query [from cnt] & [dir]]
   (with-searcher!
     (fn [searcher]
-      (let [topDocs (.search searcher query desired-number-of-search-results)
+      (let [topDocs (.search searcher query (+ from cnt))
             total-hits (.-value (.totalHits topDocs))]
         (search-result
          search-result-total-hits total-hits
          search-result-uris (doall (map (fn [scoreDoc]
                                           (let [foundDoc (.doc searcher (.-doc scoreDoc))]
                                             (.get foundDoc "id")))
-                                        (seq (.scoreDocs topDocs)))))))
+                                        (take cnt
+                                              (drop from
+                                                    (seq (.scoreDocs topDocs)))))))))
     dir))
 
 #_(search! (float-array [2.0 3.2 4.2]) [[0 10] [0 10]])

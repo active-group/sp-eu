@@ -14,6 +14,7 @@
                                           (i/make-bounding-box
                                            0.0 2.0
                                            0.0 2.0)
+                                          [0 99]
                                           dir))]
 
     (insert! "senioren"

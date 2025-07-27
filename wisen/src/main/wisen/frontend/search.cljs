@@ -1,7 +1,7 @@
 (ns wisen.frontend.search
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
-            [active.data.record :as record :refer-macros [def-record]]
+            [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
             [active.clojure.lens :as lens]
             [reacl-c-basics.forms.core :as forms]
@@ -29,44 +29,136 @@
             [wisen.frontend.schema :as schema]
             [wisen.common.query :as query]
             [wisen.frontend.localstorage :as ls]
-            [cljs.reader :as reader]))
+            [cljs.reader :as reader]
+            [wisen.frontend.search-state :as ss]))
+
+(defn run-query-result-range [query result-range]
+  (ajax/fetch-once
+   (ajax/POST "/api/search"
+              {:body (js/JSON.stringify (clj->js {:query (query/serialize-query query)
+                                                  :range (ss/serialize-result-range result-range)}))
+               :headers {:content-type "application/json"}})
+   (fn [st new-response]
+     (if (ajax/response-ok? new-response)
+       (let [body (ajax/response-value new-response)
+             m (reader/read-string body)]
+         (ss/make-search-response
+          (ss/make-graph-as-string (:model m))
+          (:relevance m)
+          (:total-hits m)))
+       ;; else
+       (ss/make-error
+        (pr-str
+         (ajax/response-value new-response)))))))
+
+(c/defn-item pager [ss]
+  (c/with-state-as selected-result-range
+    (println (pr-str selected-result-range))
+    (println (pr-str ss))
+    (apply
+     dom/div
+     {:style {:color "#555"
+              :font-weight "normal"
+              :margin-bottom "1em"
+              :display "flex"
+              :gap "2em"}}
+     (map
+      (fn [rr]
+        (ds/button-secondary
+         {:onClick (fn [_] rr)
+          :style {:font-weight (when (= rr selected-result-range)
+                                 "bold")}}
+         (let [start (ss/result-range-start rr)
+               end (ss/result-range-end-inclusive rr)]
+           (if (= start end)
+             (str (inc start))
+             (str
+              (inc start)
+              " - "
+              (inc end))))))
+      (ss/search-session-pages ss)))))
+
+(c/defn-item search-response-graph-component [schema uri-order]
+  (c/with-state-as graph
+    (cond
+      (is-a? ss/graph-as-string graph)
+      (util/json-ld-string->graph
+       (ss/graph-as-string-value graph)
+       (fn [graph]
+         (c/once
+          (fn [_]
+            (c/return :state (ss/make-graph-as-edit-tree
+                              (edit-tree/graph->edit-tree graph)))))))
+
+      (is-a? ss/graph-as-edit-tree graph)
+      (c/focus ss/graph-as-edit-tree-value
+               (editor/edit-tree-component schema nil true false nil uri-order
+                                           {}
+                                           #_(into {}
+                                                   (map (fn [[coords uri]]
+                                                          [uri (dom/div
+                                                                {:style {:background (color-for-coordinates coords)
+                                                                         :width "20px"
+                                                                         :height "20px"
+                                                                         :color "white"
+                                                                         :font-weight "bold"
+                                                                         :border-radius "100%"
+                                                                         :text-align "center"}}
+                                                                (map-label-for-uri uri)
+                                                                )])
+                                                        (tree-geo-positions (edit-tree/edit-tree-result-tree etree))))))
+      )))
+
+(c/defn-item display-result [schema query result-range]
+  (c/with-state-as result
+    (cond
+      (is-a? ss/error result)
+      "TODO ERROR"
+
+      (ss/loading? result)
+      (c/fragment
+       "TODO LOADING"
+       (run-query-result-range query result-range))
+
+      (is-a? ss/search-response result)
+      (c/focus ss/search-response-graph
+               (search-response-graph-component schema (ss/search-response-uri-order result))))))
+
+(c/defn-item display-search-session [schema]
+  (c/with-state-as ss
+    (let [query (ss/search-session-query ss)
+          result-ranges (ss/search-session-result-ranges ss)]
+      (c/fragment
+
+       (ds/padded-2
+        (if (query/everything-query? query)
+          (dom/h2 "Results")
+          (dom/h2 "Results for «" (query/query-fuzzy-search-term query) "»")))
+
+       (c/local-state
+        (first result-ranges)
+        (c/fragment
+         (ds/padded-2
+          {:style {:position "sticky"
+                   :top "0"
+                   :z-index 9999}}
+          (c/focus lens/second
+                   (pager ss)))
+
+         (ds/padded-2
+          (c/with-state-as state
+            (let [selected-result-range (second state)]
+              (c/focus (lens/>> lens/first
+                                (ss/search-session-result-for-range selected-result-range))
+                       (display-result schema query selected-result-range)))))))))))
+
+;; ---
 
 (def-record focus-query-action
   [focus-query-action-query :- query/query])
 
 (defn make-focus-query-action [q]
   (focus-query-action focus-query-action-query q))
-
-(def-record semantic-area-search-action
-  [semantic-area-search-action-query
-   semantic-area-search-action-bbox])
-
-(defn make-semantic-area-search-action [query bbox]
-  (semantic-area-search-action semantic-area-search-action-query query
-                               semantic-area-search-action-bbox bbox))
-
-(def-record search-response
-  [search-response-graph-string :- realm/string
-   search-response-uri-order :- (realm/sequence-of realm/string)
-   search-response-total-hits :- realm/integer])
-
-(defn sparql-request [query]
-  (-> (ajax/POST "/api/search"
-                 {:body (js/JSON.stringify (clj->js {:query (query/serialize-query query)}))
-                  :headers {:content-type "application/json"}
-                  #_#_:response-format "application/ld+json"})
-      (ajax/map-ok-response
-       (fn [body]
-         (let [m (reader/read-string body)]
-           (search-response
-            search-response-graph-string (:model m)
-            search-response-uri-order (:relevance m)
-            search-response-total-hits (:total-hits m)))))))
-
-(defn semantic-area-search! [params]
-  (ajax/POST "/osm/semantic-area-search"
-             {:body (.stringify js/JSON (clj->js params))
-              :headers {:content-type "application/json"}}))
 
 (defn make-filter-component [add-button-label initial-filter item]
   (c/with-state-as state
@@ -190,22 +282,7 @@
                                       (c/with-state-as show?
                                         (if show?
                                           "Hide filters"
-                                          "Show filters"))))
-        #_(forms/form
-           {:onSubmit (fn [state event]
-                        (.preventDefault event)
-                        (c/return :action (make-semantic-area-search-action
-                                           (:free-text state)
-                                           (:location state))))}
-           (dom/div "Freitextsuche")
-           (c/focus :free-text
-                    (ds/input))
-           (ds/button-primary {:type "submit"
-                               :style {:background "#923dd2"
-                                       :padding "6px 16px"
-                                       :border-radius "20px"
-                                       :color "white"}}
-                              "Search")))
+                                          "Show filters")))))
 
        (when show-advanced?
          (c/focus lens/first
@@ -226,53 +303,6 @@
 
                     (c/focus query/query-filter-target-group
                              (filter-target-group-component))))))))))
-
-(def-record search-response*
-  [search-response*-graph ;; parsed rdflib graph
-   search-response*-uri-order :- (realm/sequence-of realm/string)
-   search-response*-total-hits :- realm/integer
-   ])
-
-(defn run-query [q]
-  (let [request (sparql-request q)]
-    (c/isolate-state
-     {}
-     (c/with-state-as responses
-       (c/fragment
-        (c/focus (lens/member request)
-                 (ajax/fetch request))
-
-        (when-let [current-response (get responses request)]
-          (if (ajax/response-ok? current-response)
-            (let [resp-val (ajax/response-value current-response)]
-              (util/json-ld-string->graph
-               (search-response-graph-string resp-val)
-               (fn [response-graph]
-                 (c/once
-                  (fn [_]
-                    (c/return :action (make-success
-                                       (search-response*
-                                        search-response*-graph response-graph
-                                        search-response*-uri-order (search-response-uri-order resp-val)
-                                        search-response*-total-hits (search-response-total-hits resp-val)))))))))
-            ;; else
-            (c/once
-             (fn [_]
-               (c/return :action (make-error (ajax/response-value current-response))))))))))))
-
-(defn- unwrap-rdf-literal-decimal [x]
-  (assert (or (rdf/literal-decimal? x)
-              (rdf/literal-string? x)))
-
-  (cond (rdf/literal-decimal? x)
-        (js/Number (rdf/literal-decimal-value x))
-
-        (rdf/literal-string? x)
-        (.parseFloat js/Number (rdf/literal-string-value x))))
-
-(defn- unwrap-rdf-literal-decimal-tuple [[lat long]]
-  [(unwrap-rdf-literal-decimal lat)
-   (unwrap-rdf-literal-decimal long)])
 
 (defn- color-for-coordinates [coords]
   (let [hash-value (hash coords)
@@ -415,154 +445,49 @@
     (node-geo-positions etree)))
 
 (c/defn-item main* [schema]
-  (c/with-state-as state
-    (c/fragment
+  (c/with-state-as search-state
+    (dom/div
+     {:style {:display "flex"
+              :flex-direction "column"
+              :overflow "auto"}}
 
-     ;; may trigger queries
-     (-> (c/isolate-state
-          (when-let [graph (:graph state)]
-            (edit-tree/graph->edit-tree graph))
+     (dom/div
+      {:class "map-and-search-results"
+       :style {:overflow "auto"
+               :flex 1
+               :scroll-behavior "smooth"}}
 
-          (dom/div
-           {:style {:display "flex"
-                    :flex-direction "column"
-                    :overflow "auto"}}
+      (c/handle-action
+       (map-search schema
+                   (ss/search-state-some-loading? search-state)
+                   nil
+                   #_(when etree
+                       (map (fn [[coords uri]]
+                              (leaflet/make-pin
+                               (map-label-for-uri uri)
+                               (color-for-coordinates coords)
+                               coords
+                               (str "#" uri)))
+                            (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))
+       (fn [search-state action]
+         (if (is-a? focus-query-action action)
+           (c/return :state
+                     (ss/create-search-session
+                      (focus-query-action-query action)))
+           (c/return))))
 
-           (dom/div
-            {:class "map-and-search-results"
-             :style {:overflow "auto"
-                     :flex 1
-                     :scroll-behavior "smooth"}}
+      ;; display when we have a graph
+      (if (is-a? ss/search-session search-state)
+        (display-search-session schema)
+        "IDLE STATE"))
 
-            (c/with-state-as etree
-              (map-search schema
-                          (some? (:last-focus-query state))
-                          (when etree
-                            (map (fn [[coords uri]]
-                                   (leaflet/make-pin
-                                    (map-label-for-uri uri)
-                                    (color-for-coordinates coords)
-                                    coords
-                                    (str "#" uri)))
-                                 (tree-geo-positions (edit-tree/edit-tree-result-tree etree))))))
+     #_(c/with-state-as etree
+         (when-not (empty? (edit-tree/edit-tree-changeset etree))
+           (commit/main schema))))))
 
-            ;; display when we have a graph
-            (c/with-state-as etree
-              (when etree
-                (ds/padded-2
-                 (dom/h2 "Results")
-                 (dom/div {:style {:color "#555"
-                                   :font-weight "normal"
-                                   :margin-bottom "1em"}}
-                          (str
-                           "Showing 1-"
-                           (count (:uri-order state))
-                           " of "
-                           (:total-hits state)))
-                 (dom/div
-                  {:style {:padding-bottom "1em"}}
-                  (editor/edit-tree-component schema nil true false nil (:uri-order state)
-                                              (into {}
-                                                    (map (fn [[coords uri]]
-                                                           [uri (dom/div
-                                                                 {:style {:background (color-for-coordinates coords)
-                                                                          :width "20px"
-                                                                          :height "20px"
-                                                                          :color "white"
-                                                                          :font-weight "bold"
-                                                                          :border-radius "100%"
-                                                                          :text-align "center"}}
-                                                                 (map-label-for-uri uri)
-                                                                 )])
-                                                         (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))))))
-
-            (when-let [sugg-graphs (:sugg-graphs state)]
-              (let [background-color "#e1e1e1"]
-                (dom/div
-                 {:style {:background background-color
-                          :border-top ds/border}}
-                 (ds/padded-2
-                  (dom/h2 "Results from the web")
-                  (apply dom/div {:style {:display "flex"
-                                          :flex-direction "column"
-                                          :overflow "auto"}}
-                         (map (fn [graph]
-                                (dom/div
-                                 (editor/readonly-graph schema graph background-color)
-                                 (modal/modal-button "open editor" (fn [close-action]
-                                                                     (let [tree (tree/graph->tree graph)]
-                                                                       (create/main schema
-                                                                                    tree
-                                                                                    (ds/button-secondary
-                                                                                     {:onClick (fn [_] (c/return :action close-action))}
-                                                                                     "Close")))))))
-                              sugg-graphs)))))))
-
-           (c/with-state-as etree
-             (when-not (empty? (edit-tree/edit-tree-changeset etree))
-               (commit/main schema)))))
-
-         (c/handle-action
-          (fn [st ac]
-            (cond
-              (record/is-a? focus-query-action ac)
-              (assoc st :last-focus-query (focus-query-action-query ac))
-
-              (record/is-a? semantic-area-search-action ac)
-              (assoc st :semantic-area-search-params {:semantic-area-search-query (semantic-area-search-action-query ac)
-                                                      :semantic-area-search-bbox (semantic-area-search-action-bbox ac)}
-                     :semantic-area-searech-response nil)
-              :else
-              (c/return :action ac)))))
-
-     ;; perform focus query
-     (when-let [last-focus-query (:last-focus-query state)]
-       (c/fragment
-        (spinner/main)
-        (-> (run-query last-focus-query)
-            (c/handle-action (fn [st ac]
-                               ;; TODO: error handling
-                               (if (success? ac)
-                                 (c/return :state
-                                           (-> st
-                                               (assoc :graph (search-response*-graph (success-value ac)))
-                                               (assoc :uri-order (search-response*-uri-order (success-value ac)))
-                                               (assoc :total-hits (search-response*-total-hits (success-value ac)))
-                                               (dissoc :last-focus-query)))
-                                 (c/return :action ac)))))))
-
-     #_(when-let [area-search-params (:area-search-params state)]
-       (c/handle-action
-        (util/load-json-ld (area-search! area-search-params))
-        (fn [st ac]
-          ;; TODO: error handling
-          (if (success? ac)
-            (let [full-graph (success-value ac)
-                  components (rdf/get-subcomponents full-graph)]
-              (c/return :state
-                        (-> st
-                            (assoc :sugg-graphs components)
-                            (dissoc :area-search-params))))
-            (c/return :action ac)))))
-
-     (when-let [semantic-area-search-params (:semantic-area-search-params state)]
-       (c/handle-action
-        (util/load-json-ld (semantic-area-search! semantic-area-search-params))
-        (fn [st ac]
-          (if (success? ac)
-            (let [full-graph (success-value ac)
-                  components (rdf/get-subcomponents full-graph)]
-              (c/return :state
-                        (-> st
-                            (assoc :sugg-graphs components)
-                            (dissoc :semantic-area-search-params)))))))))))
 
 (c/defn-item main [schema]
   (c/isolate-state
-   {:last-focus-query nil
-    :graph nil
-    :semantic-area-search-params nil
-    :semantic-area-search-response nil}
+   ss/initial-search-state
    (c/with-state-as state
-     (c/fragment
-      (main* schema)))))
+     (main* schema))))
