@@ -95,9 +95,14 @@
     (catch Exception _e
       {:status 400})))
 
+(defn- deserialize-range [[start cnt]]
+  [start cnt])
+
 (defn search [request]
   (let [q (query/deserialize-query
            (get-in request [:body-params :query]))
+
+        [start-index cnt] (deserialize-range (get-in request [:body-params :range]))
 
         _ (println (str "Running query: " (pr-str q)))
 
@@ -110,10 +115,11 @@
         index-bb (index/make-bounding-box min-lat max-lat min-lon max-lon)
 
         search-result (if (query/everything-query? q)
-                        (index/search-geo! index-bb)
+                        (index/search-geo! index-bb [start-index cnt])
                         (index/search-text-and-geo!
                          (query/query-fuzzy-search-term q)
-                         index-bb))
+                         index-bb
+                         [start-index cnt]))
 
         total-hits (index/search-result-total-hits search-result)
 

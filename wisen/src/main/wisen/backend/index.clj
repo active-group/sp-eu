@@ -112,16 +112,18 @@
 (defn combine-queries [q1 q2]
   (lucene/combine-queries q1 q2))
 
-(defn search-geo! [box & [dir]]
+(defn search-geo! [box range & [dir]]
   (lucene/run-query!
    (make-geo-query box)
+   range
    dir))
 
-(defn search-text-and-geo! [text box & [dir]]
+(defn search-text-and-geo! [text box range & [dir]]
   (lucene/run-query!
    (combine-queries
     (make-geo-query box)
     (make-fuzzy-text-query text))
+   range
    dir))
 
 (def file-system-index lucene/file-system-directory)
