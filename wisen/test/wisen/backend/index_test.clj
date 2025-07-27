@@ -10,13 +10,14 @@
                              description
                              dir))
         search! (fn [text]
-                  (i/search-result-uris
-                   (i/search-text-and-geo! text
-                                           (i/make-bounding-box
-                                            0.0 2.0
-                                            0.0 2.0)
-                                           [0 99]
-                                           dir)))]
+                  (first
+                   (i/search-result-uris
+                    (i/search-text-and-geo! text
+                                            (i/make-bounding-box
+                                             0.0 2.0
+                                             0.0 2.0)
+                                            [0 99]
+                                            dir))))]
 
     (insert! "senioren"
 
@@ -67,21 +68,16 @@
              und für die Bürgerinnen und Bürger Neuköllns.")
 
     (is (= "senioren"
-           (first
-            (search! "Senioren"))))
+           (search! "Senioren")))
 
     (is (= "queerfeministisch"
-           (first
-            (search! "queer"))))
+           (search! "queer")))
 
     (is (= "fussball"
-           (first
-            (search! "migranten"))))
+           (search! "migranten")))
 
     (is (= "gleichstellungsbeauftragte"
-           (first
-            (search! "gleichstellung"))))
+           (search! "gleichstellung")))
 
     (is (= "senioren"
-           (first
-            (search! "Alte Menschen"))))))
+           (search! "Alte Menschen")))))
