@@ -42,9 +42,11 @@
 
         (editor/edit-tree-component schema [organization-type event-type] true true))
 
-       (apply commit/main
-              schema
-              additional-items))))))
+       (dom/div
+        {:style {:border-top ds/border}}
+        (apply commit/main
+               schema
+               additional-items)))))))
 
 (c/defn-item from-rdf [attrs schema initial-string]
   (c/isolate-state
