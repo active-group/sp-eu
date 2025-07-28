@@ -302,8 +302,8 @@
    (search-session-results ss)))
 
 (defn search-session-geo-positions [ss]
-  (search-session-results-geo-positions
-   (search-session-results ss)))
+  (result-geo-positions
+   (search-session-selected-result ss)))
 
 ;; --- Search state
 
