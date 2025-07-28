@@ -120,7 +120,7 @@
 (c/defn-item result-component [schema query result-range]
   (c/with-state-as result
     (cond
-      (is-a? ss/error result)
+      (ss/error? result)
       "TODO ERROR"
 
       (ss/loading? result)

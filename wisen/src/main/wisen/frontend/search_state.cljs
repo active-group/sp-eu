@@ -76,6 +76,9 @@
 (defn make-error [message]
   (error error-message message))
 
+(defn error? [x]
+  (is-a? error x))
+
 (def loading ::loading)
 
 (defn loading? [x]
