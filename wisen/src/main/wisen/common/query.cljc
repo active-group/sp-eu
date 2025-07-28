@@ -69,6 +69,9 @@
    query-filter-thing-type :- (realm/optional (realm/set-of thing-type))
    query-filter-target-group :- (realm/optional (realm/set-of target-group))])
 
+(defn query? [x]
+  (record/is-a? query x))
+
 (def initial-query
   (query query-geo-bounding-box initial-geo-bounding-box
          query-fuzzy-search-term ""))

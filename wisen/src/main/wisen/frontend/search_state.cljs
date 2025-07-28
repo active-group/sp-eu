@@ -11,11 +11,17 @@
 (defn make-graph-as-string [s]
   (graph-as-string graph-as-string-value s))
 
+(defn graph-as-string? [x]
+  (is-a? graph-as-string x))
+
 (def-record graph-as-edit-tree
   [graph-as-edit-tree-value])
 
 (defn make-graph-as-edit-tree [etree]
   (graph-as-edit-tree graph-as-edit-tree-value etree))
+
+(defn graph-as-edit-tree? [x]
+  (is-a? graph-as-edit-tree x))
 
 (def graph
   (realm/union
@@ -32,6 +38,9 @@
    search-response-graph graph
    search-response-uri-order uri-order
    search-response-total-hits total-hits))
+
+(defn search-response? [x]
+  (is-a? search-response x))
 
 (def-record result-range
   [result-range-start :- (realm/integer-from 0)
@@ -77,42 +86,39 @@
                error
                (realm/enum loading)))
 
-(def-record search-session
-  [search-session-query :- query/query
-   ^:private search-session-results :- (realm/map-of
-                                        result-range
-                                        result)])
+;; --- Search session results
 
-(defn create-search-session [query]
-  (search-session
-   search-session-query
-   query
-   search-session-results {initial-result-range loading}))
+(def search-session-results-type
+  (realm/map-of
+   result-range
+   result))
 
-(defn search-session-result-ranges [ss]
+(def initial-search-session-results
+  {initial-result-range loading})
+
+(defn search-session-results-ranges [ssr]
   (sort-by result-range-start
-           (keys (search-session-results ss))))
+           (keys ssr)))
 
-(defn search-session-result-for-range [result-range]
+(defn search-session-results-result-for-range [result-range]
   (lens/>>
-   search-session-results
    (lens/member result-range)
    (lens/or-else loading)))
 
-(defn search-session-some-loading? [ss]
-  (some loading? (vals (search-session-results ss))))
-
-(defn search-session-estimated-total-hits [ss]
+(defn search-session-results-estimated-total-hits [ssr]
   (apply max
          (mapcat (fn [result]
                    (when (is-a? search-response result)
                      [(search-response-total-hits result)]
                      ))
-                 (vals (search-session-results ss)))))
+                 (vals ssr))))
+
+(defn search-session-results-some-loading? [ssr]
+  (some loading? (vals ssr)))
 
 (def default-page-size 5)
 
-(defn- search-session-pages* [acc rngs total-hits]
+(defn- search-session-results-pages* [acc rngs total-hits]
   (let [[acc-rngs next-start-index] acc]
     (cond
       (>= next-start-index total-hits)
@@ -135,14 +141,14 @@
                                           default-page-size
                                           (- (result-range-start rng)
                                              next-start-index)))]
-            (search-session-pages*
+            (search-session-results-pages*
              [(conj acc-rngs
                     rng+)
               (result-range-end-exclusive rng+)]
              rngs
              total-hits))
           ;; rng is up
-          (search-session-pages*
+          (search-session-results-pages*
            [(conj acc-rngs
                   rng)
             (result-range-end-exclusive rng)]
@@ -152,19 +158,38 @@
         (let [rng+ (result-range
                     result-range-start next-start-index
                     result-range-count default-page-size)]
-          (search-session-pages*
+          (search-session-results-pages*
            [(conj acc-rngs rng+)
             (result-range-end-exclusive rng+)]
            nil
            total-hits))))))
 
-(defn search-session-pages
+(defn search-session-results-pages
   "Returns a seq of result-range"
-  [ss]
-  (let [ranges (search-session-result-ranges ss)]
-    (assert (not-empty ranges))
-    (when-let [total-hits (search-session-estimated-total-hits ss)]
-      (search-session-pages* [[] 0] ranges total-hits))))
+  [ssr]
+  (assert (not-empty ssr))
+  (when-let [total-hits (search-session-results-estimated-total-hits ssr)]
+    (search-session-results-pages* [[] 0] (keys ssr) total-hits)))
+
+;; --- Search session
+
+(def-record search-session
+  [search-session-query :- query/query
+   search-session-results :- search-session-results-type])
+
+(defn create-search-session [query]
+  (search-session
+   search-session-query query
+   search-session-results initial-search-session-results))
+
+(defn search-session? [x]
+  (is-a? search-session x))
+
+(defn search-session-some-loading? [ss]
+  (search-session-results-some-loading?
+   (search-session-results ss)))
+
+;; --- Search state
 
 (def initial-search-state ::initial)
 
