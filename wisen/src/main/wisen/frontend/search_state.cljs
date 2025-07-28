@@ -3,7 +3,9 @@
    [active.data.record :as record :refer [is-a?] :refer-macros [def-record]]
    [active.data.realm :as realm]
    [active.clojure.lens :as lens]
-   [wisen.common.query :as query]))
+   [wisen.common.query :as query]
+   [wisen.frontend.edit-tree :as edit-tree]
+   [wisen.frontend.tree :as tree]))
 
 (def-record graph-as-string
   [graph-as-string-value :- realm/string])
@@ -28,6 +30,74 @@
    graph-as-string
    graph-as-edit-tree))
 
+(declare tree-geo-positions)
+
+(letfn [(unwrap [obj]
+          (cond
+            (tree/literal-decimal? obj)
+            (parse-double (tree/literal-decimal-value obj))
+
+            (tree/literal-string? obj)
+            (parse-double (tree/literal-string-value obj))
+            ))]
+  (defn- node-geo-position [node]
+    (let [lat (or ((tree/node-object-for-predicate "http://schema.org/latitude") node)
+                  ((tree/node-object-for-predicate "http://www.w3.org/2003/01/geo/wgs84_pos#lat") node))
+          long (or ((tree/node-object-for-predicate "http://schema.org/longitude") node)
+                   ((tree/node-object-for-predicate "http://www.w3.org/2003/01/geo/wgs84_pos#long") node))]
+      (when-let [lt (unwrap lat)]
+        (when-let [lng (unwrap long)]
+          (let [node-uri (tree/node-uri node)]
+            [[lt lng] node-uri]))))))
+
+(defn- node-geo-positions [node]
+  (let [poss (mapcat (fn [prop]
+                       (tree-geo-positions
+                        (tree/property-object prop)))
+                     (tree/node-properties node))]
+    (if-let [pos (node-geo-position node)]
+      (conj poss pos)
+      poss)))
+
+(defn- tree-geo-positions [tree]
+  (cond
+    (tree/ref? tree)
+    []
+
+    (tree/literal-string? tree)
+    []
+
+    (tree/literal-decimal? tree)
+    []
+
+    (tree/literal-boolean? tree)
+    []
+
+    (tree/literal-time? tree)
+    []
+
+    (tree/literal-date? tree)
+    []
+
+    (tree/many? tree)
+    (mapcat tree-geo-positions (tree/many-trees tree))
+
+    (tree/exists? tree)
+    []
+
+    (tree/node? tree)
+    (node-geo-positions tree)))
+
+(defn graph-geo-positions [g]
+  (cond
+    (graph-as-string? g)
+    []
+
+    (graph-as-edit-tree? g)
+    (tree-geo-positions
+     (edit-tree/edit-tree-result-tree
+      (graph-as-edit-tree-value g)))))
+
 (def-record search-response
   [search-response-graph :- graph
    search-response-uri-order :- (realm/sequence-of realm/string)
@@ -41,6 +111,10 @@
 
 (defn search-response? [x]
   (is-a? search-response x))
+
+(defn search-response-geo-positions [resp]
+  (graph-geo-positions
+   (search-response-graph resp)))
 
 (def-record result-range
   [result-range-start :- (realm/integer-from 0)
@@ -88,6 +162,17 @@
   (realm/union search-response
                error
                (realm/enum loading)))
+
+(defn result-geo-positions [result]
+  (cond
+    (error? result)
+    []
+
+    (loading? result)
+    []
+
+    (search-response? result)
+    (search-response-geo-positions result)))
 
 ;; --- Search session results
 
@@ -174,6 +259,11 @@
   (when-let [total-hits (search-session-results-estimated-total-hits ssr)]
     (search-session-results-pages* [[] 0] (keys ssr) total-hits)))
 
+(defn search-session-results-geo-positions [ssr]
+  (mapcat
+   result-geo-positions
+   (vals ssr)))
+
 ;; --- Search session
 
 (def-record search-session
@@ -192,6 +282,10 @@
   (search-session-results-some-loading?
    (search-session-results ss)))
 
+(defn search-session-geo-positions [ss]
+  (search-session-results-geo-positions
+   (search-session-results ss)))
+
 ;; --- Search state
 
 (def initial-search-state ::initial)
@@ -204,3 +298,8 @@
 (defn search-state-some-loading? [search-state]
   (and (is-a? search-session search-state)
        (search-session-some-loading? search-state)))
+
+(defn search-state-geo-positions [ss]
+  (if (search-session? ss)
+    (search-session-geo-positions ss)
+    []))

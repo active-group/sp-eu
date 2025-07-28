@@ -76,6 +76,10 @@
               (inc end))))))
       (ss/search-session-results-pages ssr)))))
 
+(declare color-for-coordinates
+         tree-geo-positions
+         map-label-for-uri)
+
 (c/defn-item search-response-graph-component [schema uri-order]
   (c/with-state-as graph
     (cond
@@ -90,10 +94,10 @@
 
       (ss/graph-as-edit-tree? graph)
       (c/focus ss/graph-as-edit-tree-value
-               (dom/div
-                (editor/edit-tree-component schema nil true false nil uri-order
-                                            {}
-                                            #_(into {}
+               (c/with-state-as etree
+                 (dom/div
+                  (editor/edit-tree-component schema nil true false nil uri-order
+                                              (into {}
                                                     (map (fn [[coords uri]]
                                                            [uri (dom/div
                                                                  {:style {:background (color-for-coordinates coords)
@@ -105,8 +109,7 @@
                                                                           :text-align "center"}}
                                                                  (map-label-for-uri uri)
                                                                  )])
-                                                         (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))
-                (c/with-state-as etree
+                                                         (ss/graph-geo-positions graph))))
                   (when-not (empty? (edit-tree/edit-tree-changeset etree))
                     (dom/div
                      {:style {:border ds/border
@@ -393,64 +396,6 @@
 
       (quick-search loading?)))))
 
-(declare tree-geo-positions)
-
-(letfn [(unwrap [obj]
-          (cond
-            (tree/literal-decimal? obj)
-            (parse-double (tree/literal-decimal-value obj))
-
-            (tree/literal-string? obj)
-            (parse-double (tree/literal-string-value obj))
-            ))]
-  (defn- node-geo-position [node]
-    (let [lat (or ((tree/node-object-for-predicate "http://schema.org/latitude") node)
-                  ((tree/node-object-for-predicate "http://www.w3.org/2003/01/geo/wgs84_pos#lat") node))
-          long (or ((tree/node-object-for-predicate "http://schema.org/longitude") node)
-                   ((tree/node-object-for-predicate "http://www.w3.org/2003/01/geo/wgs84_pos#long") node))]
-      (when-let [lt (unwrap lat)]
-        (when-let [lng (unwrap long)]
-          (let [node-uri (tree/node-uri node)]
-            [[lt lng] node-uri]))))))
-
-(defn- node-geo-positions [node]
-  (let [poss (mapcat (fn [prop]
-                       (tree-geo-positions
-                        (tree/property-object prop)))
-                     (tree/node-properties node))]
-    (if-let [pos (node-geo-position node)]
-      (conj poss pos)
-      poss)))
-
-(defn- tree-geo-positions [etree]
-  (cond
-    (tree/ref? etree)
-    []
-
-    (tree/literal-string? etree)
-    []
-
-    (tree/literal-decimal? etree)
-    []
-
-    (tree/literal-boolean? etree)
-    []
-
-    (tree/literal-time? etree)
-    []
-
-    (tree/literal-date? etree)
-    []
-
-    (tree/many? etree)
-    (mapcat tree-geo-positions (tree/many-trees etree))
-
-    (tree/exists? etree)
-    []
-
-    (tree/node? etree)
-    (node-geo-positions etree)))
-
 (c/defn-item main* [schema]
   (c/with-state-as search-state
     (dom/div
@@ -465,19 +410,15 @@
                :scroll-behavior "smooth"}}
 
       (c/handle-action
-       #_(pr-str (ss/search-state-some-loading? search-state))
-
        (map-search schema
-                     (ss/search-state-some-loading? search-state)
-                     nil
-                     #_(when etree
-                         (map (fn [[coords uri]]
-                                (leaflet/make-pin
-                                 (map-label-for-uri uri)
-                                 (color-for-coordinates coords)
-                                 coords
-                                 (str "#" uri)))
-                              (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))
+                   (ss/search-state-some-loading? search-state)
+                   (map (fn [[coords uri]]
+                          (leaflet/make-pin
+                           (map-label-for-uri uri)
+                           (color-for-coordinates coords)
+                           coords
+                           (str "#" uri)))
+                        (ss/search-state-geo-positions search-state)))
        (fn [search-state action]
          (if (is-a? focus-query-action action)
            (c/return :state
@@ -492,7 +433,6 @@
                   schema
                   (ss/search-session-query search-state)))
         (ds/padded-2 "No results yet"))))))
-
 
 (c/defn-item main [schema]
   (c/isolate-state
