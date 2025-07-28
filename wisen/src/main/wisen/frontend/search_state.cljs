@@ -268,15 +268,34 @@
 
 (def-record search-session
   [search-session-query :- query/query
-   search-session-results :- search-session-results-type])
+   search-session-results :- search-session-results-type
+   search-session-selected-result-range :- result-range])
 
 (defn create-search-session [query]
   (search-session
    search-session-query query
-   search-session-results initial-search-session-results))
+   search-session-results initial-search-session-results
+   search-session-selected-result-range initial-result-range))
 
 (defn search-session? [x]
   (is-a? search-session x))
+
+(defn search-session-selected-result
+  ([ss]
+   (let [selected (search-session-selected-result-range ss)]
+     (lens/yank
+      ss
+      (lens/>>
+       search-session-results
+       (search-session-results-result-for-range selected)))))
+  ([ss results]
+   (let [selected (search-session-selected-result-range ss)]
+     (lens/shove
+      ss
+      (lens/>>
+       search-session-results
+       (search-session-results-result-for-range selected))
+      results))))
 
 (defn search-session-some-loading? [ss]
   (search-session-results-some-loading?
