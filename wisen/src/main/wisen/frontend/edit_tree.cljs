@@ -504,7 +504,7 @@
     []
 
     (many? etree)
-    (mapcat edit-tree-changeset*
+    (mapcat edit-tree-changeset
             (many-edit-trees etree))
 
     (exists? etree)
