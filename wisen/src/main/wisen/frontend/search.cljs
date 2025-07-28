@@ -51,10 +51,8 @@
         (pr-str
          (ajax/response-value new-response)))))))
 
-(c/defn-item pager [ss]
+(c/defn-item pager [ssr]
   (c/with-state-as selected-result-range
-    (println (pr-str selected-result-range))
-    (println (pr-str ss))
     (apply
      dom/div
      {:style {:color "#555"
@@ -76,12 +74,12 @@
               (inc start)
               " - "
               (inc end))))))
-      (ss/search-session-pages ss)))))
+      (ss/search-session-results-pages ssr)))))
 
 (c/defn-item search-response-graph-component [schema uri-order]
   (c/with-state-as graph
     (cond
-      (is-a? ss/graph-as-string graph)
+      (ss/graph-as-string? graph)
       (util/json-ld-string->graph
        (ss/graph-as-string-value graph)
        (fn [graph]
@@ -90,7 +88,7 @@
             (c/return :state (ss/make-graph-as-edit-tree
                               (edit-tree/graph->edit-tree graph)))))))
 
-      (is-a? ss/graph-as-edit-tree graph)
+      (ss/graph-as-edit-tree? graph)
       (c/focus ss/graph-as-edit-tree-value
                (editor/edit-tree-component schema nil true false nil uri-order
                                            {}
@@ -109,7 +107,7 @@
                                                         (tree-geo-positions (edit-tree/edit-tree-result-tree etree))))))
       )))
 
-(c/defn-item display-result [schema query result-range]
+(c/defn-item result-component [schema query result-range]
   (c/with-state-as result
     (cond
       (is-a? ss/error result)
@@ -120,14 +118,13 @@
        "TODO LOADING"
        (run-query-result-range query result-range))
 
-      (is-a? ss/search-response result)
+      (ss/search-response? result)
       (c/focus ss/search-response-graph
                (search-response-graph-component schema (ss/search-response-uri-order result))))))
 
-(c/defn-item display-search-session [schema]
-  (c/with-state-as ss
-    (let [query (ss/search-session-query ss)
-          result-ranges (ss/search-session-result-ranges ss)]
+(c/defn-item search-session-results-component [schema query]
+  (c/with-state-as ssr
+    (let [result-ranges (ss/search-session-results-ranges ssr)]
       (c/fragment
 
        (ds/padded-2
@@ -143,14 +140,14 @@
                    :top "0"
                    :z-index 9999}}
           (c/focus lens/second
-                   (pager ss)))
+                   (pager ssr)))
 
          (ds/padded-2
           (c/with-state-as state
             (let [selected-result-range (second state)]
               (c/focus (lens/>> lens/first
-                                (ss/search-session-result-for-range selected-result-range))
-                       (display-result schema query selected-result-range)))))))))))
+                                (ss/search-session-results-result-for-range selected-result-range))
+                       (result-component schema query selected-result-range)))))))))))
 
 ;; ---
 
@@ -361,7 +358,7 @@
             (catch js/Object e
               query/initial-query))))
 
-       (record/is-a? query/query query)
+       (query/query? query)
        (c/fragment
         item
         (c/once
@@ -458,17 +455,19 @@
                :scroll-behavior "smooth"}}
 
       (c/handle-action
+       #_(pr-str (ss/search-state-some-loading? search-state))
+
        (map-search schema
-                   (ss/search-state-some-loading? search-state)
-                   nil
-                   #_(when etree
-                       (map (fn [[coords uri]]
-                              (leaflet/make-pin
-                               (map-label-for-uri uri)
-                               (color-for-coordinates coords)
-                               coords
-                               (str "#" uri)))
-                            (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))
+                     (ss/search-state-some-loading? search-state)
+                     nil
+                     #_(when etree
+                         (map (fn [[coords uri]]
+                                (leaflet/make-pin
+                                 (map-label-for-uri uri)
+                                 (color-for-coordinates coords)
+                                 coords
+                                 (str "#" uri)))
+                              (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))
        (fn [search-state action]
          (if (is-a? focus-query-action action)
            (c/return :state
@@ -477,8 +476,11 @@
            (c/return))))
 
       ;; display when we have a graph
-      (if (is-a? ss/search-session search-state)
-        (display-search-session schema)
+      (if (ss/search-session? search-state)
+        (c/focus ss/search-session-results
+                 (search-session-results-component
+                  schema
+                  (ss/search-session-query search-state)))
         "IDLE STATE"))
 
      #_(c/with-state-as etree
