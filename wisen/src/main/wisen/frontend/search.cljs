@@ -491,11 +491,7 @@
                  (search-session-results-component
                   schema
                   (ss/search-session-query search-state)))
-        "IDLE STATE"))
-
-     #_(c/with-state-as etree
-         (when-not (empty? (edit-tree/edit-tree-changeset etree))
-           (commit/main schema))))))
+        (ds/padded-2 "No results yet"))))))
 
 
 (c/defn-item main [schema]
