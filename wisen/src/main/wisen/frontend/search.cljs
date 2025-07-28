@@ -107,14 +107,14 @@
                                                                  )])
                                                          (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))
                 (c/with-state-as etree
-                  (dom/div
-                   {:style {:border ds/border
-                            :position "sticky"
-                            :bottom "10px"
-                            :border-radius "4px"
-                            :background "#ddd"
-                            :z-index "999"}}
-                   (when-not (empty? (edit-tree/edit-tree-changeset etree))
+                  (when-not (empty? (edit-tree/edit-tree-changeset etree))
+                    (dom/div
+                     {:style {:border ds/border
+                              :position "sticky"
+                              :bottom "10px"
+                              :border-radius "4px"
+                              :background "#ddd"
+                              :z-index "999"}}
                      (commit/main schema)))))))))
 
 (c/defn-item result-component [schema query result-range]
