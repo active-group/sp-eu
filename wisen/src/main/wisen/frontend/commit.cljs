@@ -61,8 +61,7 @@
 (defn main [schema & additional-items]
   (c/with-state-as etree
     (dom/div
-     {:style {:border-top ds/border
-              :padding "12px 24px"
+     {:style {:padding "12px 24px"
               :display "flex"}}
      (c/handle-action
       (dom/div

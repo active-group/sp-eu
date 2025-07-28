@@ -90,22 +90,32 @@
 
       (ss/graph-as-edit-tree? graph)
       (c/focus ss/graph-as-edit-tree-value
-               (editor/edit-tree-component schema nil true false nil uri-order
-                                           {}
-                                           #_(into {}
-                                                   (map (fn [[coords uri]]
-                                                          [uri (dom/div
-                                                                {:style {:background (color-for-coordinates coords)
-                                                                         :width "20px"
-                                                                         :height "20px"
-                                                                         :color "white"
-                                                                         :font-weight "bold"
-                                                                         :border-radius "100%"
-                                                                         :text-align "center"}}
-                                                                (map-label-for-uri uri)
-                                                                )])
-                                                        (tree-geo-positions (edit-tree/edit-tree-result-tree etree))))))
-      )))
+               (dom/div
+                (editor/edit-tree-component schema nil true false nil uri-order
+                                            {}
+                                            #_(into {}
+                                                    (map (fn [[coords uri]]
+                                                           [uri (dom/div
+                                                                 {:style {:background (color-for-coordinates coords)
+                                                                          :width "20px"
+                                                                          :height "20px"
+                                                                          :color "white"
+                                                                          :font-weight "bold"
+                                                                          :border-radius "100%"
+                                                                          :text-align "center"}}
+                                                                 (map-label-for-uri uri)
+                                                                 )])
+                                                         (tree-geo-positions (edit-tree/edit-tree-result-tree etree)))))
+                (c/with-state-as etree
+                  (dom/div
+                   {:style {:border ds/border
+                            :position "sticky"
+                            :bottom "10px"
+                            :border-radius "4px"
+                            :background "#ddd"
+                            :z-index "999"}}
+                   (when-not (empty? (edit-tree/edit-tree-changeset etree))
+                     (commit/main schema)))))))))
 
 (c/defn-item result-component [schema query result-range]
   (c/with-state-as result
