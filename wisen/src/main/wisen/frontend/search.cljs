@@ -135,33 +135,6 @@
       (c/focus ss/search-response-graph
                (search-response-graph-component schema (ss/search-response-uri-order result))))))
 
-(c/defn-item search-session-results-component [schema query]
-  (c/with-state-as ssr
-    (let [result-ranges (ss/search-session-results-ranges ssr)]
-      (c/fragment
-
-       (ds/padded-2
-        (if (query/everything-query? query)
-          (dom/h2 "Results")
-          (dom/h2 "Results for «" (query/query-fuzzy-search-term query) "»")))
-
-       (c/local-state
-        (first result-ranges)
-        (c/fragment
-         (ds/padded-2
-          {:style {:position "sticky"
-                   :top "12px"
-                   :z-index 9999}}
-          (c/focus lens/second
-                   (pager ssr)))
-
-         (ds/padded-2
-          (c/with-state-as state
-            (let [selected-result-range (second state)]
-              (c/focus (lens/>> lens/first
-                                (ss/search-session-results-result-for-range selected-result-range))
-                       (result-component schema query selected-result-range)))))))))))
-
 ;; ---
 
 (def-record focus-query-action
@@ -396,6 +369,29 @@
 
       (quick-search loading?)))))
 
+(c/defn-item search-session-component [schema]
+  (c/with-state-as search-session
+    (let [query (ss/search-session-query search-session)
+          ssr (ss/search-session-results search-session)
+          selected-result-range (ss/search-session-selected-result-range search-session)]
+      (c/fragment
+
+       (ds/padded-2
+        (if (query/everything-query? query)
+          (dom/h2 "Results")
+          (dom/h2 "Results for «" (query/query-fuzzy-search-term query) "»")))
+
+       (c/focus ss/search-session-selected-result-range
+                (ds/padded-2
+                 {:style {:position "sticky"
+                          :top "12px"
+                          :z-index 9999}}
+                 (pager ssr)))
+
+       (ds/padded-2
+        (c/focus ss/search-session-selected-result
+                 (result-component schema query selected-result-range)))))))
+
 (c/defn-item main* [schema]
   (c/with-state-as search-state
     (dom/div
@@ -428,10 +424,7 @@
 
       ;; display when we have a graph
       (if (ss/search-session? search-state)
-        (c/focus ss/search-session-results
-                 (search-session-results-component
-                  schema
-                  (ss/search-session-query search-state)))
+        (search-session-component schema)
         (ds/padded-2 "No results yet"))))))
 
 (c/defn-item main [schema]
