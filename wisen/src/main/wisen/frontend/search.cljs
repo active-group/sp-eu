@@ -147,7 +147,7 @@
         (c/fragment
          (ds/padded-2
           {:style {:position "sticky"
-                   :top "0"
+                   :top "12px"
                    :z-index 9999}}
           (c/focus lens/second
                    (pager ssr)))
