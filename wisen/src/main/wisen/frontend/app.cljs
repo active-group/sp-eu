@@ -56,7 +56,10 @@
                                              :overflow "auto"}}
                                     (create/from-rdf {:style {:flex 1}}
                                                      schema
-                                                     ""))))))]
+                                                     ""
+                                                     (ds/button-secondary
+                                                      {:onClick #(c/return :action close-action)}
+                                                      "Close")))))))]
 
     (ds/padded-2
      {:style {:border-bottom ds/border
