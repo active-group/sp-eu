@@ -8,7 +8,8 @@
             [active.clojure.lens :as lens]
             [wisen.common.prefix :as prefix]
             [wisen.frontend.existential :as existential]
-            [wisen.common.fnplus :refer-macros [fn+]]))
+            [wisen.common.fnplus :refer-macros [fn+]]
+            ["rdflib" :as rdflib]))
 
 (declare tree)
 
@@ -263,7 +264,12 @@
                                                    [links* existentials* (conj trees tree)]))
                                                [links existentials []]
                                                (rdf/collection-elements x))]
-      [links* (many many-trees trees)])))
+      [links* (many many-trees trees)])
+
+    ;; fallback: raw literal, we coerce to string
+    (instance? rdflib/Literal x)
+    [links existentials (make-literal-string (str (.-value x)))]
+    ))
 
 (defn- node->tree [graph links existentials x]
   (node->tree* graph links existentials x))
