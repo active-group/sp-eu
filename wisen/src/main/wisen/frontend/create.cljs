@@ -48,34 +48,69 @@
                schema
                additional-items)))))))
 
-(c/defn-item from-rdf [attrs schema initial-string]
+(c/defn-item from-rdf [attrs schema initial-string & additional-items]
   (c/isolate-state
    {:text [initial-string (wisen.frontend.forms/selected)]
-    :graphs nil}
+    :edit-trees {} ;; text -> edit-tree
+    }
 
-   (dom/div
-    (dom/merge-attributes
-     {:style {:display "flex"
-              :overflow "auto"}}
-     attrs)
+   (c/with-state-as state
+     (let [text (first (:text state))]
 
-    (c/focus :text
-             (dom/div
-              {:style {:border-right "1px solid #777"
-                       :flex 1
-                       :min-height "64ex"
-                       :overflow "auto"}}
-              (ds/textarea+focus {:style {:width "100%"
-                                          :height "100%"}})))
+       (dom/div
+        (dom/merge-attributes
+         {:style {:display "flex"
+                  :flex-direction "column"
+                  :overflow "auto"}}
+         attrs)
 
-    (dom/div
-     {:style {:flex "1"
-              :overflow "auto"}}
+        (dom/div
+         (dom/merge-attributes
+          {:style {:display "flex"
+                   :overflow "auto"}}
+          attrs)
 
-     (c/with-state-as st
+         ;; left pane: text input
+         (c/focus :text
+                  (dom/div
+                   {:style {:border-right "1px solid #777"
+                            :flex 1
+                            :min-height "64ex"
+                            :overflow "auto"}}
+                   (ds/textarea+focus {:style {:width "100%"
+                                               :height "100%"}})))
 
-       (util/json-ld-string->graph (first (:text st))
-                                   (fn [graph]
-                                     (ds/padded-2
-                                      (editor/readonly-graph schema graph "white"))
-                                     )))))))
+         ;; run text -> edit-tree
+         (c/focus (lens/>> :edit-trees
+                           (lens/member text))
+                  (c/with-state-as etree
+                    (when-not etree
+                      (util/json-ld-string->graph text
+                                                  (fn [graph]
+                                                    (c/once
+                                                     (fn [_]
+                                                       (println "---")
+                                                       (println (pr-str graph))
+                                                       (println ">>>")
+                                                       (println (pr-str (tree/graph->tree graph)))
+                                                       (c/return :state
+                                                                 (edit-tree/graph->addit-tree graph)))))))))
+
+         (dom/div
+          {:style {:flex "1"
+                   :overflow "auto"}}
+
+          (c/focus (lens/>> :edit-trees
+                            (lens/member text))
+                   (ds/padded-2
+                    (editor/edit-tree-component schema nil false false)))))
+
+        ;; bottom commit bar
+        (c/focus (lens/>> :edit-trees
+                          (lens/member text))
+                 (c/with-state-as etree
+                   (dom/div
+                    {:style {:border-top ds/border}}
+                    (apply commit/main
+                           schema
+                           additional-items)))))))))
