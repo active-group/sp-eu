@@ -591,7 +591,8 @@
                                          (icon-for-marked marked-edit-tree)
                                          (schema/label-for-predicate schema predicate))
 
-                                        (when (edit-tree/can-discard-edit? marked-edit-tree)
+                                        (when (and (edit-tree/can-discard-edit? marked-edit-tree)
+                                                   force-editing?)
                                           (ds/button-secondary
                                            {:style
                                             {:border-color "gray"
