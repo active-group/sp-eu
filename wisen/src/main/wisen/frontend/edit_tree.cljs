@@ -594,7 +594,8 @@
 
 (defn can-refresh? [etree]
   (and (is-a? edit-node etree)
-       (unchanged? etree)))
+       (unchanged? etree)
+       (not (existential/existential? (edit-node-uri etree)))))
 
 ;; re-implementations of wisen.frontend.tree stuff
 
