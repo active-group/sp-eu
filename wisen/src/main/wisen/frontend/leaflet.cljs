@@ -34,21 +34,44 @@
    (.-lng latLng)])
 
 (defn- pin-element [label color href]
-  (let [elem (js/document.createElement "a")]
-    (set! (.-textContent elem) label)
+  (let [elem (js/document.createElement "a")
+        gradient-id (str "gradient" color)]
+    (set! (.-innerHTML elem)
+          (str
+           "<svg viewBox=\"0 0 80 100\" xmlns=\"http://www.w3.org/2000/svg\">
+<defs>
+    <radialGradient id=\"" gradient-id "\" cx=\"30%\" cy=\"20%\" r=\"60%\">
+      <stop offset=\"0%\" stop-color=\"" color "\" stop-opacity=\"0.3\"/>
+      <stop offset=\"30%\" stop-color=\"" color "\" stop-opacity=\"0.6\"/>
+      <stop offset=\"100%\" stop-color=\"" color "\"/>
+    </radialGradient>
+</defs>
+  <filter id=\"blurry\"><feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"7\" /></filter>
+  <filter id=\"blurry2\"><feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"2\" /></filter>
+  <g filter=\"url(#blurry)\">
+    <line x1=\"0\" y1=\"100\" x2=\"50\" y2=\"80\" stroke=\"#555\" stroke-width=\"6\" stroke-linecap=\"round\" />
+    <circle cx=\"50\" cy=\"80\" r=\"12\" fill=\"#555\" />
+  </g>
+
+  <!-- <line x1=\"0\" y1=\"100\" x2=\"40\" y2=\"20\" stroke=\"#555\" stroke-width=\"6\" stroke-linecap=\"round\"/> -->
+  <path d=\"M0,100 L20,20\" stroke-width=2 stroke=\"#555\" />
+  <circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"#fff\"/>
+  <circle cx=\"20\" cy=\"20\" r=\"20\" fill=\"url(#" gradient-id ")\"/>
+  <path d=\"M8,17
+           a12,12 0 0 1 10,-10\"
+        stroke=\"#fff9\" filter=\"url(#blurry2)\" stroke-width=\"3\" fill=\"none\" stroke-linecap=\"round\"/>
+</svg>
+"))
+    #_(set! (.-textContent elem) label)
     (set! (.-style elem)
           (str
-           "border-radius: 100%;
-            position: absolute;
-            top: -1px;
-            left: -1px;
-            color: white;
-            font-weight: bold;
-            padding: 5px 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
-            border-top-left-radius: 0;
-            text-decoration: none;"
-           "background: " color ";"))
+           "display: block;"
+           "position: absolute;"
+           "bottom: 0;"
+           "left: 0;"
+           "width: 52px;"
+           "height: 65px;"
+           "color: " color ";"))
     (when href
       (set! (.-href elem) href))
     elem))
@@ -82,7 +105,10 @@
                   marker (.marker leaflet
                                   (clj->js (pin-coordinates pin))
                                   #js {:riseOnHover true
-                                       :icon (.divIcon leaflet #js {:html html})})]
+                                       :icon (.divIcon leaflet #js {:html html
+                                                                    ;; This must be set else leaflet adds a class
+                                                                    ;; that adds an ugly white background color
+                                                                    :className ""})})]
               (.addLayer markers marker)))
           pins))
 
