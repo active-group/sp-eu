@@ -257,7 +257,7 @@
                                    (when everything?
                                      " everything")))))
 
-        (c/focus lens/second
+        #_(c/focus lens/second
                  (ds/button-secondary {:onClick not
                                        :style {:background "white"
                                                :padding "6px 12px"
