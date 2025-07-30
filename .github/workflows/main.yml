@@ -37,5 +37,5 @@ jobs:
           echo "${{ secrets.SP_EU_SSH_KEY }}" | tr -d '\r' | ssh-add - >/dev/null
           nix shell nixpkgs#nixos-rebuild -c \
               nixos-rebuild switch -j auto --flake .#prod-x86_64-linux \
-              --target-host root@sp-eu.ci.active-group.de
-          ssh root@sp-eu.ci.active-group.de systemctl restart sp-eu.service
+              --target-host root@sp-eu.active-group.de
+          ssh root@sp-eu.active-group.de systemctl restart sp-eu.service

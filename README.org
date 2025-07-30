@@ -31,7 +31,7 @@ nix run .#update-clj-lockfile
 
 * Deployment
 
-The live system is hosted at [[https://sp-eu.ci.active-group.de]]. Deployment
+The live system is hosted at [[https://sp-eu.active-group.de]]. Deployment
 happens continually via CI pipeline.
 
 ** Secret management
