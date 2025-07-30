@@ -45,7 +45,8 @@
 (defn compile-clj [_]
   (b/compile-clj {:basis @basis
                   :ns-compile '[wisen.backend.main]
-                  :class-dir class-dir}))
+                  :class-dir class-dir
+                  :java-opts ["--enable-native-access=ALL-UNNAMED"]}))
 
 (defn copy-dirs [_]
   (b/copy-dir {:src-dirs ["src" "public" "resources"]
