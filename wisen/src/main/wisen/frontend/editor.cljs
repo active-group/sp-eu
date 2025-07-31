@@ -876,7 +876,7 @@
                                    :min-width 400}}
                           [(leaflet/make-pin
                             "X"
-                            "green"
+                            120 ;; green
                             coords)]))
            (c/handle-action (fn [eprops ac]
                               (if (is-a? leaflet/click-action ac)
