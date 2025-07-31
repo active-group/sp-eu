@@ -33,7 +33,7 @@
       enable = true;
       configFile = config.age.secrets.config_edn.path;
       tls = {
-        domain = "sp-eu.ci.active-group.de";
+        domain = "sp-eu.active-group.de";
         certs = "acme";
       };
     };
@@ -41,7 +41,7 @@
       enable = true;
       realmFiles = [ config.age.secrets.kc_realm_json.path ];
       tls = {
-        domain = "sp-eu.ci.active-group.de";
+        domain = "sp-eu.active-group.de";
         certs = "acme";
       };
     };
