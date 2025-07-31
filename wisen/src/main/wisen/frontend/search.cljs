@@ -76,9 +76,12 @@
               (inc end))))))
       (ss/search-session-results-pages ssr)))))
 
-(declare color-for-coordinates
+(declare hue-for-uri
          tree-geo-positions
          map-label-for-uri)
+
+(defn- hsl [h s l]
+  (str "hsl(" h "deg " s "% " l "%)"))
 
 (c/defn-item search-response-graph-component [schema uri-order]
   (c/with-state-as graph
@@ -98,16 +101,17 @@
                  (dom/div
                   (editor/edit-tree-component schema nil true false nil uri-order
                                               (into {}
-                                                    (map (fn [[coords uri]]
+                                                    (map (fn [[_coords uri]]
                                                            [uri (dom/div
-                                                                 {:style {:background (color-for-coordinates coords)
+                                                                 {:style {:background-color (hsl (hue-for-uri uri) 100 30)
                                                                           :width "20px"
                                                                           :height "20px"
                                                                           :color "white"
                                                                           :font-weight "bold"
                                                                           :border-radius "100%"
                                                                           :text-align "center"}}
-                                                                 (map-label-for-uri uri)
+                                                                 ""
+                                                                 #_(map-label-for-uri uri)
                                                                  )])
                                                          (ss/graph-geo-positions graph))))
                   (when-not (empty? (edit-tree/edit-tree-changeset etree))
@@ -287,32 +291,8 @@
                     (c/focus query/query-filter-target-group
                              (filter-target-group-component))))))))))
 
-(defn- color-for-coordinates [coords]
-  (let [hash-value (hash coords)
-        num-colors 20
-        color-index (mod hash-value num-colors)]
-    (case color-index
-      0 "#2c2c2c"
-      1 "#1a1a1a"
-      2 "#333333"
-      3 "#4d4d4d"
-      4 "#660000"
-      5 "#003300"
-      6 "#000066"
-      7 "#330033"
-      8 "#663300"
-      9 "#336633"
-      10 "#663366"
-      11 "#333300"
-      12 "#000033"
-      13 "#330000"
-      14 "#003333"
-      15 "#330033"
-      16 "#663333"
-      17 "#336600"
-      18 "#006666"
-      19 "#663366"
-      )))
+(defn- hue-for-uri [uri]
+  (mod (hash uri) 360))
 
 (defn- map-label-for-uri [uri]
   (let [ascii-int (+ (.charCodeAt \A 0)
@@ -411,7 +391,7 @@
                    (map (fn [[coords uri]]
                           (leaflet/make-pin
                            (map-label-for-uri uri)
-                           (color-for-coordinates coords)
+                           (hue-for-uri uri)
                            coords
                            (str "#" uri)))
                         (ss/search-state-geo-positions search-state)))
