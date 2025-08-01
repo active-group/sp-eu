@@ -31,7 +31,8 @@
             [wisen.common.query :as query]
             [active.clojure.logger.event :as event-logger]
             [clojure.string :as string]
-            [wisen.backend.geocoding :as geocoding]))
+            [wisen.backend.geocoding :as geocoding]
+            [wisen.backend.skolemizer :as skolemizer]))
 
 (defn mint-resource-url! []
   (str "http://example.org/resource/" (random-uuid)))
@@ -258,6 +259,14 @@
                   (.toString (get line "reference")))
                 result)}))
 
+(defn skolemize [request]
+  (let [s (slurp (get request :body))]
+    (println "skolemize")
+    (println (pr-str s))
+    {:status 200
+     :headers {"Content-type" "application/json"}
+     :body (skolemizer/skolemize-string s)}))
+
 ;; type hierarchy
 (derive ::error ::exception)
 (derive ::failure ::exception)
@@ -298,7 +307,8 @@
       ["/search" {:post {:handler search}}]
       ["/changes" {:post {:handler add-changes}}]
       ["/schema" {:get {:handler get-schema}}]
-      ["/references/:id" {:get {:handler get-references}}]]
+      ["/references/:id" {:get {:handler get-references}}]
+      ["/skolemize" {:post {:handler skolemize}}]]
 
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
