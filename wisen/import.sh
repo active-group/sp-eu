@@ -2,4 +2,4 @@
 
 set -e
 
-clj -M:backend --import $1
+curl localhost:4321/api/import -X POST -d "$(<$1)"

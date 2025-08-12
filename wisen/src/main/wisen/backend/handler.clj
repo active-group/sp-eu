@@ -32,7 +32,8 @@
             [active.clojure.logger.event :as event-logger]
             [clojure.string :as string]
             [wisen.backend.geocoding :as geocoding]
-            [wisen.backend.skolemizer :as skolemizer]))
+            [wisen.backend.skolemizer :as skolemizer]
+            [wisen.backend.importer :as importer]))
 
 (defn mint-resource-url! []
   (str "http://example.org/resource/" (random-uuid)))
@@ -261,11 +262,17 @@
 
 (defn skolemize [request]
   (let [s (slurp (get request :body))]
-    (println "skolemize")
-    (println (pr-str s))
+    (event-logger/log-event! :info (str "Skolemizing: " s))
     {:status 200
      :headers {"Content-type" "application/json"}
      :body (skolemizer/skolemize-string s)}))
+
+(defn import [request]
+  (let [s (slurp (get request :body))]
+    (event-logger/log-event! :info (str "Importing: " s))
+    (importer/import-string s)
+    (event-logger/log-event! :info "Import done")
+    {:status 200}))
 
 ;; type hierarchy
 (derive ::error ::exception)
@@ -308,7 +315,8 @@
       ["/changes" {:post {:handler add-changes}}]
       ["/schema" {:get {:handler get-schema}}]
       ["/references/:id" {:get {:handler get-references}}]
-      ["/skolemize" {:post {:handler skolemize}}]]
+      ["/skolemize" {:post {:handler skolemize}}]
+      ["/import" {:post {:handler import}}]]
 
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
