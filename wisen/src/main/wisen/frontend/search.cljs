@@ -59,7 +59,8 @@
               :font-weight "normal"
               :margin-bottom "1em"
               :display "flex"
-              :gap "2em"}}
+              :gap "2em"
+              :flex-wrap "wrap"}}
      (map
       (fn [rr]
         (ds/button-secondary
