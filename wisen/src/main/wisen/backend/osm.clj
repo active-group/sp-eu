@@ -115,12 +115,9 @@
         postcode (address-postcode a)
         street (address-street a)]
     (codec/url-encode
-     (str street ", " postcode " " locality ", " country ))))
-
-#_(urlencode-address {:addressCountry "de"
-                    :addressLocality "Tübingen"
-                    :streetAdress "Hechinger Str. 12/1"
-                    :postalCode "72072"})
+     (str street ", " postcode " " locality (when country
+                                              (str
+                                               ", " country))))))
 
 (defn search! [address]
   (try

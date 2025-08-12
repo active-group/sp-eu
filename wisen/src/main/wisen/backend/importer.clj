@@ -3,9 +3,8 @@
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.index :as index]))
 
-(defn import-file [path]
-  (let [s (slurp path)
-        model (jsonld/json-ld-string->model s)]
+(defn import-string [s]
+  (let [model (jsonld/json-ld-string->model s)]
 
     (triple-store/setup!)
 
@@ -15,3 +14,6 @@
 
     (index/update-search-index!)
     ))
+
+(defn import-file [path]
+  (import-string (slurp path)))

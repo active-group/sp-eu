@@ -2,11 +2,11 @@
 
 set -e
 
-for file in ../jsonld/*.jsonld; do
+for file in "$1"/*.jsonld; do
     skolemized="${file}.skolemized"
 
     if [[ ! -e "$skolemized" ]]; then
-      ./skolemize.sh "$file"
+      ./skolemize.sh "$file" > "$skolemized"
     fi
 done
 

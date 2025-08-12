@@ -2,5 +2,5 @@
 
 set -e
 
-for file in ../jsonld/*.jsonld.skolemized; do ./import.sh "$file"; done
+for file in "$1"/*.jsonld; do ./import.sh "$file"; done
 
