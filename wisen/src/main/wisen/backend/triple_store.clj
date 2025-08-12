@@ -172,7 +172,7 @@
                      ?address <http://schema.org/postalCode> ?postcode .
                      ?address <http://schema.org/streetAddress> ?street .
                      ?address <http://schema.org/addressLocality> ?locality .
-                     ?address <http://schema.org/addressCountry> ?country .
+                     OPTIONAL { ?address <http://schema.org/addressCountry> ?country . }
 
                      FILTER NOT EXISTS { ?address <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?long . }
 }")]
