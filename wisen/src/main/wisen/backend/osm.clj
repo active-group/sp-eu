@@ -3,7 +3,8 @@
             [active.data.realm :as realm]
             [clj-http.client :as http]
             [cheshire.core :as cheshire]
-            [ring.util.codec :as codec]))
+            [ring.util.codec :as codec]
+            [active.clojure.logger.event :as event-logger]))
 
 (def-record address
   [address-country :- realm/string
@@ -121,6 +122,7 @@
 
 (defn search! [address]
   (try
+    (event-logger/log-event! :info (str "OSM search for address: " (pr-str address)))
     (let [url (str
                "https://nominatim.openstreetmap.org/search?format=jsonv2&q="
                (urlencode-address address))
