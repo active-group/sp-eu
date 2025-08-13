@@ -688,15 +688,27 @@
 
        (and (ajax/response? result)
             (ajax/response-ok? result))
-       (let [n (count (ajax/response-value result))]
-         (dom/i
-          (str n)
-          " "
-          (if (= 1 n)
-            "reference"
-            "references")
-          " "
-          "in total"))))))
+       (let [references (ajax/response-value result)
+             n (count references)]
+         (if (> n 0)
+           (ds/popover-button
+            (str
+             (str n)
+             " "
+             (if (= 1 n)
+               "reference"
+               "references")
+             " "
+             "in total")
+            (apply dom/ul
+                   (map (fn [reference]
+                          (dom/li
+                           (when-let [name (:name reference)]
+                             (str name " – "))
+                           (dom/a {:href (:uri reference)}
+                                  (:uri reference))))
+                        references)))
+           "No references"))))))
 
 (c/defn-effect copy-to-clipboard! [s]
   (.writeText (.-clipboard js/navigator) s))

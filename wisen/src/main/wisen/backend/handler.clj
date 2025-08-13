@@ -252,12 +252,16 @@
 (defn get-references [request]
   (let [id (get-in request [:path-params :id])
         uri (r/uri-for-resource-id id)
-        q (str "SELECT DISTINCT ?reference WHERE { ?reference ?p <" uri "> . }")
+        q (str "SELECT DISTINCT ?reference ?name WHERE { ?reference ?p <"
+               uri "> . OPTIONAL { ?reference <http://schema.org/name> ?name . } }")
         result (triple-store/run-select-query! q)]
     {:status 200
      :headers {"Content-type" "application/json"}
      :body (map (fn [line]
-                  (.toString (get line "reference")))
+                  (merge
+                   {:uri (.toString (get line "reference"))}
+                   (when-let [name (get line "name")]
+                     {:name (.toString name)})))
                 result)}))
 
 (defn skolemize [request]
