@@ -42,8 +42,8 @@
             (insert! (.getURI (get row "id"))
                      (.getDouble (get row "lon"))
                      (.getDouble (get row "lat"))
-                     (get row "name")
-                     (get row "description")
+                     (str (get row "name"))
+                     (str (get row "description"))
                      dir))
           res))))
 
@@ -66,8 +66,8 @@
             (insert! (.getURI (get row "id"))
                      (.getDouble (get row "lon"))
                      (.getDouble (get row "lat"))
-                     (get row "name")
-                     (get row "description")
+                     (str (get row "name"))
+                     (str (get row "description"))
                      dir))
           res))))
 
@@ -90,8 +90,8 @@
             (insert! (.getURI (get row "id"))
                      (.getDouble (get row "lon"))
                      (.getDouble (get row "lat"))
-                     (get row "name")
-                     (get row "description")
+                     (str (get row "name"))
+                     (str (get row "description"))
                      dir))
           res))))
 
