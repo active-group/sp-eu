@@ -14,14 +14,22 @@
 (defn- prepare-for-query [text]
   (str text))
 
+(defn- embedding-vector-for-retrieval [name description]
+  (lucene/make-vector
+   (embedding/get-embedding
+    (prepare-for-retrieval name description))))
+
+(defn- embedding-vector-for-query [text]
+  (lucene/make-vector
+   (embedding/get-embedding
+    (prepare-for-query text))))
+
 (defn insert! [id lon lat name description & [dir]]
   (lucene/insert!
    (lucene/id-geo-vec
     lucene/id-geo-vec-id id
     lucene/id-geo-vec-geo (lucene/make-point lon lat)
-    lucene/id-geo-vec-vec (lucene/make-vector
-                           (embedding/get-embedding
-                            (prepare-for-retrieval name description))))
+    lucene/id-geo-vec-vec (embedding-vector-for-retrieval name description))
    dir))
 
 (defn- insert-direct! [dir]
@@ -105,9 +113,8 @@
   (lucene/geo-query box))
 
 (defn make-fuzzy-text-query [text]
-  (lucene/knn-query (lucene/make-vector
-                     (embedding/get-embedding
-                      (prepare-for-query text)))))
+  (lucene/knn-query
+   (embedding-vector-for-query text)))
 
 (defn combine-queries [q1 q2]
   (lucene/combine-queries q1 q2))
