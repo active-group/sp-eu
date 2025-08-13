@@ -1,5 +1,7 @@
 (ns wisen.backend.handler
   (:require [active.clojure.config :as active.config]
+            [active.data.realm :as realm]
+            [active.data.realm.validation :as realm-validation]
             [hiccup.core :as h]
             [reitit.ring :as ring]
             [clojure.java.io]
@@ -311,6 +313,22 @@
                           (event-logger/log-event! :error (str (:uri request) ": " (pr-str e)))
                           (handler e request))})))
 
+(defn- output
+  "Take a function `f` and validate its output against realm `r`."
+  [f r]
+  (let [validator (realm-validation/validator r)]
+    (fn [& args]
+      (let [result (apply f args)]
+        (validator result)
+        result))))
+
+(defn- json-response
+  "A realm for JSON responses of the given shape"
+  [r]
+  (realm/map-with-keys {:status (realm/enum 200)
+                        :headers (realm/map-of realm/any realm/any)
+                        :body r}))
+
 (def handler*
   (ring/ring-handler
    (ring/router
@@ -318,7 +336,12 @@
       ["/search" {:post {:handler search}}]
       ["/changes" {:post {:handler add-changes}}]
       ["/schema" {:get {:handler get-schema}}]
-      ["/references/:id" {:get {:handler get-references}}]
+      ["/references/:id" {:get {:handler (-> get-references
+                                             (output (json-response
+                                                      (realm/sequence-of
+                                                       (realm/map-with-keys
+                                                        {:name realm/string
+                                                         :uri realm/string})))))}}]
       ["/skolemize" {:post {:handler skolemize}}]
       ["/import" {:post {:handler import}}]]
 
