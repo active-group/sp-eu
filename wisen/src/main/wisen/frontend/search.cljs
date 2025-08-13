@@ -364,9 +364,6 @@
 
        (c/focus ss/search-session-selected-result-range
                 (ds/padded-2
-                 {:style {:position "sticky"
-                          :top "12px"
-                          :z-index 9999}}
                  (pager ssr)))
 
        (ds/padded-2
