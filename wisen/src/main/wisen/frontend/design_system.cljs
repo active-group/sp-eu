@@ -93,6 +93,28 @@
        (c/focus lens/first
                 (k rid))))))
 
+(c/defn-item popover-button [label item]
+  (with-random-id
+    (fn [id]
+      (c/fragment
+       (button-secondary {:style {:color "#3228dd"
+                                  :font-style "italic"}
+                          :popovertarget id}
+                   label)
+       (dom/div {:popover "auto"
+                 :id id
+                 :style {:position "absolute"
+                         :width "min-content"
+                         :height "min-content"
+                         :margin "0"
+                         :border border
+                         :border-radius "0px 6px 6px 6px"
+                         :padding "1ex 1em"
+                         :box-shadow "0 2px 3px rgba(0,0,0,0.1), 0 4px 32px rgba(0,0,0,0.4)"
+                         :top "calc(anchor(bottom) + 5px)"
+                         :left "calc(anchor(left))"}}
+                item)))))
+
 (dom/defn-dom input [attrs & children]
   (let [disabled? (get attrs :disabled)
         suggestions (get attrs :suggestions)]
