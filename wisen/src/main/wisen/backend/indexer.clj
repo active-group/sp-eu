@@ -33,8 +33,11 @@
 (defn get-residual-tasks [tasks]
   (rest tasks))
 
+(def initial-tasks
+  [[(.toEpochMilli (java.time.Instant/now)) index-all-task]])
+
 (defn run-new-indexer! [& [name]]
-  (let [tasks-atom (atom [])
+  (let [tasks-atom (atom initial-tasks)
         thread (.start (.name (Thread/ofVirtual)
                               (or name "Indexer"))
                        (fn []
@@ -45,7 +48,7 @@
                            ;; pop a task from tasks
                            (let [tasks @tasks-atom]
                              (if-let [task (get-next-task tasks)]
-                               (do
+                               (try
                                  (when (compare-and-set! tasks-atom tasks (get-residual-tasks tasks))
                                    (event-logger/log-event! :info (str "Indexer "
                                                                        (when name (str name " "))
@@ -54,12 +57,12 @@
                                    (event-logger/log-event! :info (str "Indexer "
                                                                        (when name (str name " "))
                                                                        "done handling a task")))
-                                 (recur))
+                                 (catch Exception e
+                                   (event-logger/log-event! :error (.getMessage e))))
                                ;; go to sleep
-                               (do
-                                 (LockSupport/park)
-                                 (recur))
-                               )))))]
+                               (LockSupport/park))
+                             (recur)
+                             ))))]
     (handle
      handle-tasks-atom tasks-atom
      handle-thread thread)))
