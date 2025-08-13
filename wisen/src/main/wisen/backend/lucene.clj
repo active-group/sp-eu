@@ -117,7 +117,7 @@
       (finally
         (.close r)))))
 
-(def desired-number-of-search-results 5)
+(def desired-number-of-search-results 25)
 
 (defn geo-query [box]
   (let [args (SpatialArgs. SpatialOperation/Intersects (box->shape box))
