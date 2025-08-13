@@ -21,9 +21,19 @@
 
     (insert! "senioren"
 
-             "Seniorentreff freshe Omas"
+             "Seniorenberatung Neukölln"
 
-             "Bei diesem Seniorentreff kommen Omas ins Gespräch über dies und das.")
+             "Beratung zu Fragen rund ums Alter (Wohnformen,
+              Hilfsmittel, Pflege, sozialrechtliche Ansprüche),
+              Unterstützung bei der Organisation von Hilfen und
+              Antragstellungen. Die Beratung ist unabhängig, neutral
+              und kostenfrei.")
+
+    #_(insert! "senioren"
+
+               "Seniorentreff freshe Omas"
+
+               "Bei diesem Seniorentreff kommen Omas ins Gespräch über dies und das.")
 
     (insert! "queerfeministisch"
 
@@ -66,6 +76,9 @@
              die Gleichstellung haben können. Sie ist
              Ansprechpartnerin für alle Beschäftigten des Bezirksamtes
              und für die Bürgerinnen und Bürger Neuköllns.")
+
+    (is (= "senioren"
+           (search! "Seniorenberatung")))
 
     (is (= "senioren"
            (search! "Senioren")))
