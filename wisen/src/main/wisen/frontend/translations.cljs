@@ -6,6 +6,13 @@
 (def de "de")
 (def en "en")
 
+(defn- parse-bcp47 [s]
+  (.-language (js/Intl.Locale. s)))
+
+(defn initial-language! []
+  (parse-bcp47
+   (.-language js/navigator)))
+
 (def language
   (realm/enum
    de
