@@ -1204,10 +1204,10 @@
                              ;; else
                              (c/return :action action)))))))
 
-(c/defn-item edit-graph [schema editable? force-editing? graph & [background-color]]
+(c/defn-item edit-graph [ctx editable? force-editing? graph & [background-color]]
   (c/isolate-state (edit-tree/graph->edit-tree graph)
-                   (edit-tree-component schema nil editable? force-editing? background-color)))
+                   (edit-tree-component ctx nil editable? force-editing? background-color)))
 
-(c/defn-item readonly-graph [schema graph & [background-color]]
+(c/defn-item readonly-graph [ctx graph & [background-color]]
   (c/isolate-state (edit-tree/graph->edit-tree graph)
-                   (edit-tree-component schema nil false false background-color)))
+                   (edit-tree-component ctx nil false false background-color)))
