@@ -18,7 +18,8 @@
             ["jsonld" :as jsonld]
             [reacl-c-basics.forms.core :as forms]
             [wisen.frontend.translations :as tr]
-            [wisen.frontend.context :as context]))
+            [wisen.frontend.context :as context]
+            [wisen.frontend.localstorage :as ls]))
 
 (defn menu [ctx]
   (letfn [(new-* [title initial-tree]
@@ -93,6 +94,30 @@
                  (forms/option {:value tr/en} "en")
                  (forms/option {:value tr/de} "de")))))))
 
+(def ^:private lang-local-storage-key
+  "language")
+
+(c/defn-item ^:private with-lang [item]
+  (c/isolate-state
+   nil
+   (c/with-state-as lang
+     (cond
+       (nil? lang)
+       ;; try loading intial lang from local state
+       (c/handle-action
+        (ls/get! lang-local-storage-key)
+        (fn [_ s]
+          (if (nil? s)
+            (c/return :state tr/en)
+            (c/return :state s))))
+
+       (string? lang)
+       (c/fragment
+        item
+        (c/once
+         (fn [s]
+           (c/return :action (ls/set! lang-local-storage-key s)))))))))
+
 (defn toplevel []
   (util/with-schemaorg
     (fn [schema]
@@ -104,15 +129,15 @@
                 :flex-direction "column"
                 :overflow "hidden"}}
 
-       (c/isolate-state "de"
-                        (c/with-state-as lang
-                          (let [ctx (context/make lang schema)]
-                            (c/fragment
-                             (menu ctx)
-                             (if-let [resource-id (first
-                                                   (pages.routes/parse routes/resource (.-href (.-location js/window))))]
-                               (resource/main (context/schema ctx) resource-id)
-                               (search/main (context/schema ctx)))))))))))
+       (with-lang
+         (c/with-state-as lang
+           (let [ctx (context/make lang schema)]
+             (c/fragment
+              (menu ctx)
+              (if-let [resource-id (first
+                                    (pages.routes/parse routes/resource (.-href (.-location js/window))))]
+                (resource/main (context/schema ctx) resource-id)
+                (search/main (context/schema ctx)))))))))))
 
 (defn ^:dev/after-load start []
   (println "start")
