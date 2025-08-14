@@ -108,7 +108,7 @@
         (ls/get! lang-local-storage-key)
         (fn [_ s]
           (if (nil? s)
-            (c/return :state tr/en)
+            (c/return :state (tr/initial-language!))
             (c/return :state s))))
 
        (string? lang)
