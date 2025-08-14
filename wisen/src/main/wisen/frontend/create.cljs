@@ -89,10 +89,6 @@
                                                   (fn [graph]
                                                     (c/once
                                                      (fn [_]
-                                                       (println "---")
-                                                       (println (pr-str graph))
-                                                       (println ">>>")
-                                                       (println (pr-str (tree/graph->tree graph)))
                                                        (c/return :state
                                                                  (edit-tree/graph->addit-tree graph)))))))))
 
