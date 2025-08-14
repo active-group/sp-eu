@@ -15,9 +15,12 @@
             [wisen.frontend.default :as default]
             [active.data.realm.validation :as validation]
             [wisen.frontend.resource :as resource]
-            ["jsonld" :as jsonld]))
+            ["jsonld" :as jsonld]
+            [reacl-c-basics.forms.core :as forms]
+            [wisen.frontend.translations :as tr]
+            [wisen.frontend.context :as context]))
 
-(defn menu [schema]
+(defn menu [ctx]
   (letfn [(new-* [title initial-tree]
             (dom/li
              (modal/modal-button (dom/div
@@ -31,7 +34,7 @@
 
                                   title)
                                  (fn [close-action]
-                                   (create/main schema
+                                   (create/main (context/schema ctx)
                                                 initial-tree
                                                 (ds/button-secondary
                                                  {:onClick #(c/return :action close-action)}
@@ -48,14 +51,14 @@
                                   (dom/span {:style {:font-size "1.6em"}}
                                             "+ ")
 
-                                  "RDF")
+                                  (context/text ctx tr/rdf))
                                  (fn [close-action]
                                    (dom/div
                                     {:style {:min-width "95vw"
                                              :display "flex"
                                              :overflow "auto"}}
                                     (create/from-rdf {:style {:flex 1}}
-                                                     schema
+                                                     (context/schema ctx)
                                                      ""
                                                      (ds/button-secondary
                                                       {:onClick #(c/return :action close-action)}
@@ -75,17 +78,20 @@
 
                (dom/a {:style {:font-weight "bold"}
                        :href (pages.routes/href routes/home)}
-                      "Search")
+                      (context/text ctx tr/search))
 
                (dom/div
                 {:style {:display "flex"
                          :align-items "baseline"
                          :justify-content "flex-end"
                          :gap "2em"}}
-                (new-* "Organization" default/default-organization)
-                (new-* "Event" default/default-event)
-                (new-* "Offer" default/default-offer)
-                (new-graph))))))
+                (new-* (context/text ctx tr/organization) default/default-organization)
+                (new-* (context/text ctx tr/event) default/default-event)
+                (new-* (context/text ctx tr/offer) default/default-offer)
+                (new-graph)
+                (ds/select
+                 (forms/option {:value tr/en} "en")
+                 (forms/option {:value tr/de} "de")))))))
 
 (defn toplevel []
   (util/with-schemaorg
@@ -98,12 +104,15 @@
                 :flex-direction "column"
                 :overflow "hidden"}}
 
-       (menu schema)
-
-       (if-let [resource-id (first
-                             (pages.routes/parse routes/resource (.-href (.-location js/window))))]
-         (resource/main schema resource-id)
-         (search/main schema))))))
+       (c/isolate-state "de"
+                        (c/with-state-as lang
+                          (let [ctx (context/make lang schema)]
+                            (c/fragment
+                             (menu ctx)
+                             (if-let [resource-id (first
+                                                   (pages.routes/parse routes/resource (.-href (.-location js/window))))]
+                               (resource/main (context/schema ctx) resource-id)
+                               (search/main (context/schema ctx)))))))))))
 
 (defn ^:dev/after-load start []
   (println "start")
