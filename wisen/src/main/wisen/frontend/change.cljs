@@ -6,9 +6,10 @@
             [active.data.realm :as realm]
             [wisen.common.change-api :as change-api]
             [reacl-c-basics.ajax :as ajax]
-            [wisen.frontend.schema :as schema]
             [wisen.frontend.existential :as existential]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [wisen.frontend.context :as context]
+            [wisen.frontend.translations :as tr]))
 
 
 ;; A change describes a delta between two sets of trees with references, i.e. between two graphs
@@ -157,7 +158,7 @@
    n
    changeset))
 
-(defn changeset-summary [schema changeset]
+(defn changeset-summary [ctx changeset]
   (let [deletions (nchanges 0 delete? changeset)
         additions (nchanges 0 add? changeset)
         blank-creations (nchanges 0 with-blank-node? changeset)]
@@ -169,12 +170,14 @@
       (str additions)
       (when (> blank-creations 0)
         (str " + " blank-creations))
-      " Additions")
+      " "
+      (context/text ctx tr/additions))
 
      (dom/div
       {:style {:color "red"}}
       (str deletions)
-      " Deletions"))))
+      " "
+      (context/text ctx tr/deletions)))))
 
 (defn commit-changeset-request [changeset]
   (ajax/POST "/api/changes"

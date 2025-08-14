@@ -21,10 +21,10 @@
 
 (defn main
 
-  ([schema]
-   (main schema initial-organization))
+  ([ctx]
+   (main ctx initial-organization))
 
-  ([schema initial-tree & additional-items]
+  ([ctx initial-tree & additional-items]
    (c/isolate-state
 
     (edit-tree/make-added-edit-tree initial-tree)
@@ -40,15 +40,15 @@
                  :padding "3ex 2em"
                  :scroll-behavior "smooth"}}
 
-        (editor/edit-tree-component schema [organization-type event-type] true true))
+        (editor/edit-tree-component ctx [organization-type event-type] true true))
 
        (dom/div
         {:style {:border-top ds/border}}
         (apply commit/main
-               schema
+               ctx
                additional-items)))))))
 
-(c/defn-item from-rdf [attrs schema initial-string & additional-items]
+(c/defn-item from-rdf [attrs ctx initial-string & additional-items]
   (c/isolate-state
    {:text [initial-string (wisen.frontend.forms/selected)]
     :edit-trees {} ;; text -> edit-tree
@@ -99,7 +99,7 @@
           (c/focus (lens/>> :edit-trees
                             (lens/member text))
                    (ds/padded-2
-                    (editor/edit-tree-component schema nil false false)))))
+                    (editor/edit-tree-component ctx nil false false)))))
 
         ;; bottom commit bar
         (c/focus (lens/>> :edit-trees
@@ -108,5 +108,5 @@
                    (dom/div
                     {:style {:border-top ds/border}}
                     (apply commit/main
-                           schema
+                           ctx
                            additional-items)))))))))

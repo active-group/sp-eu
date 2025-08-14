@@ -49,3 +49,31 @@
 (define-text rdf
   de "RDF"
   en "RDF")
+
+(define-text additions
+  de "Ergänzungen"
+  en "Additions")
+
+(define-text deletions
+  de "Löschungen"
+  en "Deletions")
+
+(define-text commit-changes
+  de "Änderungen speichern"
+  en "Commit changes")
+
+(define-text committing
+  de "Speichern ..."
+  en "Committing ...")
+
+(define-text commit-successful
+  de "Speichern erfolgreich!"
+  en "Commit successful!")
+
+(define-text commit-failed
+  de "Speichern fehlgeschlagen!"
+  en "Commit failed!")
+
+(define-text close
+  de "Schließen"
+  en "Close")

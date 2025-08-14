@@ -27,7 +27,8 @@
             [wisen.frontend.value-node :as value-node]
             [wisen.common.wisen-uri :as wisen-uri]
             [wisen.frontend.ask-ai :as ask-ai]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [wisen.frontend.context :as context]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -1184,23 +1185,24 @@
           :else
           0)))))
 
-(c/defn-item edit-tree-component [schema types editable? force-editing? & [background-color uri-order adornment]]
-  (-> (edit-tree-component* schema
-                            types
-                            editable?
-                            force-editing?
-                            background-color
-                            (make-compare-with-uri-order uri-order)
-                            adornment)
-      (c/handle-action (fn [etree action]
-                         (if (is-a? set-reference-action action)
-                           (edit-tree/set-reference etree
-                                                    (set-reference-action-subject-uri action)
-                                                    (set-reference-action-predicate action)
-                                                    (set-reference-action-old-uri action)
-                                                    (set-reference-action-new-uri action))
-                           ;; else
-                           (c/return :action action))))))
+(c/defn-item edit-tree-component [ctx types editable? force-editing? & [background-color uri-order adornment]]
+  (let [schema (context/schema ctx)]
+    (-> (edit-tree-component* schema
+                              types
+                              editable?
+                              force-editing?
+                              background-color
+                              (make-compare-with-uri-order uri-order)
+                              adornment)
+        (c/handle-action (fn [etree action]
+                           (if (is-a? set-reference-action action)
+                             (edit-tree/set-reference etree
+                                                      (set-reference-action-subject-uri action)
+                                                      (set-reference-action-predicate action)
+                                                      (set-reference-action-old-uri action)
+                                                      (set-reference-action-new-uri action))
+                             ;; else
+                             (c/return :action action)))))))
 
 (c/defn-item edit-graph [schema editable? force-editing? graph & [background-color]]
   (c/isolate-state (edit-tree/graph->edit-tree graph)
