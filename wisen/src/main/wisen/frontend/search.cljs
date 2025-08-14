@@ -129,11 +129,11 @@
   (c/with-state-as result
     (cond
       (ss/error? result)
-      "TODO ERROR"
+      (dom/pre (pr-str result))
 
       (ss/loading? result)
       (c/fragment
-       "TODO LOADING"
+       (spinner/main)
        (run-query-result-range query result-range))
 
       (ss/search-response? result)
