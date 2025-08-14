@@ -136,7 +136,7 @@
               (menu ctx)
               (if-let [resource-id (first
                                     (pages.routes/parse routes/resource (.-href (.-location js/window))))]
-                (resource/main (context/schema ctx) resource-id)
+                (resource/main ctx resource-id)
                 (search/main (context/schema ctx)))))))))))
 
 (defn ^:dev/after-load start []
