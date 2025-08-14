@@ -6,7 +6,9 @@
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.edit-tree :as edit-tree]
             [wisen.frontend.change :as change]
-            [reacl-c-basics.ajax :as ajax]))
+            [reacl-c-basics.ajax :as ajax]
+            [wisen.frontend.context :as context]
+            [wisen.frontend.translations :as tr]))
 
 (def-record idle [])
 
@@ -16,7 +18,7 @@
 
 (def-record commit-failed [commit-failed-error])
 
-(defn changeset-component [schema changeset]
+(defn changeset-component [ctx changeset]
   (c/isolate-state
    (idle)
    (c/with-state-as state
@@ -24,18 +26,18 @@
       {:style {:display "flex"
                :gap "1em"}}
 
-      (change/changeset-summary schema changeset)
+      (change/changeset-summary ctx changeset)
 
       (cond
         (is-a? idle state)
         (when-not (empty? changeset)
           (ds/button-primary {:onclick (fn [_]
                                          (committing committing-changeset changeset))}
-                             "Commit changes"))
+                             (context/text ctx tr/commit-changes)))
 
         (is-a? committing state)
         (dom/div
-         "Committing ..."
+         (context/text ctx tr/committing)
          (wisen.frontend.spinner/main)
          (c/handle-action
           (ajax/execute (change/commit-changeset-request (committing-changeset state)))
@@ -50,15 +52,15 @@
                              (ajax/response-value ac))))))
 
         (is-a? commit-successful state)
-        "Success!"
+        (context/text ctx tr/commit-successful)
 
         (is-a? commit-failed state)
         (dom/div
-         "Commit failed!"
+         (context/text ctx tr/commit-failed)
          (dom/pre
           (pr-str (commit-failed-error state)))))))))
 
-(defn main [schema & additional-items]
+(defn main [ctx & additional-items]
   (c/with-state-as etree
     (dom/div
      {:style {:padding "12px 24px"
@@ -69,7 +71,7 @@
                 :flex 1
                 :justify-content "space-between"}}
        (apply dom/div additional-items)
-       (changeset-component schema (edit-tree/edit-tree-changeset etree)))
+       (changeset-component ctx (edit-tree/edit-tree-changeset etree)))
       (fn [etree action]
         (if (is-a? commit-successful action)
           (c/return)

@@ -35,11 +35,11 @@
 
                                   title)
                                  (fn [close-action]
-                                   (create/main (context/schema ctx)
+                                   (create/main ctx
                                                 initial-tree
                                                 (ds/button-secondary
                                                  {:onClick #(c/return :action close-action)}
-                                                 "Close"))))))
+                                                 (context/text ctx tr/close)))))))
 
           (new-graph []
             (dom/li
@@ -63,7 +63,7 @@
                                                      ""
                                                      (ds/button-secondary
                                                       {:onClick #(c/return :action close-action)}
-                                                      "Close")))))))]
+                                                      (context/text ctx tr/close))))))))]
 
     (ds/padded-2
      {:style {:border-bottom ds/border
