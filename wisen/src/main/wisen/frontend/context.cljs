@@ -13,3 +13,6 @@
 
 (defn text [ctx symb]
   (symb (language ctx)))
+
+(defn text-fn [ctx f & args]
+  (apply f (language ctx) args))
