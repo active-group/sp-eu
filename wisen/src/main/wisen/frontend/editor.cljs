@@ -451,7 +451,7 @@
               {:style {:display "flex"
                        :gap "1em"}}
 
-              (when (edit-tree/organization? node)
+              #_(when (edit-tree/organization? node)
                 (if-let [osm-uri (osm/node-osm-uri node)]
 
                   (dom/div
