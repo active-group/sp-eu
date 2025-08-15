@@ -502,4 +502,65 @@
                 [(et/mark-added
                   (et/make-ref 0))]}))
              result
+             ))))
+
+  (testing "exists -> [exists/ref]"
+    (let [etree (et/exists
+                 et/exists-existential 0
+                 et/exists-edit-tree
+                 (et/edit-node
+                  et/edit-node-uri 0
+                  et/edit-node-properties
+                  {"location"
+                   [(et/mark-added
+                     (et/exists
+                      et/exists-existential 1
+                      et/exists-edit-tree
+                      (et/edit-node
+                       et/edit-node-uri 1
+                       et/edit-node-properties
+                       {"address" [(et/mark-added
+                                    (et/exists
+                                     et/exists-existential 2
+                                     et/exists-edit-tree
+                                     (et/edit-node
+                                      et/edit-node-uri 2
+                                      et/edit-node-properties
+                                      {"street" [(et/mark-added (et/edit-node
+                                                                 et/edit-node-uri "some-street"
+                                                                 et/edit-node-properties
+                                                                 {}))]})))]})))]
+                   "address" [(et/mark-added
+                               (et/edit-node
+                                et/edit-node-uri "some-address"
+                                et/edit-node-properties {}))]}))
+
+          result (et/set-reference etree
+                                   1
+                                   "address"
+                                   2
+                                   "some-address")]
+
+
+      (is (= (et/exists
+              et/exists-existential 0
+              et/exists-edit-tree
+              (et/edit-node
+               et/edit-node-uri 0
+               et/edit-node-properties
+               {"location"
+                [(et/mark-added
+                  (et/exists
+                   et/exists-existential 1
+                   et/exists-edit-tree
+                   (et/edit-node
+                    et/edit-node-uri 1
+                    et/edit-node-properties
+                    {"address" [(et/mark-added
+                                 (et/make-ref "some-address"))]})))]
+                "address" [(et/mark-added
+                            (et/edit-node
+                             et/edit-node-uri "some-address"
+                             et/edit-node-properties {}))]}))
+             result
              )))))

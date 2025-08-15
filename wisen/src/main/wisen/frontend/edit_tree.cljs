@@ -795,10 +795,12 @@
        (not (same? x))))
 
 (defn- etree-matches-uri? [etree uri]
-  (and (or (edit-node? etree)
-           (ref? etree))
-       (= (tree-uri etree)
-          uri)))
+  (if (exists? etree)
+    (recur (exists-edit-tree etree) uri)
+    (and (or (edit-node? etree)
+             (ref? etree))
+         (= (tree-uri etree)
+            uri))))
 
 (defn- set-reference* [etree subject-uri predicate from-object-uri to-object]
   (cond
