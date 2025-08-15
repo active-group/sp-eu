@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [time update])
   (:require
    [active.data.realm :as realm]
-   [wisen.common.lang :refer-macros [define-text define-text-function]]))
+   [wisen.common.lang :refer-macros [text define-text define-text-function]]))
 
 (def de "de")
 (def en "en")
@@ -218,3 +218,188 @@
 (define-text nothing-to-display
   de "Nichts anzuzeigen"
   en "Nothing to display")
+
+;; RDF predicates
+
+(def predicates
+  {
+
+   "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+   (text
+    de "Typ"
+    en "Type"
+    "<type>")
+
+   "http://schema.org/name"
+   (text
+    de "Name"
+    en "Name"
+    "<name>")
+
+   "http://schema.org/description"
+   (text
+    en "Description"
+    de "Beschreibung"
+    "<description>")
+
+   "http://schema.org/keywords"
+   (text
+    en "Tags"
+    de "Stichwörter"
+    "<tags>")
+
+   "http://schema.org/location"
+   (text
+    en "Location"
+    de "Standort"
+    "<location>")
+
+   "http://schema.org/openingHoursSpecification"
+   (text
+    en "Opening Hours"
+    de "Öffnungszeiten"
+    "<opening hours>")
+
+   "http://schema.org/url"
+   (text
+    en "Website"
+    de "Website"
+    "<url>")
+
+   "http://schema.org/address"
+   (text
+    en "Address"
+    de "Adresse"
+    "<address>")
+
+   "http://schema.org/streetAddress"
+   (text
+    en "Street + Nr"
+    de "Straße + Hausnummer"
+    "<streetAddress>")
+
+   "http://schema.org/postalCode"
+   (text
+    en "Postal code"
+    de "Postleitzahl"
+    "<postalCode>")
+
+   "http://schema.org/addressLocality"
+   (text
+    en "Town/region"
+    de "Stadt/Region"
+    "<addressLocality>")
+
+   "http://schema.org/addressCountry"
+   (text
+    en "Country code"
+    de "Land"
+    "<addressCountry>")
+
+   "http://schema.org/dayOfWeek"
+   (text
+    en "Day of week"
+    de "Wochentag"
+    "<dayOfWeek>")
+
+   "http://schema.org/opens"
+   (text
+    en "Opens"
+    de "Öffnet"
+    "<opens>")
+
+   "http://schema.org/closes"
+   (text
+    en "Closes"
+    de "Schließt"
+    "<closes>")
+
+   "http://www.w3.org/2003/01/geo/wgs84_pos#long"
+   (text
+    en "Longitude"
+    de "Längengrad"
+    "<longitude>")
+
+   "http://www.w3.org/2003/01/geo/wgs84_pos#lat"
+   (text
+    en "Latitude"
+    de "Breitengrad"
+    "<latitude>")
+
+   "http://schema.org/contactPoint"
+   (text
+    en "Contact point"
+    de "Kontaktpunkt"
+    "<contactPoint>")
+
+   "http://schema.org/eventSchedule"
+   (text
+    en "Event schedule"
+    de "Zeitplan"
+    "<eventSchedule>")
+
+   "http://schema.org/email"
+   (text
+    en "Email"
+    de "Email"
+    "<email>")
+
+   "http://schema.org/telephone"
+   (text
+    en "Telephone"
+    de "Telefon"
+    "<telephone>")
+
+   "http://schema.org/byDay"
+   (text
+    en "Day"
+    de "Tag"
+    "<byDay>")
+
+   "http://schema.org/startTime"
+   (text
+    en "Start time"
+    de "Startzeitpunkt"
+    "<startTime>")
+
+   "http://schema.org/endTime"
+   (text
+    en "End time"
+    de "Endzeitpunkt"
+    "<endTime>")
+
+   "http://schema.org/repeatFrequency"
+   (text
+    en "Repeat frequency"
+    de "Wiederholungsrate"
+    "<repeatFrequency>")
+
+   "http://schema.org/contactType"
+   (text
+    en "Contact type"
+    de "Art des Kontakts"
+    "<contactType>")
+
+   "http://schema.org/audience"
+   (text
+    en "Audience"
+    de "Zielgruppe"
+    "<audience>")
+
+   "http://schema.org/audienceType"
+   (text
+    en "Audience type"
+    de "Art der Zielgruppe"
+    "<audienceType>")
+
+   "http://schema.org/accessibilityFeature"
+   (text
+    en "Accessibility feature"
+    de "Barrierefreiheitsfunktion"
+    "<accessibilityFeature>")
+
+   "http://schema.org/geographicArea"
+   (text
+    en "Geographic area"
+    de "Geographischer Bereich"
+    "<geographicArea>")})

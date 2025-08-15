@@ -345,7 +345,7 @@
                          :border-top-right-radius "0px"
                          :border-bottom-right-radius "0px"}}
                 (map (fn [pred]
-                       (forms/option {:value pred} (schema/label-for-predicate (context/schema ctx) pred)))
+                       (forms/option {:value pred} (schema/label-for-predicate ctx pred)))
                      predicates)))
 
       (ds/button-primary
@@ -592,7 +592,7 @@
                                                          :z-index "5"}
                                                         (style-for-marked marked-edit-tree))}
                                          (icon-for-marked marked-edit-tree)
-                                         (schema/label-for-predicate (context/schema ctx) predicate))
+                                         (schema/label-for-predicate ctx predicate))
 
                                         (when (and (edit-tree/can-discard-edit? marked-edit-tree)
                                                    force-editing?)
