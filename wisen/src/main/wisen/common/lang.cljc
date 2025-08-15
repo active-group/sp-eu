@@ -9,7 +9,6 @@
     `(defn ~?name [lang#]
        (or
         (get ~m lang#)
-        (get ~m ~en)
         (str '~?name)))))
 
 (defmacro define-text-function [?name ?args-vec & ?pairs]
@@ -22,5 +21,4 @@
     `(defn ~?name [lang# & args#]
        (or
         (apply (get ~m lang#) args#)
-        (apply (get ~m ~en) args#)
         (str '~?name)))))
