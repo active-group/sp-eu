@@ -3,7 +3,9 @@
             [wisen.frontend.tree :as tree]
             [active.data.record :as record :refer-macros [def-record]]
             [active.data.realm :as realm]
-            [active.clojure.lens :as lens]))
+            [active.clojure.lens :as lens]
+            [wisen.frontend.context :as context]
+            [wisen.frontend.translations :as tr]))
 
 ;; first argument is always a (parsed) rdf graph of the
 ;; schema (probably always schema.org)
@@ -19,114 +21,24 @@
       type-uri)
     type-uri))
 
-(defn nice-name [x]
-  (case x
-      "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
-      "Type"
+(defn nice-name [ctx x]
+  (when-let [t (get tr/predicates x)]
+    (context/text ctx t)))
 
-      "http://schema.org/name"
-      "Name"
-
-      "http://schema.org/description"
-      "Description"
-
-      "http://schema.org/keywords"
-      "Tags"
-
-      "http://schema.org/location"
-      "Location"
-
-      "http://schema.org/openingHoursSpecification"
-      "Opening Hours"
-
-      "http://schema.org/url"
-      "Website"
-
-      "http://schema.org/address"
-      "Address"
-
-      "http://schema.org/streetAddress"
-      "Street + Nr"
-
-      "http://schema.org/postalCode"
-      "Postal code"
-
-      "http://schema.org/addressLocality"
-      "Town/region"
-
-      "http://schema.org/addressCountry"
-      "Country code"
-
-      "http://schema.org/dayOfWeek"
-      "Day of week"
-
-      "http://schema.org/opens"
-      "Opens"
-
-      "http://schema.org/closes"
-      "Closes"
-
-      "http://www.w3.org/2003/01/geo/wgs84_pos#long"
-      "Longitude"
-
-      "http://www.w3.org/2003/01/geo/wgs84_pos#lat"
-      "Latitude"
-
-      "http://schema.org/contactPoint"
-      "Contact point"
-
-      "http://schema.org/eventSchedule"
-      "Event schedule"
-
-      "http://schema.org/email"
-      "Email"
-
-      "http://schema.org/telephone"
-      "Telephone"
-
-      "http://schema.org/byDay"
-      "Day"
-
-      "http://schema.org/startTime"
-      "Start time"
-
-      "http://schema.org/endTime"
-      "End time"
-
-      "http://schema.org/repeatFrequency"
-      "Repeat frequency"
-
-      "http://schema.org/contactType"
-      "Contact type"
-
-      "http://schema.org/audience"
-      "Audience"
-
-      "http://schema.org/audienceType"
-      "Audience type"
-
-      "http://schema.org/accessibilityFeature"
-      "Accessibility feature"
-
-      "http://schema.org/geographicArea"
-      "Geographic area"
-
-      nil))
-
-(defn label-for-predicate [schema predicate]
-  (if-let [nice (nice-name predicate)]
+(defn label-for-predicate [ctx predicate]
+  (if-let [nice (nice-name ctx predicate)]
     nice
     (let [subject
           (first
            (rdf/predicate-object-subjects
-            schema
+            (context/schema ctx)
             (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
             (rdf/make-symbol predicate)))
 
           object
           (first
            (rdf/subject-predicate-objects
-            schema
+            (context/schema ctx)
             subject
             (rdf/make-symbol "http://www.w3.org/ns/shacl#name")))]
 
