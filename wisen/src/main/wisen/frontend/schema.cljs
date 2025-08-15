@@ -135,23 +135,27 @@
         predicate))))
 
 (defn predicates-for-type [schema type]
-  (sort
-   (concat
-    ["http://schema.org/name"
-     "http://schema.org/description"
-     "http://schema.org/sameAs"
-     "http://schema.org/url"
-     "http://schema.org/image"
-     "http://schema.org/keywords"
-     "https://wisen.active-group.de/target-group"]
-    (when-let [properties (rdf/subject-predicate-objects
-                           schema
-                           (rdf/make-symbol (tree/type-uri type))
-                           (rdf/make-symbol "http://www.w3.org/ns/shacl#property"))]
-      (map (fn [property]
-             (rdf/symbol-uri
-              (first (rdf/subject-predicate-objects schema property (rdf/make-symbol "http://www.w3.org/ns/shacl#path")))))
-           properties)))))
+  (let [maybe-parent (first
+                      (rdf/subject-predicate-objects
+                       schema
+                       (rdf/make-symbol (tree/type-uri type))
+                       (rdf/make-symbol "http://www.w3.org/2000/01/rdf-schema#subClassOf")))
+        parent-predicates (if maybe-parent
+                            (predicates-for-type schema (tree/make-node
+                                                         (rdf/symbol-uri maybe-parent)))
+                            []
+                            )]
+    (sort
+     (concat
+      parent-predicates
+      (when-let [properties (rdf/subject-predicate-objects
+                             schema
+                             (rdf/make-symbol (tree/type-uri type))
+                             (rdf/make-symbol "http://www.w3.org/ns/shacl#property"))]
+        (map (fn [property]
+               (rdf/symbol-uri
+                (first (rdf/subject-predicate-objects schema property (rdf/make-symbol "http://www.w3.org/ns/shacl#path")))))
+             properties))))))
 
 (defn- unpack [sym]
   (assert (rdf/symbol? sym)
