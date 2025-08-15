@@ -28,7 +28,8 @@
             [wisen.common.wisen-uri :as wisen-uri]
             [wisen.frontend.ask-ai :as ask-ai]
             [clojure.string :as string]
-            [wisen.frontend.context :as context]))
+            [wisen.frontend.context :as context]
+            [wisen.frontend.translations :as tr]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -78,12 +79,12 @@
               (tree/uri-string uri))
     (tree/uri-string uri)))
 
-(defn- pr-boolean [on?]
+(defn- pr-boolean [ctx on?]
   (if on?
-    "True"
-    "False"))
+    (context/text ctx tr/is-true)
+    (context/text ctx tr/is-false)))
 
-(c/defn-item ^:private before-after [before-item after-item background-color]
+(c/defn-item ^:private before-after [ctx before-item after-item background-color]
   (c/with-state-as [state before-or-after :local ::after]
     (dom/div
      {:style {:display "flex"
@@ -108,7 +109,7 @@
                                                 "bold"
                                                 "normal")}
                          :onClick (constantly ::before)}
-                        "Before")
+                        (context/text ctx tr/before))
                (dom/div {:style {:border-top "1px solid gray"
                                  :border-right "1px solid gray"
                                  :border-bottom (if (= before-or-after ::after)
@@ -124,7 +125,7 @@
                                                 "bold"
                                                 "normal")}
                          :onClick (constantly ::after)}
-                        "After")))
+                        (context/text ctx tr/after))))
 
      (dom/div
       {:style {:border "1px solid gray"
@@ -137,28 +138,28 @@
                  ::after
                  after-item))))))
 
-(defn- label-for-kind [kind]
+(defn- label-for-kind [ctx kind]
   (cond
     (= kind tree/literal-string)
-    "String"
+    (context/text ctx tr/string)
 
     (= kind tree/literal-decimal)
-    "Decimal"
+    (context/text ctx tr/decimal)
 
     (= kind tree/literal-boolean)
-    "Boolean"
+    (context/text ctx tr/bool)
 
     (= kind tree/literal-time)
-    "Time"
+    (context/text ctx tr/time)
 
     (= kind tree/literal-date)
-    "Date"
+    (context/text ctx tr/date)
 
     (= kind tree/ref)
-    "Node"
+    (context/text ctx tr/node)
 
     (= kind tree/node)
-    "Node"))
+    (context/text ctx tr/node)))
 
 (declare edit-tree-component*)
 
@@ -173,7 +174,7 @@
          edit-node-is-postal-address-value?
          edit-node-is-opening-hours-specification-value?)
 
-(c/defn-item ^:private component-for-predicate [predicate schema types editable? editing? background-color compare-edit-tree adornment]
+(c/defn-item ^:private component-for-predicate [predicate ctx types editable? editing? background-color compare-edit-tree adornment]
   (c/with-state-as etree
     (cond
       (and (= predicate "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
@@ -192,7 +193,7 @@
                  :disabled (when-not editing? "disabled")}
                 (map (fn [type-uri]
                        (dom/option {:value type-uri}
-                                   (schema/label-for-type schema type-uri)))
+                                   (schema/label-for-type (context/schema ctx) type-uri)))
                      (sort
                       (distinct
                        (conj types
@@ -201,7 +202,7 @@
       (and (= predicate "http://schema.org/dayOfWeek")
            (or (edit-tree/edit-node? etree)
                (edit-tree/ref? etree)))
-      (day-of-week-component schema editable? editing?)
+      (day-of-week-component ctx editable? editing?)
 
       (= predicate "http://schema.org/name")
       (c/focus (lens/pattern [edit-tree/literal-string-value
@@ -225,7 +226,7 @@
       (and (= predicate "http://schema.org/byDay")
            (or (edit-tree/edit-node? etree)
                (edit-tree/ref? etree)))
-      (day-of-week-component schema editable? editing?)
+      (day-of-week-component ctx editable? editing?)
 
       (and (= predicate "http://schema.org/email")
            (edit-tree/literal-string? etree)
@@ -296,9 +297,9 @@
                                        wisen.frontend.forms/selection-simplify)])
                (ds/select+focus
                 {:disabled (when-not editing? "disabled")}
-                (forms/option {:value "elderly"} "Elderly")
-                (forms/option {:value "queer"} "Queer")
-                (forms/option {:value "immigrants"} "Immigrants")))
+                (forms/option {:value "elderly"} (context/text ctx tr/elderly))
+                (forms/option {:value "queer"} (context/text ctx tr/queer))
+                (forms/option {:value "immigrants"} (context/text ctx tr/immigrants))))
 
       :else
       (dom/div
@@ -314,20 +315,20 @@
                      ds/select
                      {:disabled (when-not editing? "disabled")}
                      (map (fn [kind]
-                            (forms/option {:value kind} (label-for-kind kind)))
+                            (forms/option {:value kind} (label-for-kind ctx kind)))
                           (distinct
-                           (conj (schema/kinds-for-predicate schema predicate)
+                           (conj (schema/kinds-for-predicate (context/schema ctx) predicate)
                                  kind)))))))
        (edit-tree-component*
-        schema
-        (schema/types-for-predicate schema predicate)
+        ctx
+        (schema/types-for-predicate (context/schema ctx) predicate)
         editable?
         editing?
         background-color
         compare-edit-tree
         adornment)))))
 
-(c/defn-item add-property-button [schema predicates]
+(c/defn-item add-property-button [ctx predicates]
   (c/with-state-as [node predicate :local schemaorg/default-predicate]
     (dom/div
      {:style {:display "flex"
@@ -344,7 +345,7 @@
                          :border-top-right-radius "0px"
                          :border-bottom-right-radius "0px"}}
                 (map (fn [pred]
-                       (forms/option {:value pred} (schema/label-for-predicate schema pred)))
+                       (forms/option {:value pred} (schema/label-for-predicate (context/schema ctx) pred)))
                      predicates)))
 
       (ds/button-primary
@@ -354,19 +355,19 @@
                 :font-weight "normal"}
         :onClick
         (fn [[node predicate] _]
-          [(edit-tree/edit-node-add-property node predicate (default/default-tree-for-predicate schema predicate))
+          [(edit-tree/edit-node-add-property node predicate (default/default-tree-for-predicate (context/schema ctx) predicate))
            predicate])}
-       "Add property")))))
+       (context/text ctx tr/add-property))))))
 
 ;; OSM
 
-(defn- pr-osm-uri [uri]
+(defn- pr-osm-uri [ctx uri]
   (dom/a {:href uri}
-         "View on OpenStreetMap"))
+         (context/text ctx tr/view-on-open-street-map)))
 
 (declare readonly-graph)
 
-(c/defn-item osm-importer [schema osm-uri]
+(c/defn-item osm-importer [ctx osm-uri]
   (c/with-state-as graph
     (c/fragment
 
@@ -374,9 +375,9 @@
        (util/load-json-ld-state
         (osm/osm-lookup-request osm-uri)))
 
-     (when graph (readonly-graph schema graph)))))
+     (when graph (readonly-graph ctx graph)))))
 
-(c/defn-item link-organization-with-osm-button [schema osm-uri close-action]
+(c/defn-item link-organization-with-osm-button [ctx osm-uri close-action]
   (c/with-state-as [node local-state :local {:graph nil
                                              :osm-uri osm-uri
                                              :focus? (wisen.frontend.forms/make-selected 0 0)
@@ -392,7 +393,7 @@
                  :placeholder "https://www.openstreetmap.org/..."}))
 
       (c/focus (lens/>> lens/second :graph)
-               (osm-importer schema (:commit-osm-uri local-state))))
+               (osm-importer ctx (:commit-osm-uri local-state))))
 
      (modal/toolbar
       (ds/button-secondary {:onClick #(c/return :action close-action)}
@@ -422,7 +423,7 @@
 
 (declare the-circle)
 
-(defn- ask-ai [schema close-action]
+(defn- ask-ai [ctx close-action]
   (dom/div
    {:style {:display "flex"
             :flex-direction "column"
@@ -430,13 +431,13 @@
 
    (modal/padded
     {:style {:overflow "auto"}}
-    (ask-ai/main schema readonly-graph close-action))
+    (ask-ai/main (context/schema ctx) readonly-graph close-action))
 
    (modal/toolbar
     (ds/button-secondary {:onClick #(c/return :action close-action)}
                          "Cancel"))))
 
-(defn- set-properties [schema]
+(defn- set-properties [ctx]
   (c/with-state-as node
     (dom/div {:style {:display "flex"
                       :gap "2em"
@@ -444,7 +445,7 @@
 
              (dom/div
               {:style {:display "flex"}}
-              (add-property-button schema (schema/predicates-for-type schema (edit-tree/node-type node))))
+              (add-property-button ctx (schema/predicates-for-type (context/schema ctx) (edit-tree/node-type node))))
 
              (dom/div
               {:style {:display "flex"
@@ -456,30 +457,31 @@
                   (dom/div
                    {:style {:display "flex"
                             :gap "1em"}}
-                   (pr-osm-uri osm-uri)
-                   (modal/modal-button "Update" #(link-organization-with-osm-button schema osm-uri %)))
-                  (modal/modal-button "Link with OpenStreetMap" #(link-organization-with-osm-button schema nil %))))
+                   (pr-osm-uri ctx osm-uri)
+                   (modal/modal-button (context/text ctx tr/update) #(link-organization-with-osm-button ctx osm-uri %)))
+                  (modal/modal-button (context/text ctx tr/link-with-open-street-map) #(link-organization-with-osm-button ctx nil %))))
 
-              (modal/modal-button (ds/lightbulb-icon "21") (partial ask-ai schema))))))
+              (modal/modal-button (ds/lightbulb-icon "21") (partial ask-ai ctx))))))
 
 (defn- valid-uri? [x]
   (and (string? x)
        (re-find #"https?://[a-zA-z0-9]+" x)))
 
-(defn- set-reference [close-action]
+(defn- set-reference [ctx close-action]
   (c/with-state-as node
     (c/local-state
      (let [uri (edit-tree/tree-uri node)]
        [uri (wisen.frontend.forms/make-selected 0 (count (str uri)))])
      (dom/div
       (modal/padded
-       (dom/h3 "Set as reference to another node")
+       (dom/h3
+        (context/text ctx tr/set-as-reference-to-another-node))
 
        (c/focus lens/second (ds/input+focus {:size 80})))
 
       (modal/toolbar
        (ds/button-secondary {:onClick #(c/return :action close-action)}
-                            "Cancel")
+                            (context/text ctx tr/cancel))
        (c/with-state-as state
          (let [text (first (second state))]
 
@@ -493,7 +495,7 @@
 
                                                                                     new-uri))
                                              :action close-action)))}
-                              "Set reference"))))))))
+                              (context/text ctx tr/set-reference)))))))))
 
 (defn- refresh-node-request [uri]
   (ajax/GET uri
@@ -503,13 +505,13 @@
   (util/load-json-ld
    (refresh-node-request uri)))
 
-(defn- refresh-button []
+(defn- refresh-button [ctx]
   (c/with-state-as [node refresh-state :local ::idle]
     (case refresh-state
       ::idle
       (c/focus lens/second
                (ds/button-primary {:onClick #(c/return :state ::run)}
-                                  "Refresh"))
+                                  (context/text ctx tr/refresh)))
 
       ::run
       (-> (refresh-node (edit-tree/tree-uri node))
@@ -526,11 +528,11 @@
       ;; failure
       (dom/span {:style {:color "red"}
                  :title (pr-str refresh-state)}
-                "Refresh failed"
+                (context/text ctx tr/refresh-failed)
                 " "
                 (c/focus lens/second
                          (ds/button-primary {:onClick #(c/return :state ::run)}
-                                            "(Retry)"))))))
+                                            (context/text ctx tr/retry-refresh)))))))
 
 (defn- the-circle [& children]
   (apply dom/div
@@ -541,7 +543,7 @@
                   :height "27px"}}
          children))
 
-(c/defn-item property-object-component [schema types predicate editable? force-editing? last-property? background-color compare-edit-tree adornment]
+(c/defn-item property-object-component [ctx types predicate editable? force-editing? last-property? background-color compare-edit-tree adornment]
   (c/with-state-as marked-edit-trees
     (apply dom/div
            {:style {:display "flex"
@@ -590,7 +592,7 @@
                                                          :z-index "5"}
                                                         (style-for-marked marked-edit-tree))}
                                          (icon-for-marked marked-edit-tree)
-                                         (schema/label-for-predicate schema predicate))
+                                         (schema/label-for-predicate (context/schema ctx) predicate))
 
                                         (when (and (edit-tree/can-discard-edit? marked-edit-tree)
                                                    force-editing?)
@@ -631,30 +633,31 @@
                                       (cond
                                         (edit-tree/deleted? marked-edit-tree)
                                         (c/focus edit-tree/deleted-original-value
-                                                 (component-for-predicate predicate schema types false false background-color compare-edit-tree adornment))
+                                                 (component-for-predicate predicate ctx types false false background-color compare-edit-tree adornment))
 
                                         (edit-tree/added? marked-edit-tree)
                                         (c/focus edit-tree/added-result-value
-                                                 (component-for-predicate predicate schema types editable? force-editing? background-color compare-edit-tree adornment))
+                                                 (component-for-predicate predicate ctx types editable? force-editing? background-color compare-edit-tree adornment))
 
                                         (edit-tree/same? marked-edit-tree)
                                         (c/focus edit-tree/maybe-changed-result-value
-                                                 (component-for-predicate predicate schema types editable? force-editing? background-color compare-edit-tree adornment))
+                                                 (component-for-predicate predicate ctx types editable? force-editing? background-color compare-edit-tree adornment))
 
                                         (edit-tree/changed? marked-edit-tree)
                                         (before-after
+                                         ctx
                                          ;; before
                                          (c/focus edit-tree/maybe-changed-original-value
-                                                  (component-for-predicate predicate schema types false false background-color compare-edit-tree adornment))
+                                                  (component-for-predicate predicate ctx types false false background-color compare-edit-tree adornment))
                                          ;; after
                                          (c/focus edit-tree/maybe-changed-result-value
-                                                  (component-for-predicate predicate schema types editable? force-editing? background-color compare-edit-tree adornment))
+                                                  (component-for-predicate predicate ctx types editable? force-editing? background-color compare-edit-tree adornment))
 
                                          background-color))))))
 
                         marked-edit-trees))))
 
-(c/defn-item properties-component [schema types editable? force-editing? background-color compare-edit-tree adornment]
+(c/defn-item properties-component [ctx types editable? force-editing? background-color compare-edit-tree adornment]
   (c/with-state-as properties
 
     (apply
@@ -667,7 +670,7 @@
        (map-indexed (fn [idx predicate]
                       (-> (c/focus (lens/member predicate)
                                    (let [last? (= idx (dec (count ks)))]
-                                     (property-object-component schema types predicate editable? force-editing? last? background-color compare-edit-tree adornment)))
+                                     (property-object-component ctx types predicate editable? force-editing? last? background-color compare-edit-tree adornment)))
                           (c/handle-action
                            (fn [_ action]
                              (if (and (is-a? set-reference-action action)
@@ -677,14 +680,15 @@
 
                     ks)))))
 
-(c/defn-item ^:private references-indicator [id]
+(c/defn-item ^:private references-indicator [ctx id]
   (c/isolate-state
    nil
    (c/with-state-as result
      (cond
        (nil? result)
        (c/fragment
-        (spinner/main "Determining references")
+        (spinner/main
+         (context/text ctx tr/determining-references))
         (ajax/fetch (ajax/GET (str "/api/references/" id))))
 
        (and (ajax/response? result)
@@ -693,14 +697,7 @@
              n (count references)]
          (if (> n 0)
            (ds/popover-button
-            (str
-             (str n)
-             " "
-             (if (= 1 n)
-               "reference"
-               "references")
-             " "
-             "in total")
+            (context/text-fn ctx tr/n-references-in-total n)
             (apply dom/ul
                    (map (fn [reference]
                           (dom/li
@@ -709,12 +706,12 @@
                            (dom/a {:href (:uri reference)}
                                   (:uri reference))))
                         references)))
-           "No references"))))))
+           (context/text ctx tr/no-references)))))))
 
 (c/defn-effect copy-to-clipboard! [s]
   (.writeText (.-clipboard js/navigator) s))
 
-(defn- node-component [schema types editable? force-editing? background-color compare-edit-tree adornment]
+(defn- node-component [ctx types editable? force-editing? background-color compare-edit-tree adornment]
   (c/with-state-as [node editing? :local force-editing?]
 
     (let [uri (edit-tree/edit-node-uri node)
@@ -759,23 +756,26 @@
                            force-editing?)
                    (ds/button-primary
                     {:onClick #(c/return :action (copy-to-clipboard! uri))}
-                    "Copy"))
+                    (context/text ctx tr/copy)))
 
                  (when editing?
                    (c/fragment
                     (c/focus lens/first
-                             (modal/modal-button "Set reference" set-reference)))))
+                             (modal/modal-button (context/text ctx tr/set-reference)
+                                                 (partial set-reference ctx))))))
 
         (when (edit-tree/can-refresh? node)
-          (c/focus lens/first (refresh-button)))
+          (c/focus lens/first (refresh-button ctx)))
 
         (when editable?
           (c/focus lens/second
                    (ds/button-primary {:onClick not}
-                                      (if editing? "Done" "Edit"))))
+                                      (if editing?
+                                        (context/text ctx tr/done)
+                                        (context/text ctx tr/edit)))))
 
         (when (wisen-uri/is-wisen-uri? uri)
-          (references-indicator (wisen-uri/wisen-uri-id uri))))
+          (references-indicator ctx (wisen-uri/wisen-uri-id uri))))
 
        (c/focus
         lens/first
@@ -793,7 +793,7 @@
                                     :border-left "1px solid gray"
                                     :padding-bottom "2ex"}}
 
-                           (properties-component schema types editable? editing? background-color compare-edit-tree adornment)))))
+                           (properties-component ctx types editable? editing? background-color compare-edit-tree adornment)))))
              (c/handle-action
               (fn [node action]
                 (cond
@@ -810,7 +810,7 @@
                   (c/return :action action)))))
 
          (when editing?
-           (set-properties schema))))))))
+           (set-properties ctx))))))))
 
 (letfn [(check-prop [pred matches? etree]
           (let [eprops (edit-tree/edit-node-properties etree)]
@@ -856,7 +856,7 @@
      (check-prop "http://schema.org/opens" edit-tree/literal-string? etree)
      (check-prop "http://schema.org/closes" edit-tree/literal-string? etree))))
 
-(c/defn-item ^:private geo-coordinates-component [schema editable? force-editing?]
+(c/defn-item ^:private geo-coordinates-component [ctx editable? force-editing?]
   (c/with-state-as eprops
     (let [latitude-lens (lens/>>
                          (lens/>>
@@ -899,14 +899,14 @@
                                       (longitude-value-lens (str lng))))
                                 (c/return :action ac)))))
        (dom/div
-        "Latitude:"
+        (context/text ctx tr/latitude-label)
         (c/focus latitude-lens
                  (ds/input+focus {:disabled (when-not editable? "disabled")}))
-        "Longitude:"
+        (context/text ctx tr/longitude-label)
         (c/focus longitude-lens
                  (ds/input+focus {:disabled (when-not editable? "disabled")})))))))
 
-(c/defn-item ^:private postal-address-component [schema editable? force-editing?]
+(c/defn-item ^:private postal-address-component [ctx editable? force-editing?]
   (c/with-state-as eprops
     (let [unpack-value (lens/>> lens/first
                                 edit-tree/marked-result-value
@@ -965,7 +965,7 @@
 
 (declare day-of-week-component)
 
-(c/defn-item ^:private opening-hours-specification-component [schema editable? force-editing?]
+(c/defn-item ^:private opening-hours-specification-component [ctx editable? force-editing?]
   (c/with-state-as eprops
     (let [unpack (lens/>> lens/first
                           edit-tree/marked-result-value
@@ -990,7 +990,7 @@
         (dom/label "Day"
                    (dom/br)
                    (c/focus day-of-week-lens
-                            (day-of-week-component schema editable? force-editing?))))
+                            (day-of-week-component ctx editable? force-editing?))))
 
        (dom/div
         (dom/label "Opens"
@@ -1008,7 +1008,7 @@
                              {:type "time"
                               :disabled (when-not editable? "disabled")}))))))))
 
-(c/defn-item ^:private day-of-week-component [schema editable? force-editing?]
+(c/defn-item ^:private day-of-week-component [ctx editable? force-editing?]
   (c/focus (lens/pattern [edit-tree/tree-uri
                           edit-tree/edit-tree-focused?])
            (ds/select+focus
@@ -1022,7 +1022,7 @@
             (forms/option {:value "http://schema.org/Saturday"} "Saturday")
             (forms/option {:value "http://schema.org/Sunday"} "Sunday"))))
 
-(c/defn-item ^:private node-component-for-type [type schema types editable? force-editing? background-color compare-edit-tree adornment]
+(c/defn-item ^:private node-component-for-type [type ctx types editable? force-editing? background-color compare-edit-tree adornment]
   (c/with-state-as enode
     (let [type-uri (tree/type-uri type)]
       (cond
@@ -1031,7 +1031,7 @@
         (dom/div
          {:id (edit-tree/edit-node-uri enode)}
          (value-node/as-value-node
-          (geo-coordinates-component schema editable? force-editing?)))
+          (geo-coordinates-component ctx editable? force-editing?)))
 
         #_#_(and (= type-uri "http://schema.org/PostalAddress")
              (edit-node-is-postal-address-value? enode))
@@ -1046,7 +1046,7 @@
          (opening-hours-specification-component schema editable? force-editing?))
 
         :else
-        (node-component schema types editable? force-editing? background-color compare-edit-tree adornment)))))
+        (node-component ctx types editable? force-editing? background-color compare-edit-tree adornment)))))
 
 (defn- index-of [v elem]
   (some (fn [[i x]]
@@ -1056,7 +1056,7 @@
 
 
 
-(c/defn-item edit-tree-component* [schema types editable? force-editing? & [background-color compare-edit-tree adornment]]
+(c/defn-item edit-tree-component* [ctx types editable? force-editing? & [background-color compare-edit-tree adornment]]
   (c/with-state-as etree
     (let [bgc (or background-color "#eee")]
       (cond
@@ -1087,7 +1087,7 @@
                              :disabled (when-not force-editing?
                                          "disabled")})
                   (dom/div
-                   (c/dynamic pr-boolean))))
+                   (c/dynamic (partial pr-boolean ctx)))))
 
         (edit-tree/literal-time? etree)
         (c/focus (lens/pattern [edit-tree/literal-time-value
@@ -1121,7 +1121,7 @@
                      (dom/div
                       {:style {:font-style "italic"
                                :color "gray"}}
-                      "Nothing to display")
+                      (context/text ctx tr/nothing-to-display))
                      (apply
                       dom/div
                       {:style {:display "flex"
@@ -1130,18 +1130,18 @@
                       (map
                        (fn [[idx etree]]
                          (c/focus (lens/at-index idx)
-                                  (edit-tree-component* schema types editable? force-editing? bgc compare-edit-tree adornment)))
+                                  (edit-tree-component* ctx types editable? force-editing? bgc compare-edit-tree adornment)))
                        (sort-by second
                                 (comp - compare-edit-tree)
                                 (map vector (range) etrees)))))))
 
         (edit-tree/exists? etree)
         (c/focus edit-tree/exists-edit-tree
-                 (edit-tree-component* schema types editable? force-editing? bgc compare-edit-tree adornment))
+                 (edit-tree-component* ctx types editable? force-editing? bgc compare-edit-tree adornment))
 
         (edit-tree/edit-node? etree)
         (node-component-for-type (edit-tree/edit-node-type etree)
-                                 schema
+                                 ctx
                                  types
                                  editable?
                                  force-editing?
@@ -1186,23 +1186,22 @@
           0)))))
 
 (c/defn-item edit-tree-component [ctx types editable? force-editing? & [background-color uri-order adornment]]
-  (let [schema (context/schema ctx)]
-    (-> (edit-tree-component* schema
-                              types
-                              editable?
-                              force-editing?
-                              background-color
-                              (make-compare-with-uri-order uri-order)
-                              adornment)
-        (c/handle-action (fn [etree action]
-                           (if (is-a? set-reference-action action)
-                             (edit-tree/set-reference etree
-                                                      (set-reference-action-subject-uri action)
-                                                      (set-reference-action-predicate action)
-                                                      (set-reference-action-old-uri action)
-                                                      (set-reference-action-new-uri action))
-                             ;; else
-                             (c/return :action action)))))))
+  (-> (edit-tree-component* ctx
+                            types
+                            editable?
+                            force-editing?
+                            background-color
+                            (make-compare-with-uri-order uri-order)
+                            adornment)
+      (c/handle-action (fn [etree action]
+                         (if (is-a? set-reference-action action)
+                           (edit-tree/set-reference etree
+                                                    (set-reference-action-subject-uri action)
+                                                    (set-reference-action-predicate action)
+                                                    (set-reference-action-old-uri action)
+                                                    (set-reference-action-new-uri action))
+                           ;; else
+                           (c/return :action action))))))
 
 (c/defn-item edit-graph [ctx editable? force-editing? graph & [background-color]]
   (c/isolate-state (edit-tree/graph->edit-tree graph)
