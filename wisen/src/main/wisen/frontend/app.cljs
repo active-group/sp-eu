@@ -59,7 +59,7 @@
                                              :display "flex"
                                              :overflow "auto"}}
                                     (create/from-rdf {:style {:flex 1}}
-                                                     (context/schema ctx)
+                                                     ctx
                                                      ""
                                                      (ds/button-secondary
                                                       {:onClick #(c/return :action close-action)}
@@ -137,7 +137,7 @@
               (if-let [resource-id (first
                                     (pages.routes/parse routes/resource (.-href (.-location js/window))))]
                 (resource/main ctx resource-id)
-                (search/main (context/schema ctx)))))))))))
+                (search/main ctx))))))))))
 
 (defn ^:dev/after-load start []
   (println "start")

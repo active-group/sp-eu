@@ -11,3 +11,16 @@
         (get ~m lang#)
         (get ~m ~en)
         (str '~?name)))))
+
+(defmacro define-text-function [?name ?args-vec & ?pairs]
+  (let [prs (partition 2 ?pairs)
+        m (reduce (fn [acc [k v]]
+                    (assoc acc k `(fn [~@?args-vec]
+                                    ~v)))
+                  {}
+                  prs)]
+    `(defn ~?name [lang# & args#]
+       (or
+        (apply (get ~m lang#) args#)
+        (apply (get ~m ~en) args#)
+        (str '~?name)))))

@@ -26,11 +26,12 @@
             [wisen.frontend.commit :as commit]
             ["jsonld" :as jsonld]
             [wisen.frontend.create :as create]
-            [wisen.frontend.schema :as schema]
             [wisen.common.query :as query]
             [wisen.frontend.localstorage :as ls]
             [cljs.reader :as reader]
-            [wisen.frontend.search-state :as ss]))
+            [wisen.frontend.search-state :as ss]
+            [wisen.frontend.context :as context]
+            [wisen.frontend.translations :as tr]))
 
 (defn run-query-result-range [query result-range]
   (ajax/fetch-once
@@ -84,7 +85,7 @@
 (defn- hsl [h s l]
   (str "hsl(" h "deg " s "% " l "%)"))
 
-(c/defn-item search-response-graph-component [schema uri-order]
+(c/defn-item search-response-graph-component [ctx uri-order]
   (c/with-state-as graph
     (cond
       (ss/graph-as-string? graph)
@@ -100,7 +101,7 @@
       (c/focus ss/graph-as-edit-tree-value
                (c/with-state-as etree
                  (dom/div
-                  (editor/edit-tree-component schema nil true false nil uri-order
+                  (editor/edit-tree-component ctx nil true false nil uri-order
                                               (into {}
                                                     (map (fn [[_coords uri]]
                                                            [uri (dom/div
@@ -123,9 +124,9 @@
                               :border-radius "4px"
                               :background "#ddd"
                               :z-index "999"}}
-                     (commit/main schema)))))))))
+                     (commit/main ctx)))))))))
 
-(c/defn-item result-component [schema query result-range]
+(c/defn-item result-component [ctx query result-range]
   (c/with-state-as result
     (cond
       (ss/error? result)
@@ -138,7 +139,7 @@
 
       (ss/search-response? result)
       (c/focus ss/search-response-graph
-               (search-response-graph-component schema (ss/search-response-uri-order result))))))
+               (search-response-graph-component ctx (ss/search-response-uri-order result))))))
 
 ;; ---
 
@@ -214,7 +215,7 @@
                (forms/input {:type "checkbox"}))
       "Immigrants")))))
 
-(c/defn-item quick-search [loading?]
+(c/defn-item quick-search [ctx loading?]
   (c/with-state-as [query show-advanced? :local false]
     (let [everything? (query/everything-query? query)]
       (dom/div
@@ -256,11 +257,11 @@
                                {:style {:display "flex"
                                         :align-items "center"
                                         :gap "0.5em"}}
-                               "Searching …"
+                               (context/text ctx tr/searching)
                                (spinner/main))
-                              (str "Search"
-                                   (when everything?
-                                     " everything")))))
+                              (if everything?
+                                (context/text ctx tr/search-everything)
+                                (context/text ctx tr/search)))))
 
         #_(c/focus lens/second
                  (ds/button-secondary {:onClick not
@@ -333,7 +334,7 @@
            (c/return :action (ls/set! startup-query-local-storage-key
                                       (query->string q))))))))))
 
-(c/defn-item map-search [schema loading? pins]
+(c/defn-item map-search [ctx loading? pins]
   (with-startup-query
     (c/fragment
 
@@ -348,9 +349,9 @@
                :background "#eee"
                :border-bottom ds/border}}
 
-      (quick-search loading?)))))
+      (quick-search ctx loading?)))))
 
-(c/defn-item search-session-component [schema]
+(c/defn-item search-session-component [ctx]
   (c/with-state-as search-session
     (let [query (ss/search-session-query search-session)
           ssr (ss/search-session-results search-session)
@@ -359,8 +360,9 @@
 
        (ds/padded-2
         (if (query/everything-query? query)
-          (dom/h2 "Results")
-          (dom/h2 "Results for «" (query/query-fuzzy-search-term query) "»")))
+          (dom/h2 (context/text ctx tr/results))
+          (dom/h2
+           (context/text-fn ctx tr/results-for (query/query-fuzzy-search-term query)))))
 
        (c/focus ss/search-session-selected-result-range
                 (ds/padded-2
@@ -368,9 +370,9 @@
 
        (ds/padded-2
         (c/focus ss/search-session-selected-result
-                 (result-component schema query selected-result-range)))))))
+                 (result-component ctx query selected-result-range)))))))
 
-(c/defn-item main* [schema]
+(c/defn-item main* [ctx]
   (c/with-state-as search-state
     (dom/div
      {:style {:display "flex"
@@ -384,7 +386,7 @@
                :scroll-behavior "smooth"}}
 
       (c/handle-action
-       (map-search schema
+       (map-search ctx
                    (ss/search-state-some-loading? search-state)
                    (map (fn [[coords uri]]
                           (leaflet/make-pin
@@ -402,11 +404,11 @@
 
       ;; display when we have a graph
       (if (ss/search-session? search-state)
-        (search-session-component schema)
-        (ds/padded-2 "No results yet"))))))
+        (search-session-component ctx)
+        (ds/padded-2 (context/text ctx tr/no-results-yet)))))))
 
-(c/defn-item main [schema]
+(c/defn-item main [ctx]
   (c/isolate-state
    ss/initial-search-state
    (c/with-state-as state
-     (main* schema))))
+     (main* ctx))))

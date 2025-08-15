@@ -1,7 +1,7 @@
 (ns wisen.frontend.translations
   (:require
    [active.data.realm :as realm]
-   [wisen.common.lang :refer-macros [define-text]]))
+   [wisen.common.lang :refer-macros [define-text define-text-function]]))
 
 (def de "de")
 (def en "en")
@@ -22,9 +22,21 @@
   de "Suche"
   en "Search")
 
+(define-text search-everything
+  de "Komplettsuche"
+  en "Search everything")
+
 (define-text results
   de "Ergebnisse"
   en "Results")
+
+(define-text-function results-for [s]
+  de (str "Ergebnisse für »" s "«")
+  en (str "Results for «" s "»"))
+
+(define-text no-results-yet
+  de "Keine Ergebnisse bisher"
+  en "No results yet")
 
 (define-text organization
   de "Organisation"
@@ -63,8 +75,8 @@
   en "Commit changes")
 
 (define-text committing
-  de "Speichern ..."
-  en "Committing ...")
+  de "Speichern …"
+  en "Committing …")
 
 (define-text commit-successful
   de "Speichern erfolgreich!"
@@ -77,3 +89,7 @@
 (define-text close
   de "Schließen"
   en "Close")
+
+(define-text searching
+  de "Suche …"
+  en "Searching …")
