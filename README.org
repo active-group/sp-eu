@@ -1,5 +1,11 @@
 * Development
 
+The project has a flake.nix, so you can enter the development environment with:
+
+#+begin_src
+nix develop
+#+end_src
+
 Common commands (to be used from within the [[./wisen][wisen]] subdirectory):
 
 - Run backend server: =clj -M:backend=
