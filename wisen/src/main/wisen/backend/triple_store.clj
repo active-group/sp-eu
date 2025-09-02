@@ -4,18 +4,31 @@
             [wisen.backend.skolem2 :as skolem2]
             [wisen.common.change-api :as change-api]
             [wisen.backend.osm :as osm]
-            [wisen.common.prefix :as prefix])
+            [wisen.common.prefix :as prefix]
+            [wisen.backend.git :as git])
   (:import
    (java.io File)
+   (org.eclipse.jgit.api Git AddCommand CommitCommand)
    (org.apache.jena.tdb2 TDB2Factory)
    (org.apache.jena.rdf.model Model ResourceFactory)
    (org.apache.jena.query ARQ ReadWrite QueryExecutionFactory)
    (org.apache.jena.datatypes.xsd XSDDatatype)
    (org.apache.jena.vocabulary SchemaDO)
    (org.apache.jena.sparql.util QueryExecUtils)
-   (org.apache.lucene.store Directory FSDirectory)))
+   (org.apache.lucene.store Directory FSDirectory)
+   (org.apache.jena.riot RDFDataMgr
+                         RDFFormat)))
 
 (defonce dataset (atom nil))
+
+(defn- write-to-scm! [dataset]
+  (do
+    (RDFDataMgr/write
+     (java.io.FileOutputStream. (str git/directory "/" "model.json"))
+     dataset
+     RDFFormat/JSONLD11_PRETTY)
+    (git/add! "model.json")
+    (git/commit! "update")))
 
 (defn- with-write-model!
   ([f]
@@ -25,6 +38,7 @@
    (let [model (.getDefaultModel dataset)]
      (try
        (f model)
+       (write-to-scm! dataset)
        (.commit dataset)
        (.end dataset)
        (catch Exception e
