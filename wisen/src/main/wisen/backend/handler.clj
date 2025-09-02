@@ -288,8 +288,8 @@
 (defn handler [message exception request]
   {:status 500
    :body {:message message
-          :exception (.getClass exception)
-          :data (ex-data exception)
+          :exception (pr-str (.getClass exception))
+          :data (pr-str (ex-data exception))
           :uri (:uri request)}})
 
 (def exception-middleware
