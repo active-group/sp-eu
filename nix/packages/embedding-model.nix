@@ -38,8 +38,10 @@ stdenv.mkDerivation {
   outputHashMode = "recursive";
   outputHashAlgo = "sha256";
   outputHash =
-    if stdenv.isDarwin then
+    if stdenv.system == "aarch64-darwin" then
       "sha256-rP9JEQziGiKmaEHHjD6pj8Sy0vJ+iQPgr77/qe1vCpY="
+    else if stdenv.system == "x86_64-darwin" then
+      "sha256-6vRLy5Li8zE1wSsHtqp65/svxuB6CkF7G/A2X7O6JRs="
     else
       "sha256-zDBIXOjoxKyicUwGAT6UoXC5ghE4YCAnxJpZ+2yYJ8M=";
 
