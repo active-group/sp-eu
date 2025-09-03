@@ -74,5 +74,5 @@
        (changeset-component ctx (edit-tree/edit-tree-changeset etree)))
       (fn [etree action]
         (if (is-a? commit-successful action)
-          (c/return)
+          (c/return :state (edit-tree/commit etree))
           (c/return :action action)))))))

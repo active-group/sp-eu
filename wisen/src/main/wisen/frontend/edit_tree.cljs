@@ -960,3 +960,42 @@
                        edit-node-properties {}))]
       (normalize
        (set-reference* etree subject-uri predicate from-object-uri to-object)))))
+
+(defn commit
+  "Commit all changes, so before-tree == after-tree."
+  [etree]
+  (cond
+    (many? etree)
+    (lens/overhaul etree
+                   many-edit-trees
+                   (fn [etrees]
+                     (map commit etrees)))
+
+    (edit-node? etree)
+    (lens/overhaul etree
+                   edit-node-properties
+                   (fn [eprops]
+                     (map-values
+                      (fn [metrees]
+                        (mapcat (fn [metree]
+                                  (cond
+                                    (added? metree)
+                                    [(make-maybe-changed
+                                      (added-result-value metree)
+                                      (added-result-value metree))]
+
+                                    (deleted? metree)
+                                    []
+
+                                    (maybe-changed? metree)
+                                    [(make-maybe-changed
+                                      (maybe-changed-result-value metree)
+                                      (maybe-changed-result-value metree))]))
+                                metrees))
+                      eprops)))
+
+    (exists? etree)
+    (lens/overhaul etree exists-edit-tree commit)
+
+    :else
+    etree))
