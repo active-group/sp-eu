@@ -1,5 +1,6 @@
 (ns wisen.backend.git
-  (:require [clojure.java.io :as io])
+  (:require [clojure.java.io :as io]
+            [wisen.common.prefix :refer [prefix]])
   (:import
    (java.io File)
    (org.eclipse.jgit.api Git AddCommand CommitCommand)
@@ -12,6 +13,10 @@
 
 (def ^:private git (atom nil))
 
+(defn- post-receive-contents []
+  (str
+   "curl -X POST " (prefix) "/api/sync"))
+
 (defn- setup-bare! []
   (when-not (.exists (io/file bare-directory))
     ;; git init
@@ -21,9 +26,10 @@
         (.call))
 
     ;; post-receive hook
-    (spit (str bare-directory "/" "hooks/post-receive")
-          ;; TODO: parameterize over base url
-          "curl -X POST http://localhost:4321/api/sync")))
+    (let [post-receive-file (io/file (str bare-directory "/" "hooks/post-receive"))]
+      (spit post-receive-file
+            (post-receive-contents))
+      (.setExecutable post-receive-file true true))))
 
 (defn- setup-clone! []
   ;; git clone
