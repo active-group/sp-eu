@@ -17,7 +17,7 @@
 (defn- make-node [type & props]
   (let [props* (conj props
                      (tree/make-property type-uri
-                                         (tree/make-node (schema type))))]
+                                         (tree/make-node type)))]
     (let [ex (hash [type props])]
       (tree/make-exists
        ex
@@ -35,13 +35,13 @@
 
 (def default-geo-coordinates
   (make-value
-   "GeoCoordinates"
+   (schema "GeoCoordinates")
    (property "latitude" (lit-d "48.52105844145676"))
    (property "longitude" (lit-d "9.054090697517525"))))
 
 (def default-postal-address
   (make-node
-   "PostalAddress"
+   (schema "PostalAddress")
    (property "streetAddress" (lit-s "Hechinger Str. 12/1"))
    (property "postalCode" (lit-s "72072"))
    (property "addressLocality" (lit-s "Tübingen"))
@@ -49,20 +49,20 @@
 
 (def default-opening-hours-specification
   (make-value
-   "OpeningHoursSpecification"
+   (schema "OpeningHoursSpecification")
    (property "dayOfWeek" (tree/make-node (schema "Monday")))
    (property "opens" (lit-t "10:00:00"))
    (property "closes" (lit-t "17:00:00"))))
 
 (def default-place
   (make-node
-   "Place"
+   (schema "Place")
    (property "address" default-postal-address)
    (property "openingHoursSpecification" default-opening-hours-specification)))
 
 (def default-organization
   (make-node
-   "Organization"
+   (schema "Organization")
    (property "name" (lit-s "Name"))
    (property "description" (lit-s "Description"))
    (property "keywords" (lit-s "education, fun, games"))
@@ -72,13 +72,13 @@
 
 (def default-offer
   (make-node
-   "Offer"
+   (schema "Offer")
    (property "price" (lit-s "7.50"))
    (property "priceCurrency" (lit-s "EUR"))))
 
 (def default-event
   (make-node
-   "Event"
+   (schema "Event")
    (property "name" (lit-s "Literary Circle"))
    (property "description" (lit-s "We read and discuss various sorts of books together."))
    (property "eventSchedule"
@@ -96,7 +96,7 @@
 
 (def default-person
   (make-node
-   "Person"
+   (schema "Person")
    (property "name" (lit-s "John Doe"))
    (property "email" (lit-s "john.doe@example.com"))
    (property "telephone" (lit-s "+1-123-456-7890"))
