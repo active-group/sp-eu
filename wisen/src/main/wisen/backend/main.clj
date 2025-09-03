@@ -6,6 +6,7 @@
             [wisen.backend.importer :as importer]
             [wisen.backend.git :as git]
             [active.clojure.logger.event :as event-logger]
+            [wisen.backend.indexer :as indexer]
             [nrepl.server :as nrepl])
   (:gen-class))
 
@@ -23,6 +24,13 @@
   (println (:summary opts-map)))
 
 (defonce nrepl-server (atom nil))
+
+(defmacro setup! [name & body]
+  `(do
+     (event-logger/log-event! :info (str "Setup: " ~name))
+     (let [result# (do ~@body)]
+       (event-logger/log-event! :info (str "Setup done: " ~name))
+       result#)))
 
 (defn main [opts]
   (cond
@@ -51,13 +59,25 @@
     (let [options (:options opts)
           config-path (:config options)]
 
-      (triple-store/setup!)
-      (git/setup!)
-      (server/start! config-path)
+      (setup! "Git repository"
+              (git/setup!))
+
+      (setup! "Apache Jena store"
+              (triple-store/setup!))
+
+      (setup! "Synchronize git repository -> Apache Jena store"
+              (triple-store/reset-from-scm!))
+
+      (let [indexer (setup! "Lucene indexer"
+                            (indexer/run-new-indexer!))]
+
+        (setup! "Web server"
+                (server/start! indexer config-path)))
 
       (when-let [port (:nrepl (:options opts))]
-        (reset! nrepl-server
-                (nrepl/start-server :port (Integer/parseInt port)))))))
+        (setup! "nrepl server"
+                (reset! nrepl-server
+                        (nrepl/start-server :port (Integer/parseInt port))))))))
 
 (defn -main
   [& args]

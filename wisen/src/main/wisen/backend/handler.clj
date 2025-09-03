@@ -170,9 +170,8 @@
 
 (def indexer (atom nil))
 
-(defn setup-new-indexer! []
-  (reset! indexer
-          (indexer/run-new-indexer!)))
+(defn set-indexer! [i]
+  (reset! indexer i))
 
 (defn add-changes [request]
   (let [changeset (change-api/edn->changeset
@@ -283,6 +282,7 @@
 (defn sync [_request]
   (event-logger/log-event! :info "Synchronizing git repository data with Apache Jena data store")
   (triple-store/reset-from-scm!)
+  (indexer/add-task! @indexer indexer/index-all-task)
   (event-logger/log-event! :info "Synchronization done")
   {:status 200})
 

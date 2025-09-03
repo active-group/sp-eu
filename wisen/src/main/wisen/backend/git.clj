@@ -31,13 +31,23 @@
             (post-receive-contents))
       (.setExecutable post-receive-file true true))))
 
+(declare add! commit! push!)
+
 (defn- setup-clone! []
   ;; git clone
   (when-not (.exists (io/file working-directory))
     (-> (Git/cloneRepository)
         (.setDirectory (java.io.File. working-directory))
         (.setURI (str "file://" (.getAbsolutePath (java.io.File. bare-directory))))
-        (.call))))
+        (.call))
+
+    ;; add empty model.json file if not yet exists
+    (let [model-json-file (io/file (str working-directory "/" "model.json"))]
+      (when-not (.exists model-json-file)
+        (spit model-json-file "{}\n")
+        (add! "model.json")
+        (commit! "Initial empty model.json")
+        (push!)))))
 
 (defn setup! []
   (setup-bare!)

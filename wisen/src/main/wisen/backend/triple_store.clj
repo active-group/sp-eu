@@ -44,11 +44,9 @@
        (java.io.FileInputStream. (str git/working-directory "/" "model.json"))
        Lang/JSONLD11)
       (.commit ds)
-      (catch Exception e
-        (.abort ds)
-        e)
-      (finally
-        (.end ds)))))
+      (.end ds)
+
+      (decorate-geo!))))
 
 (defn- with-write-model!
   ([f]

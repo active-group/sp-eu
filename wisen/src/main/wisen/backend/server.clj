@@ -7,9 +7,9 @@
 
 (defn start!
   "Given command-line configuration options `opts`, start the wisen server."
-  [config-path]
+  [indexer config-path]
   (let [cfg (config/try-load-config config-path false)]
-    (handler/setup-new-indexer!)
+    (handler/set-indexer! indexer)
     (reset! server
             (ring-jetty/run-jetty
              (handler/handler cfg)
