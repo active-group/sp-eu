@@ -36,11 +36,14 @@
         ;; else
         (dom/div
          (editor/edit-tree-component ctx nil true false nil)
-         (when-not (empty? (edit-tree/edit-tree-changeset result))
+         (let [show-commit-bar? (not-empty (edit-tree/edit-tree-changeset result))]
            (dom/div
             {:style {:border ds/border
                      :position "sticky"
-                     :bottom "10px"
+                     :bottom (if show-commit-bar?
+                               "10px"
+                               "-60px")
+                     :transition "bottom 0.3s"
                      :border-radius "4px"
                      :background "#ddd"
                      :z-index "999"}}
