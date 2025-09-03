@@ -4,6 +4,7 @@
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.skolemizer :as skolemizer]
             [wisen.backend.importer :as importer]
+            [wisen.backend.git :as git]
             [active.clojure.logger.event :as event-logger]
             [nrepl.server :as nrepl])
   (:gen-class))
@@ -51,6 +52,7 @@
           config-path (:config options)]
 
       (triple-store/setup!)
+      (git/setup!)
       (server/start! config-path)
 
       (when-let [port (:nrepl (:options opts))]

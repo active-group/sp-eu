@@ -17,18 +17,38 @@
    (org.apache.jena.sparql.util QueryExecUtils)
    (org.apache.lucene.store Directory FSDirectory)
    (org.apache.jena.riot RDFDataMgr
-                         RDFFormat)))
+                         RDFFormat
+                         Lang)))
 
 (defonce dataset (atom nil))
 
 (defn- write-to-scm! [dataset]
   (do
+    (git/pull!)
     (RDFDataMgr/write
-     (java.io.FileOutputStream. (str git/directory "/" "model.json"))
+     (java.io.FileOutputStream. (str git/working-directory "/" "model.json"))
      dataset
      RDFFormat/JSONLD11_PRETTY)
     (git/add! "model.json")
-    (git/commit! "update")))
+    (git/commit! "update")
+    (git/push!)))
+
+(defn reset-from-scm! []
+  (let [ds @dataset]
+    (.begin ds ReadWrite/WRITE)
+    (try
+      (git/pull!)
+      (.clear (.asDatasetGraph ds))
+      (RDFDataMgr/read
+       (.asDatasetGraph ds)
+       (java.io.FileInputStream. (str git/working-directory "/" "model.json"))
+       Lang/JSONLD11)
+      (.commit ds)
+      (catch Exception e
+        (.abort ds)
+        e)
+      (finally
+        (.end ds)))))
 
 (defn- with-write-model!
   ([f]

@@ -280,6 +280,12 @@
     (event-logger/log-event! :info "Import done")
     {:status 200}))
 
+(defn sync [_request]
+  (event-logger/log-event! :info "Synchronizing git repository data with Apache Jena data store")
+  (triple-store/reset-from-scm!)
+  (event-logger/log-event! :info "Synchronization done")
+  {:status 200})
+
 ;; type hierarchy
 (derive ::error ::exception)
 (derive ::failure ::exception)
@@ -343,7 +349,8 @@
                                                         {:name realm/string
                                                          :uri realm/string})))))}}]
       ["/skolemize" {:post {:handler skolemize}}]
-      ["/import" {:post {:handler import}}]]
+      ["/import" {:post {:handler import}}]
+      ["/sync" {:post {:handler sync}}]]
 
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
