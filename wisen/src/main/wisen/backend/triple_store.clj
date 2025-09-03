@@ -33,6 +33,8 @@
     (git/commit! "update")
     (git/push!)))
 
+(declare decorate-geo!)
+
 (defn reset-from-scm! []
   (let [ds @dataset]
     (.begin ds ReadWrite/WRITE)
