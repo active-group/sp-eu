@@ -94,7 +94,6 @@
                 ++ [
                   pkgs.importNpmLock.hooks.linkNodeModulesHook
                   pkgs.ollama
-                  pkgs.process-compose
                   self'.packages.embeddingModel
                   inputs'.agenix.packages.default
                 ]
