@@ -8,6 +8,8 @@
             [wisen.frontend.tree :as tree]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.spinner :as spinner]
+            [wisen.frontend.commit :as commit]
+            [wisen.frontend.edit-tree :as edit-tree]
             [wisen.common.or-error :refer [success?
                                            success-value]]))
 
@@ -28,8 +30,18 @@
               (resource-request resource-id))
              (c/handle-action (fn [st ac]
                                 (if (success? ac)
-                                  (success-value ac)
+                                  (edit-tree/graph->edit-tree
+                                   (success-value ac))
                                   (assert false "TODO: implement error handling"))))))
         ;; else
-        (editor/edit-graph ctx true false result)
-        )))))
+        (dom/div
+         (editor/edit-tree-component ctx nil true false nil)
+         (when-not (empty? (edit-tree/edit-tree-changeset result))
+           (dom/div
+            {:style {:border ds/border
+                     :position "sticky"
+                     :bottom "10px"
+                     :border-radius "4px"
+                     :background "#ddd"
+                     :z-index "999"}}
+            (commit/main ctx)))))))))
