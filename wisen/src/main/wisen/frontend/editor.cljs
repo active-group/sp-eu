@@ -577,7 +577,9 @@
                                        {:style {:min-width "15em"
                                                 :position "relative"
                                                 :display "flex"
-                                                #_#_:gap "1em"
+                                                :gap "0.5em"
+                                                :justify-content "space-between"
+                                                :padding-right "1em"
                                                 :align-items "flex-start"}}
 
                                        (dom/div
