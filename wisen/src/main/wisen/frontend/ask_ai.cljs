@@ -99,7 +99,7 @@
            (fn [_]
              (c/return :state response-graph)))))))))
 
-(c/defn-item history-item-component [schema readonly-graph history]
+(c/defn-item history-item-component [show-graph history]
   (c/with-state-as history-item
     (dom/div
      {:style {:display "flex"
@@ -148,13 +148,13 @@
                            (ds/button-primary {:onClick (fn []
                                                           (c/return :action (replace-action replace-action-graph graph)))}
                                               "Replace")))
-                         (readonly-graph schema graph))))
+                         (show-graph graph))))
                      (dom/div
                       (dom/h3 "Error")
                       (dom/pre (pr-str (error-value answer)))))
                    )))))))
 
-(c/defn-item main [schema readonly-graph close-action]
+(c/defn-item main [show-graph close-action]
   (c/with-state-as node
     (-> (c/local-state
 
@@ -179,7 +179,7 @@
                                (map-indexed
                                 (fn [idx _hit]
                                   (c/focus (lens/at-index idx)
-                                           (history-item-component schema readonly-graph (take (inc idx) history))))
+                                           (history-item-component show-graph (take (inc idx) history))))
                                 history))))
 
                    (dom/div

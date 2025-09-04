@@ -431,7 +431,9 @@
 
    (modal/padded
     {:style {:overflow "auto"}}
-    (ask-ai/main (context/schema ctx) readonly-graph close-action))
+    (ask-ai/main
+     (partial readonly-graph ctx)
+     close-action))
 
    (modal/toolbar
     (ds/button-secondary {:onClick #(c/return :action close-action)}
