@@ -27,7 +27,7 @@
 (defn- make-value [type & props]
   (let [props* (conj props
                      (tree/make-property type-uri
-                                         (tree/make-node (schema type))))]
+                                         (tree/make-node type)))]
     (tree/make-node (value-node/properties-derive-uri props*) props*)))
 
 (defn- property [pred obj]
