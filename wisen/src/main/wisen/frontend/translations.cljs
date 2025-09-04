@@ -219,6 +219,10 @@
   de "Nichts anzuzeigen"
   en "Nothing to display")
 
+(define-text no-properties
+  de "Keine Eigenschaften"
+  en "No properties")
+
 ;; RDF predicates
 
 (def predicates

@@ -802,7 +802,7 @@
                                    :font-style "italic"
                                    :display "flex"
                                    :gap "1em"}}
-                          (dom/div "No properties")
+                          (dom/div (context/text ctx tr/no-properties))
                           (refresh-button ctx))))
              (c/handle-action
               (fn [node action]
