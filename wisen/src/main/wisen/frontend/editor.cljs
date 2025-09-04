@@ -766,9 +766,6 @@
                              (modal/modal-button (context/text ctx tr/set-reference)
                                                  (partial set-reference ctx))))))
 
-        (when (edit-tree/can-refresh? node)
-          (c/focus lens/first (refresh-button ctx)))
-
         (when editable?
           (c/focus lens/second
                    (ds/button-primary {:onClick not}
@@ -783,19 +780,30 @@
         lens/first
         (dom/div
 
-         (-> (c/focus edit-tree/edit-node-properties
-                      (c/with-state-as eprops
-                        (when-not (empty? eprops)
-                          (dom/div
-                           {:style {:display "flex"
-                                    :flex-direction "column"
-                                    :gap "2ex"
-                                    :margin-left "14px"
-                                    :padding-top "12px"
-                                    :border-left "1px solid gray"
-                                    :padding-bottom "2ex"}}
+         (-> (let [eprops (edit-tree/edit-node-properties node)
+                   margin-left "14px"]
+               (if-not (empty? eprops)
+                 ;; show properties
+                 (dom/div
+                  {:style {:display "flex"
+                           :flex-direction "column"
+                           :gap "2ex"
+                           :margin-left margin-left
+                           :padding-top "12px"
+                           :border-left "1px solid gray"
+                           :padding-bottom "2ex"}}
 
-                           (properties-component ctx types editable? editing? background-color compare-edit-tree adornment)))))
+                  (c/focus edit-tree/edit-node-properties
+                           (properties-component ctx types editable? editing? background-color compare-edit-tree adornment)))
+                 ;; show small dashed spacer
+                 (dom/div {:style {:margin-left margin-left
+                                   :border-left "1px dashed gray"
+                                   :padding "1ex 2em"
+                                   :font-style "italic"
+                                   :display "flex"
+                                   :gap "1em"}}
+                          (dom/div "No properties")
+                          (refresh-button ctx))))
              (c/handle-action
               (fn [node action]
                 (cond
