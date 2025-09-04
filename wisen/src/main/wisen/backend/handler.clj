@@ -390,7 +390,7 @@
                             ul, ol {margin: 0; padding: 0; padding-left: 1.4em;}
                             hr {margin: 0; padding: 0; border: 0; border-bottom: 1px solid gray;}
                             a, button { position: relative; }
-                            a:active, button:active { padding-top: 1px !important; margin-bottom: -1px; }
+                            a:active, button:active { opacity: 0.6; }
 
     @keyframes rotation {
     0% {
