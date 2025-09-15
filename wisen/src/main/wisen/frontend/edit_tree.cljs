@@ -999,3 +999,118 @@
 
     :else
     etree))
+
+(defn- knd [etree]
+  (cond
+    (ref? etree)
+    ::ref
+
+    (literal-string? etree)
+    ::lit-s
+
+    (literal-decimal? etree)
+    ::lit-d
+
+    (literal-boolean? etree)
+    ::lit-b
+
+    (literal-time? etree)
+    ::lit-t
+
+    (literal-date? etree)
+    ::lit-date
+
+    (is-a? many etree)
+    ::many
+
+    (is-a? exists etree)
+    ::ex
+
+    (is-a? edit-node etree)
+    ::node))
+
+(defn compare-edit-tree [etree-1 etree-2]
+  (cond
+    (and
+     (ref? etree-1)
+     (ref? etree-2))
+    (compare
+     (ref-uri etree-1)
+     (ref-uri etree-2))
+
+    (and
+     (literal-string? etree-1)
+     (literal-string? etree-2))
+    (compare
+     (literal-string-value etree-1)
+     (literal-string-value etree-2))
+
+    (and
+     (literal-decimal? etree-1)
+     (literal-decimal? etree-2))
+    (compare
+     (literal-decimal-value etree-1)
+     (literal-decimal-value etree-2))
+
+    (and
+     (literal-boolean? etree-1)
+     (literal-boolean? etree-2))
+    (compare
+     (literal-boolean-value etree-1)
+     (literal-boolean-value etree-2))
+
+    (and
+     (literal-time? etree-1)
+     (literal-time? etree-2))
+    (compare
+     (literal-time-value etree-1)
+     (literal-time-value etree-2))
+
+    (and
+     (literal-date? etree-1)
+     (literal-date? etree-2))
+    (compare
+     (literal-date-value etree-1)
+     (literal-date-value etree-2))
+
+    (and
+     (is-a? many etree-1)
+     (is-a? many etree-2))
+    (let [etrees-1 (many-edit-trees etree-1)
+          etrees-2 (many-edit-trees etree-2)]
+      (cond
+        (< (count etrees-1)
+           (count etrees-2))
+        -1
+
+        (> (count etrees-1)
+           (count etrees-2))
+        +1
+
+        :else
+        (reduce (fn [acc [e1 e2]]
+                  (let [res (compare-edit-tree e1 e2)]
+                    (if (= res 0)
+                      0
+                      (reduced res))))
+                0
+                (map vector etrees-1 etrees-2))))
+
+    (and
+     (is-a? exists etree-1)
+     (is-a? exists etree-2))
+    (compare-edit-tree
+     (exists-edit-tree etree-1)
+     (exists-edit-tree etree-2))
+
+    (and
+     (is-a? edit-node etree-1)
+     (is-a? edit-node etree-2))
+    (compare
+     (edit-node-uri etree-1)
+     (edit-node-uri etree-2))
+
+    :else
+    (compare
+     (knd etree-1)
+     (knd etree-2))))

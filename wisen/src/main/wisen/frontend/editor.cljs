@@ -1180,7 +1180,7 @@
           (and (nil? pos-1)
                (nil? pos-2))
           ;; fallback
-          (compare etree-1 etree-2)
+          (edit-tree/compare-edit-tree etree-1 etree-2)
 
           (nil? pos-1)
           -1
