@@ -94,12 +94,13 @@
 
          (dom/div
           {:style {:flex "1"
-                   :overflow "auto"}}
+                   :overflow "auto"
+                   :background "white"}}
 
           (c/focus (lens/>> :edit-trees
                             (lens/member text))
                    (ds/padded-2
-                    (editor/edit-tree-component ctx nil false false)))))
+                    (editor/edit-tree-component ctx nil false false "white")))))
 
         ;; bottom commit bar
         (c/focus (lens/>> :edit-trees
