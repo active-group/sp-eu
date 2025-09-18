@@ -23,9 +23,7 @@
     };
   };
 
-  systemPackages = [
-    pkgs.git-full
-  ];
+  environment.systemPackages = [ pkgs.gitFull ];
 
   age.secrets = {
     config_edn.file = ../../secrets/prod_config_edn.age;
