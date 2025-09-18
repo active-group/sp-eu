@@ -11,12 +11,22 @@
 (defn json-ld-string->graph-promise [s]
   (let [g (rdflib/graph)]
     (js/Promise. (fn [resolve! reject!]
-                   (rdflib/parse
-                    s g
-                    "http://example.org/g1"
-                    "application/ld+json"
-                    (fn [_ graph]
-                      (resolve! graph)))))))
+                   (try
+                     ;; rdflib doesn't report errors, so here we try
+                     ;; to parse the given string as JSON to at least
+                     ;; report if something is wrong in this
+                     ;; department
+                     (js/JSON.parse s)
+
+                     ;; actual json-ld parsing:
+                     (rdflib/parse
+                      s g
+                      "http://example.org/g1"
+                      "application/ld+json"
+                      (fn [a graph]
+                        (resolve! graph)))
+                     (catch js/Error e
+                       (reject! e)))))))
 
 (defn json-ld-string->graph-atom [s]
   (let [a (atom nil)]

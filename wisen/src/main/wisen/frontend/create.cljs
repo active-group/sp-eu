@@ -48,6 +48,15 @@
                ctx
                additional-items)))))))
 
+(defn- error [& items]
+  (ds/padded-2
+   (apply
+    dom/div {:style {:background "red"
+                     :color "white"
+                     :padding "1ex 1em"}}
+    (dom/h3 "Error")
+    items)))
+
 (c/defn-item from-rdf [attrs ctx initial-string & additional-items]
   (c/isolate-state
    {:text [initial-string (wisen.frontend.forms/selected)]
@@ -90,7 +99,9 @@
                                                     (c/once
                                                      (fn [_]
                                                        (c/return :state
-                                                                 (edit-tree/graph->addit-tree graph)))))))))
+                                                                 (edit-tree/graph->addit-tree graph)))))
+                                                  (fn [e]
+                                                    (error (.-message e)))))))
 
          (dom/div
           {:style {:flex "1"

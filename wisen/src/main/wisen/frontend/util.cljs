@@ -12,10 +12,11 @@
                                            success-value
                                            make-error]]))
 
-(defn json-ld-string->graph [s k]
+(defn json-ld-string->graph [s k & [err-k]]
   (promise/call-with-promise-result
    (rdf/json-ld-string->graph-promise s)
-   k))
+   k
+   err-k))
 
 (c/defn-item load-json-ld
   "Loads some JSON-LD for the given request. Parses the JSON-LD and
