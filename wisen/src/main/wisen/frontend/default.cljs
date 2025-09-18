@@ -82,13 +82,13 @@
    (property "name" (lit-s "Literary Circle"))
    (property "description" (lit-s "We read and discuss various sorts of books together."))
    (property "eventSchedule"
-             (make-value "Schedule"
-                              (property "byDay"
-                                        (-> (tree/make-node (schema "Tuesday"))
-                                            (tree/node-type (tree/make-node
-                                                             (schema "DayOfWeek")))))
-                              (property "startTime"
-                                        (lit-s "16:30:00"))))
+             (make-value (schema "Schedule")
+                         (property "byDay"
+                                   (-> (tree/make-node (schema "Tuesday"))
+                                       (tree/node-type (tree/make-node
+                                                        (schema "DayOfWeek")))))
+                         (property "startTime"
+                                   (lit-s "16:30:00"))))
    (property "eventAttendanceMode" (tree/make-node (schema "OfflineEventAttendanceMode")))
    (property "location" default-place)
    #_(property "organizer" default-organization)
