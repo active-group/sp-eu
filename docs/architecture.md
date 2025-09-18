@@ -59,7 +59,7 @@ over into a separate system.
 One user we spoke to uses a shared spreadsheet to gather information
 about organizations relevant to their field and geographical area.
 
-One subtle aspect of information assessment is trutstworthiness. Users
+One subtle aspect of information assessment is trustworthiness. Users
 currently take trustworthiness as a function of information source: If
 the information originated at a trustworthy colleague, the information
 is considered sound. If the information originated on Google Maps, it

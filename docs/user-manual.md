@@ -285,4 +285,4 @@ used for wisen data without restrictions.
 
 The Git repository is currently not open to the public. If you require
 access, please contact [Markus
-Schlegel](markus.schlegel@active-group.de).
+Schlegel](mailto:markus.schlegel@active-group.de).
