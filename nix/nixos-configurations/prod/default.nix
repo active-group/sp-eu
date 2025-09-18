@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 
 {
   imports = [
@@ -22,6 +22,10 @@
       ];
     };
   };
+
+  systemPackages = [
+    pkgs.git-full
+  ];
 
   age.secrets = {
     config_edn.file = ../../secrets/prod_config_edn.age;
