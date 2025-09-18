@@ -29,6 +29,7 @@ in
         environment = {
           TS_MODEL_NAME = pkgs.active-group.modelConfig.name;
           TS_MODEL_DIR = pkgs.active-group.embeddingModel;
+          PREFIX = "https://sp-eu.active-group.de"
         };
         wantedBy = [ "multi-user.target" ];
         after = [ "keycloak.service" ];

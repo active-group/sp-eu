@@ -1,7 +1,7 @@
 (ns wisen.common.prefix)
 
 (defn prefix []
-  #?(:clj (or (System/getenv "prefix") "http://localhost:4321")
+  #?(:clj (or (System/getenv "PREFIX") "http://localhost:4321")
      :cljs (.-prefix js/window)))
 
 #?(:clj
