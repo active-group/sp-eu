@@ -189,3 +189,10 @@
             reference-name (when-let [name (get line "name")]
                              (.toString name))))
          result)))
+
+(defn decorate-geo! [repo-uri commit-id]
+  (let [mdl (repository/read! repo-uri commit-id)
+        [mdl-decorated changed?] (decorator/decorate-geo! mdl)]
+    (if changed?
+      (repository/write! repo-uri commit-id mdl-decorated "Add geo information")
+      commit-id)))

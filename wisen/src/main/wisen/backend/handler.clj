@@ -252,13 +252,18 @@
     (event-logger/log-event! :info "Import done")
     {:status 200}))
 
-(defn sync [_request]
-  (event-logger/log-event! :info "Synchronizing git repository data with Apache Jena data store")
-  ;; TODO
-  #_#_(triple-store/reset-from-scm!)
-  (indexer/add-task! @indexer indexer/index-all-task)
-  (event-logger/log-event! :info "Synchronization done")
-  {:status 200})
+(defn decorate-geo [request]
+  (let [repo-uri (request-repository-uri request)
+        prefix (request-prefix request)]
+    (event-logger/log-event! :info "<decorate-geo>")
+    (let [result-commit-id
+          (access/decorate-geo! repo-uri
+                                (or (request-base-commit-id request)
+                                    (access/head! prefix
+                                                  repo-uri)))]
+      (event-logger/log-event! :info "</decorate-geo>")
+      {:status 200
+       :body result-commit-id})))
 
 ;; type hierarchy
 (derive ::error ::exception)
@@ -325,7 +330,7 @@
                                                          :uri realm/string})))))}}]
       ["/skolemize" {:post {:handler skolemize}}]
       ["/import" {:post {:handler import}}]
-      ["/sync" {:post {:handler sync}}]]
+      ["/decorate/geo" {:get {:handler decorate-geo}}]]
 
      ["/osm"
       ["/lookup/:osmid" {:get {:handler osm-lookup}}]
