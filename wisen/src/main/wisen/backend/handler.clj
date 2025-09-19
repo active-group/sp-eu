@@ -47,6 +47,12 @@
 (defn request-repository-uri [request]
   (:repository-uri request))
 
+(defn request-set-prefix [request prefix]
+  (assoc request :prefix prefix))
+
+(defn request-prefix [request]
+  (:prefix request))
+
 (defn request-base-commit-id [request]
   (get-in (ring.middleware.params/params-request request)
           [:query-params "base-commit-id"]))
@@ -58,10 +64,11 @@
     (if (or (re-find #"application/ld\+json" accept)
             (re-find #"application/json" accept))
       (let [repo-uri (request-repository-uri request)
+            prefix (request-prefix request)
             id (get-in request [:path-params :id])
             uri (r/uri-for-resource-id id)
             commit-id (or (request-base-commit-id request)
-                          (access/head! repo-uri))
+                          (access/head! prefix repo-uri))
             model (access/resource-description! repo-uri commit-id uri)]
         {:status 200
          ;; We have to take the "Accept" header of the request
@@ -88,7 +95,8 @@
 
 (defn get-head [request]
   {:status 200
-   :body (access/head! (request-repository-uri request))})
+   :body (access/head! (request-prefix request)
+                       (request-repository-uri request))})
 
 (defn search [request]
   (let [repo-uri (request-repository-uri request)
@@ -217,8 +225,9 @@
   (let [id (get-in request [:path-params :id])
         uri (r/uri-for-resource-id id)
         repo-uri (request-repository-uri request)
+        prefix (request-prefix request)
         commit-id (or (request-base-commit-id request)
-                      (access/head! repo-uri))
+                      (access/head! prefix repo-uri))
         result (access/references! repo-uri commit-id uri)]
     {:status 200
      :headers {"Content-type" "application/json"}
@@ -407,11 +416,13 @@
   [handler routes client]
   (wrap-client-fn-routes handler routes (constantly client)))
 
-(defn- wrap-repo-uri [handler repo-uri]
+(defn- wrap-globals [handler repo-uri prefix]
   (fn [request]
-    (handler (request-set-repository-uri request repo-uri))))
+    (handler (-> request
+                 (request-set-repository-uri repo-uri)
+                 (request-set-prefix prefix)))))
 
-(defn handler [cfg repo-uri]
+(defn handler [cfg repo-uri prefix]
   (let [wrap-session  (fn session-mw [handler]
                         (mw.session/wrap-session handler {:store session-store}))
         openid-config  (active.config/section-subconfig cfg
@@ -422,7 +433,7 @@
         wrap-sso      (auth/mk-sso-mw free-for-all? openid-config)]
 
     (-> #'handler*
-        (wrap-repo-uri repo-uri)
+        (wrap-globals repo-uri prefix)
         (ring.middleware.resource/wrap-resource "/")
         (wrap-caching "max-age=0")
         (wrap-client-routes routes/routes client-response)

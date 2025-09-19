@@ -58,13 +58,14 @@
     :else
     (let [options (:options opts)
           config-path (:config options)
-          repo-uri (System/getenv "REPOSITORY")]
+          repo-uri (System/getenv "REPOSITORY")
+          prefix (System/getenv "PREFIX")]
 
       (let [indexer (setup! "Lucene indexer"
                             (indexer/run-new-indexer!))]
 
         (setup! "Web server"
-                (server/start! indexer config-path repo-uri)))
+                (server/start! indexer config-path repo-uri prefix)))
 
       (when-let [port (:nrepl (:options opts))]
         (setup! "nrepl server"

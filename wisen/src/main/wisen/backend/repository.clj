@@ -4,6 +4,7 @@
   (:require [wisen.backend.git :as git]
             [wisen.common.change-api :as change-api]
             [wisen.backend.jena :as jena]
+            [wisen.backend.skolem :as skolem]
             [active.data.realm :as realm]))
 
 (def ^:private read-git
@@ -54,10 +55,44 @@
   (str (git/git-directory git)
        "/" model-filename))
 
+(defn- write-model! [repo-uri commit-id model message]
+  (let [git (git/clone! repo-uri)]
+
+    (git/checkout! git commit-id)
+
+    (let [path (model-path git)]
+
+      ;; Render back to model.json string
+      (spit path (jena/model->string model))
+
+      ;; Add
+      (git/add! git model-filename)
+
+      ;; Commit
+      (git/commit! git message)
+
+      ;; Push
+      (let [result-commit-id (pull-push! git)]
+
+        ;; Cleanup
+        (git/kill! git)
+
+        result-commit-id))))
+
 ;; --- API ---
 
-(defn head! [repo-uri]
-  (with-read-git repo-uri git/head))
+(defn head! [prefix repo-uri]
+  (with-read-git repo-uri
+    (fn [g]
+      (let [head-candidate (git/head g)
+            s (git/get! g head-candidate model-filename)
+            mdl (jena/string->model s)
+            [mdl-skolemized changed?] (skolem/skolemize-model mdl prefix)]
+
+        ;; write back when changed and return new commit-id as head
+        (if changed?
+          (write-model! repo-uri head-candidate mdl-skolemized "Skolemize")
+          head-candidate)))))
 
 #_(head! "file:///Users/markusschlegel/Desktop/tmp/repo")
 ;; => "ec00eec6f253fe8ccc15429d4c54301854d6a651"

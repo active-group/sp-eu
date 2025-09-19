@@ -86,8 +86,8 @@
     (via-event-index-records model)
     (via-contact-point-index-records model))))
 
-(defn head! [repo-uri]
-  (repository/head! repo-uri))
+(defn head! [prefix repo-uri]
+  (repository/head! prefix repo-uri))
 
 (def-record search-result
   [search-result-model
