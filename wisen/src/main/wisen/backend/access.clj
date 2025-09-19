@@ -8,7 +8,8 @@
    [wisen.backend.decorator :as decorator]
    [wisen.backend.search :as search]
    [wisen.backend.jena :as jena]
-   [clojure.string :as string]))
+   [clojure.string :as string]
+   [clojure.core.cache.wrapped :as cache.wrapped]))
 
 (defn- direct-index-records [model]
   (let [res
@@ -96,10 +97,24 @@
    search-result-relevance
    search-result-total-hits])
 
+;; map [repo-uri commit-id] -> {:index :model}
+(def ^:private cache (cache.wrapped/lru-cache-factory {}
+                                                      :threshold 4))
+
+(defn cache-key [repo-uri commit-id]
+  [repo-uri commit-id])
+
 (defn search! [repo-uri commit-id query range]
   (let [
-        base-model (repository/read! repo-uri commit-id)
-        index (model->index base-model)
+        {model :model index :index}
+        (cache.wrapped/lookup-or-miss cache
+                                      (cache-key repo-uri commit-id)
+                                      (fn [k]
+                                        (let [model (repository/read! repo-uri commit-id)
+                                              index (model->index model)]
+                                          {:model model
+                                           :index index})))
+
 
         [start-index cnt] range
         bb (query/query-geo-bounding-box query)
@@ -135,7 +150,7 @@
 
         _ (event-logger/log-event! :info (str "Running sparql: " (pr-str sparql)))
 
-        result-model (search/run-construct-query base-model sparql)]
+        result-model (search/run-construct-query model sparql)]
 
     (search-result
      search-result-model result-model
