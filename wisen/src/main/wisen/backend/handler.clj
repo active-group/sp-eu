@@ -37,8 +37,6 @@
             [active.clojure.logger.event :as event-logger]
             [clojure.string :as string]
             [wisen.backend.geocoding :as geocoding]
-            [wisen.backend.skolemizer :as skolemizer]
-            [wisen.backend.importer :as importer]
             [wisen.backend.access :as access]))
 
 (defn request-set-repository-uri [request repo-uri]
@@ -238,17 +236,15 @@
                      {:name name})))
                 result)}))
 
-(defn skolemize [request]
-  (let [s (slurp (get request :body))]
-    (event-logger/log-event! :info (str "Skolemizing: " s))
-    {:status 200
-     :headers {"Content-type" "application/json"}
-     :body (skolemizer/skolemize-string s)}))
-
 (defn import [request]
-  (let [s (slurp (get request :body))]
+  (let [s (slurp (get request :body))
+        repo-uri (request-repository-uri request)
+        prefix (request-prefix request)
+        commit-id (or (request-base-commit-id request)
+                      (access/head! prefix repo-uri))]
     (event-logger/log-event! :info (str "Importing: " s))
-    (importer/import-string s)
+    (event-logger/log-event! :info (str "Base commit id: " commit-id))
+    (access/import! repo-uri commit-id (jsonld/json-ld-string->model s))
     (event-logger/log-event! :info "Import done")
     {:status 200}))
 
@@ -328,7 +324,6 @@
                                                        (realm/map-with-keys
                                                         {:name (realm/optional realm/string)
                                                          :uri realm/string})))))}}]
-      ["/skolemize" {:post {:handler skolemize}}]
       ["/import" {:post {:handler import}}]
       ["/decorate/geo" {:get {:handler decorate-geo}}]]
 

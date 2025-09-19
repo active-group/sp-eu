@@ -7,6 +7,7 @@
    [wisen.backend.repository :as repository]
    [wisen.backend.decorator :as decorator]
    [wisen.backend.search :as search]
+   [wisen.backend.jena :as jena]
    [clojure.string :as string]))
 
 (defn- direct-index-records [model]
@@ -196,3 +197,8 @@
     (if changed?
       (repository/write! repo-uri commit-id mdl-decorated "Add geo information")
       commit-id)))
+
+(defn import! [repo-uri commit-id model]
+  (let [base-model (repository/read! repo-uri commit-id)
+        model* (jena/union base-model model)]
+    (repository/write! repo-uri commit-id model* "Import")))

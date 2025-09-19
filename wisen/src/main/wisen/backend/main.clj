@@ -3,7 +3,6 @@
             [wisen.backend.server :as server]
             [wisen.backend.triple-store :as triple-store]
             [wisen.backend.skolemizer :as skolemizer]
-            [wisen.backend.importer :as importer]
             [wisen.backend.git :as git]
             [active.clojure.logger.event :as event-logger]
             [wisen.backend.indexer :as indexer]
@@ -14,9 +13,7 @@
   [["-h" "--help" "Show this help about the command line arguments"]
    ["-c" "--config CONFIG" "Path to the configuration file (default: ./etc/config.edn)"
     :default "./etc/config.edn"]
-   ["-r" "--nrepl PORT" "Start an nrepl server on port PORT"]
-   ["-s" "--skolemize FILE" "Skolemize a given JSON-LD file"]
-   ["-i" "--import FILE" "Import a given JSON-LD file. Contents must be skolemized."]])
+   ["-r" "--nrepl PORT" "Start an nrepl server on port PORT"]])
 
 (defn print-usage [opts-map]
   (println "Usage: wisen [options]")
@@ -44,16 +41,6 @@
     (do
       (print-usage opts)
       (System/exit 0))
-
-    (string? (:skolemize (:options opts)))
-    (let [path (:skolemize (:options opts))]
-      (event-logger/log-event! :info (str "Skolemizing file: " path))
-      (skolemizer/skolemize-file path))
-
-    (string? (:import (:options opts)))
-    (let [path (:import (:options opts))]
-      (event-logger/log-event! :info (str "Importing file: " path))
-      (importer/import-file path))
 
     :else
     (let [options (:options opts)

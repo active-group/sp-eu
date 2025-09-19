@@ -98,3 +98,6 @@
           (change-api/delete? change)
           (remove-statement! model (change-api/delete-statement change)))
         (recur (rest changeset*))))))
+
+(defn union [model-1 model-2]
+  (.union model-1 model-2))
