@@ -25,7 +25,7 @@
    handle-thread])
 
 (defn- handle-task! [_task]
-  (index/update-search-index!))
+  #_(index/update-search-index!))
 
 (defn get-next-task [tasks]
   (first tasks))
@@ -37,7 +37,7 @@
   [[(.toEpochMilli (java.time.Instant/now)) index-all-task]])
 
 (defn run-new-indexer! [& [name]]
-  (let [tasks-atom (atom initial-tasks)
+  #_(let [tasks-atom (atom initial-tasks)
         thread (.start (.name (Thread/ofVirtual)
                               (or name "Indexer"))
                        (fn []
@@ -68,7 +68,7 @@
      handle-thread thread)))
 
 (defn add-task! [handle task]
-  (let [timestamp (.toEpochMilli (java.time.Instant/now))]
+  #_(let [timestamp (.toEpochMilli (java.time.Instant/now))]
     (swap! (handle-tasks-atom handle)
            (fn [tasks]
              (sort-by first

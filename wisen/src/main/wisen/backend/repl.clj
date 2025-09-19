@@ -1,9 +1,7 @@
 (ns wisen.backend.repl
-  (:require [wisen.backend.server :as server]
-            [wisen.backend.triple-store :as triple-store]))
+  (:require [wisen.backend.server :as server]))
 
 (defn start! []
-  (triple-store/setup!)
   (server/start! "./etc/config.edn"))
 
 (defn stop! []

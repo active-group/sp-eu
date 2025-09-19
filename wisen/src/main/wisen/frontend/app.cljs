@@ -81,6 +81,8 @@
                        :href (pages.routes/href routes/home)}
                       (context/text ctx tr/search))
 
+               (dom/i {:style {:color "#777"}} (context/commit-id ctx))
+
                (dom/div
                 {:style {:display "flex"
                          :align-items "baseline"
@@ -121,23 +123,25 @@
 (defn toplevel []
   (util/with-schemaorg
     (fn [schema]
-      (dom/div
-       {:style {:width "100%"
-                :height "100%"
-                :background "#eee"
-                :display "flex"
-                :flex-direction "column"
-                :overflow "hidden"}}
+      (util/with-head-commit-id
+        (fn [head-commit-id]
+          (dom/div
+           {:style {:width "100%"
+                    :height "100%"
+                    :background "#eee"
+                    :display "flex"
+                    :flex-direction "column"
+                    :overflow "hidden"}}
 
-       (with-lang
-         (c/with-state-as lang
-           (let [ctx (context/make lang schema)]
-             (c/fragment
-              (menu ctx)
-              (if-let [resource-id (first
-                                    (pages.routes/parse routes/resource (.-href (.-location js/window))))]
-                (resource/main ctx resource-id)
-                (search/main ctx))))))))))
+           (with-lang
+             (c/with-state-as lang
+               (let [ctx (context/make lang schema head-commit-id)]
+                 (c/fragment
+                  (menu ctx)
+                  (if-let [resource-id (first
+                                        (pages.routes/parse routes/resource (.-href (.-location js/window))))]
+                    (resource/main ctx resource-id)
+                    (search/main ctx))))))))))))
 
 (defn ^:dev/after-load start []
   (println "start")

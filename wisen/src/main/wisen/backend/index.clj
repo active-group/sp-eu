@@ -1,8 +1,7 @@
 (ns wisen.backend.index
   (:require [wisen.backend.lucene :as lucene]
             [wisen.backend.embedding :as embedding]
-            [wisen.backend.triple-store :as triple-store]
-            ))
+            [active.data.record :refer [def-record]]))
 
 (def search-result lucene/search-result)
 (def search-result-total-hits lucene/search-result-total-hits)
@@ -24,90 +23,39 @@
    (embedding/get-embedding
     (prepare-for-query text))))
 
-(defn insert! [id lon lat name description & [dir]]
-  (lucene/insert!
-   (lucene/id-geo-vec
-    lucene/id-geo-vec-id id
-    lucene/id-geo-vec-geo (lucene/make-point lon lat)
-    lucene/id-geo-vec-vec (embedding-vector-for-retrieval name description))
-   dir))
+;; ---
 
-(defn- insert-direct! [dir]
-  (let [res
-        (triple-store/run-select-query!
-         "PREFIX schema: <http://schema.org/>
-          PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
-          SELECT ?id ?lon ?lat ?name ?description
-          WHERE {
-            ?id schema:name ?name .
-            OPTIONAL { ?id schema:description ?description . }
-            ?id (schema:location? / schema:address? / schema:geo?) ?geo .
-            ?geo (schema:longitude | wgs84:long)  ?lon .
-            ?geo (schema:latitue | wgs84:lat) ?lat .
-          }")]
-    (doall
-     (map (fn [row]
-            (insert! (.getURI (get row "id"))
-                     (.getDouble (get row "lon"))
-                     (.getDouble (get row "lat"))
-                     (str (get row "name"))
-                     (str (get row "description"))
-                     dir))
-          res))))
+(def-record index-record
+  [index-record-id
+   index-record-longitude
+   index-record-latitude
+   index-record-name
+   index-record-description])
 
-(defn- insert-via-event! [dir]
-  (let [res
-        (triple-store/run-select-query!
-         "PREFIX schema: <http://schema.org/>
-          PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
-          SELECT ?id ?lon ?lat ?name ?description
-          WHERE {
-            ?id schema:name ?name .
-            OPTIONAL { ?id schema:description ?description . }
-            ?parent (schema:event | schema:events) ?id .
-            ?parent (schema:location? / schema:address? / schema:geo?) ?geo .
-            ?geo (schema:longitude | wgs84:long)  ?lon .
-            ?geo (schema:latitue | wgs84:lat) ?lat .
-          }")]
-    (doall
-     (map (fn [row]
-            (insert! (.getURI (get row "id"))
-                     (.getDouble (get row "lon"))
-                     (.getDouble (get row "lat"))
-                     (str (get row "name"))
-                     (str (get row "description"))
-                     dir))
-          res))))
+(defn make-index-record [id lon lat name description]
+  (index-record
+   index-record-id id
+   index-record-longitude lon
+   index-record-latitude lat
+   index-record-name name
+   index-record-description description))
 
-(defn- insert-via-contactPoint! [dir]
-  (let [res
-        (triple-store/run-select-query!
-         "PREFIX schema: <http://schema.org/>
-          PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
-          SELECT ?id ?lon ?lat ?name ?description
-          WHERE {
-            ?id schema:name ?name .
-            OPTIONAL { ?id schema:description ?description . }
-            ?parent schema:contactPoint ?id .
-            ?parent (schema:location? / schema:address? / schema:geo?) ?geo .
-            ?geo (schema:longitude | wgs84:long)  ?lon .
-            ?geo (schema:latitue | wgs84:lat) ?lat .
-          }")]
-    (doall
-     (map (fn [row]
-            (insert! (.getURI (get row "id"))
-                     (.getDouble (get row "lon"))
-                     (.getDouble (get row "lat"))
-                     (str (get row "name"))
-                     (str (get row "description"))
-                     dir))
-          res))))
+(defn new-in-memory-index [index-records]
+  (let [i (lucene/make-in-memory-directory)]
+    (doall (for [irec index-records]
+             (lucene/insert!
+              i
+              (lucene/id-geo-vec
+               lucene/id-geo-vec-id (index-record-id irec)
+               lucene/id-geo-vec-geo (lucene/make-point (index-record-longitude irec)
+                                                        (index-record-latitude irec))
+               lucene/id-geo-vec-vec (embedding-vector-for-retrieval (index-record-name irec)
+                                                                     (index-record-description irec))))))
+    i))
 
-(defn update-search-index! [& [dir]]
-  (lucene/clear! dir)
-  (insert-direct! dir)
-  (insert-via-event! dir)
-  (insert-via-contactPoint! dir))
+(def search-result lucene/search-result)
+(def search-result-total-hits lucene/search-result-total-hits)
+(def search-result-uris lucene/search-result-uris)
 
 (defn make-geo-query [box]
   (lucene/geo-query box))
@@ -119,27 +67,23 @@
 (defn combine-queries [q1 q2]
   (lucene/combine-queries q1 q2))
 
-(defn search-geo! [box range & [dir]]
-  (lucene/run-query!
-   (make-geo-query box)
-   range
-   dir))
+(defn make-bounding-box [min-lat max-lat min-lon max-lon]
+  (lucene/make-bounding-box min-lat max-lat min-lon max-lon))
 
-(defn search-text-and-geo! [text box range & [dir]]
+(defn search-geo
+  "Returns a `search-result`"
+  [index box range]
   (lucene/run-query!
+   index
+   (make-geo-query box)
+   range))
+
+(defn search-text-and-geo
+  "Returns a `search-result`"
+  [index text box range]
+  (lucene/run-query!
+   index
    (combine-queries
     (make-geo-query box)
     (make-fuzzy-text-query text))
-   range
-   dir))
-
-(def file-system-index lucene/file-system-directory)
-
-(defn make-in-memory-index []
-  (lucene/make-in-memory-directory))
-
-(defn make-vector [v]
-  (lucene/make-vector v))
-
-(defn make-bounding-box [min-lat max-lat min-lon max-lon]
-  (lucene/make-bounding-box min-lat max-lat min-lon max-lon))
+   range))

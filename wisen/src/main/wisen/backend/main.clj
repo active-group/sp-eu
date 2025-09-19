@@ -57,22 +57,14 @@
 
     :else
     (let [options (:options opts)
-          config-path (:config options)]
-
-      (setup! "Git repository"
-              (git/setup!))
-
-      (setup! "Apache Jena store"
-              (triple-store/setup!))
-
-      (setup! "Synchronize git repository -> Apache Jena store"
-              (triple-store/reset-from-scm!))
+          config-path (:config options)
+          repo-uri (System/getenv "REPOSITORY")]
 
       (let [indexer (setup! "Lucene indexer"
                             (indexer/run-new-indexer!))]
 
         (setup! "Web server"
-                (server/start! indexer config-path)))
+                (server/start! indexer config-path repo-uri)))
 
       (when-let [port (:nrepl (:options opts))]
         (setup! "nrepl server"

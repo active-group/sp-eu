@@ -693,7 +693,8 @@
        (c/fragment
         (spinner/main
          (context/text ctx tr/determining-references))
-        (ajax/fetch (ajax/GET (str "/api/references/" id))))
+        (ajax/fetch (ajax/GET (str "/api/references/" id)
+                              {:params {"base-commit-id" (context/commit-id ctx)}})))
 
        (and (ajax/response? result)
             (ajax/response-ok? result))

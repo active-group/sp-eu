@@ -179,9 +179,12 @@
       " "
       (context/text ctx tr/deletions)))))
 
-(defn commit-changeset-request [changeset]
+(defn commit-changeset-request [commit-id changeset]
   (ajax/POST "/api/changes"
              {:body (pr-str {:changes
                              (change-api/changeset->edn
-                              (changeset->api changeset))})
+                              (changeset->api changeset))
+                             :base-commit-id
+                             commit-id
+                             })
               :headers {:content-type "application/edn"}}))

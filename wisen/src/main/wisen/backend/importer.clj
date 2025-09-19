@@ -1,14 +1,15 @@
 (ns wisen.backend.importer
   (:require [wisen.backend.triple-store :as triple-store]
             [wisen.backend.jsonld :as jsonld]
-            [wisen.backend.index :as index]))
+            [wisen.backend.index :as index]
+            [wisen.backend.git :as git]))
 
-(defn import-string [s]
-  (let [model (jsonld/json-ld-string->model s)]
+(defn import-string [s & [base-commit-id]]
+  ;; TODO
+  #_(let [base-commit-id (or base-commit-id (git/head! repo-uri))
+        model (jsonld/json-ld-string->model s)]
 
-    (triple-store/setup!)
-
-    (triple-store/decorate-geo! model)
+    #_#_#_(triple-store/decorate-geo! model)
 
     (triple-store/add-model! model)
 

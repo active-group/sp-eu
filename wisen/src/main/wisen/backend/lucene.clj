@@ -52,18 +52,23 @@
 
 ;; ---
 
-(def file-system-directory
-  (FSDirectory/open (.toPath (File. "lucene-test-6"))))
+(declare with-writer!)
 
 (defn make-in-memory-directory []
-  (ByteBuffersDirectory.))
+  (let [dir (ByteBuffersDirectory.)]
+    ;; We cannot write to an "empty" ByteBuffersDirectory immediately,
+    ;; so we create an empty commit
+    (with-writer! dir
+      (fn [w]
+        (.commit w)))
+    dir))
 
 (def analyzer
   (StandardAnalyzer.))
 
-(defn with-writer! [f & [dir]]
+(defn with-writer! [dir f]
   (let [cfg (IndexWriterConfig. analyzer)
-        w (IndexWriter. (or dir file-system-directory) cfg)]
+        w (IndexWriter. dir cfg)]
     (try
       (f w)
       (finally
@@ -82,11 +87,12 @@
          min-lat
          max-lat))
 
-(defn insert! [id-geo-vec & [dir]]
+(defn insert! [dir id-geo-vec]
   (let [id (id-geo-vec-id id-geo-vec)
         point (id-geo-vec-geo id-geo-vec)
         vec (id-geo-vec-vec id-geo-vec)]
     (with-writer!
+      dir
       (fn [writer]
         (let [doc (Document.)]
           (.add doc (KnnVectorField. "embedding" vec))
@@ -100,17 +106,16 @@
 
           (.add doc (StoredField. (.getFieldName strategy) (pr-str point)))
 
-          (.addDocument writer doc)))
-      dir)))
+          (.addDocument writer doc))))))
 
-(defn clear! [& [dir]]
+(defn clear! [dir]
   (with-writer!
+    dir
     (fn [writer]
-      (.deleteAll writer))
-    dir))
+      (.deleteAll writer))))
 
-(defn with-searcher! [f & [dir]]
-  (let [r (DirectoryReader/open (or dir file-system-directory))
+(defn with-searcher! [dir f]
+  (let [r (DirectoryReader/open dir)
         s (IndexSearcher. r)]
     (try
       (f s)
@@ -136,8 +141,9 @@
 (defn run-query!
   "Takes query built with `knn-query`, `geo-query`, or
   `combine-queries`. Returns `search-result`."
-  [query [from cnt] & [dir]]
+  [dir query [from cnt]]
   (with-searcher!
+    dir
     (fn [searcher]
       (let [topDocs (.search searcher query (+ from cnt))
             total-hits (.-value (.totalHits topDocs))]
@@ -148,7 +154,23 @@
                                             (.get foundDoc "id")))
                                         (take cnt
                                               (drop from
-                                                    (seq (.scoreDocs topDocs)))))))))
-    dir))
+                                                    (seq (.scoreDocs topDocs)))))))))))
+
+#_#_#_(def i (make-in-memory-directory))
+(run-query! i
+            (geo-query (make-bounding-box 0 10 0 10))
+            [0 5])
+
+(DirectoryReader/open i)
 
 #_(search! (float-array [2.0 3.2 4.2]) [[0 10] [0 10]])
+
+
+#_(with-writer!
+  i
+  (fn [writer]
+    (let [doc (Document.)]
+      (.add doc (StringField. "id" "id1" Field$Store/YES))
+      (.add doc (StringField. "name" "Marki" Field$Store/YES))
+
+      (.addDocument writer doc))))

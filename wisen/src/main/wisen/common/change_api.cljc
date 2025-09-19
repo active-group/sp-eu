@@ -249,6 +249,9 @@
 
 (def changeset (realm/sequence-of change))
 
+(defn union-changeset [cs1 cs2]
+  (distinct (concat cs1 cs2)))
+
 (def changeset<->edn
   (lens/xmap
    (fn [cs]

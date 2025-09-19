@@ -33,10 +33,11 @@
             [wisen.frontend.context :as context]
             [wisen.frontend.translations :as tr]))
 
-(defn run-query-result-range [query result-range]
+(defn run-query-result-range [commit-id query result-range]
   (ajax/fetch-once
    (ajax/POST "/api/search"
-              {:body (js/JSON.stringify (clj->js {:query (query/serialize-query query)
+              {:body (js/JSON.stringify (clj->js {:commit-id commit-id
+                                                  :query (query/serialize-query query)
                                                   :range (ss/serialize-result-range result-range)}))
                :headers {:content-type "application/json"}})
    (fn [st new-response]
@@ -138,7 +139,7 @@
       (ss/loading? result)
       (c/fragment
        (spinner/main)
-       (run-query-result-range query result-range))
+       (run-query-result-range (context/commit-id ctx) query result-range))
 
       (ss/search-response? result)
       (c/focus ss/search-response-graph

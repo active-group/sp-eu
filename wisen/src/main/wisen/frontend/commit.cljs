@@ -40,7 +40,8 @@
          (context/text ctx tr/committing)
          (wisen.frontend.spinner/main)
          (c/handle-action
-          (ajax/execute (change/commit-changeset-request (committing-changeset state)))
+          (ajax/execute (change/commit-changeset-request (context/commit-id ctx)
+                                                         (committing-changeset state)))
           (fn [st ac]
             (if (and (ajax/response? ac)
                      (ajax/response-ok? ac))

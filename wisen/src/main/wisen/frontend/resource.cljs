@@ -10,12 +10,14 @@
             [wisen.frontend.spinner :as spinner]
             [wisen.frontend.commit :as commit]
             [wisen.frontend.edit-tree :as edit-tree]
+            [wisen.frontend.context :as context]
             [wisen.common.or-error :refer [success?
                                            success-value]]))
 
-(defn- resource-request [id]
+(defn- resource-request [commit-id id]
   (ajax/GET (str "/resource/" id "/about")
-            {:headers {"accept" "application/ld+json"}}))
+            {:headers {"accept" "application/ld+json"}
+             :params {"base-commit-id" commit-id}}))
 
 (c/defn-item main [ctx resource-id]
   (ds/padded-2
@@ -27,7 +29,7 @@
         (c/fragment
          (spinner/main)
          (-> (util/load-json-ld
-              (resource-request resource-id))
+              (resource-request (context/commit-id ctx) resource-id))
              (c/handle-action (fn [st ac]
                                 (if (success? ac)
                                   (edit-tree/graph->edit-tree

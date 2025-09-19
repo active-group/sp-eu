@@ -4,6 +4,7 @@
             [active.data.record :refer [is-a?] :refer-macros [def-record]]
             [active.data.realm :as realm]
             [reacl-c-basics.ajax :as ajax]
+            [reacl-c-basics.core :as basics]
             [wisen.frontend.promise :as promise]
             [wisen.frontend.rdf :as rdf]
             [wisen.frontend.spinner :as spinner]
@@ -116,3 +117,35 @@
                        [(.-f f) (.-m f)]
                        [f {}])]
          (F. f* (assoc m* arg res)))))))
+
+(defn- load-head-commit-id []
+  (c/with-state-as [state last-response :local nil]
+    (c/fragment
+
+     (c/handle-state-change
+
+      (c/focus lens/second
+               (ajax/fetch (ajax/GET "/api/head")))
+
+      (fn [_ new-state]
+        (let [resp (second new-state)]
+          (if (and (ajax/response? resp)
+                   (ajax/response-ok? resp))
+            [(ajax/response-value resp) resp]
+            [(first new-state) resp]))))
+
+     (c/focus lens/second
+              (c/handle-action
+               (basics/interval 5000)
+               (fn [_ _]
+                 nil))))))
+
+(defn with-head-commit-id [k]
+  (c/with-state-as [state commit-id :local nil]
+    (c/fragment
+
+     (when (some? commit-id)
+       (c/focus lens/first
+                (k commit-id)))
+
+     (c/focus lens/second (load-head-commit-id)))))

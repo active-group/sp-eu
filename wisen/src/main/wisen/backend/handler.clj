@@ -1,4 +1,7 @@
 (ns wisen.backend.handler
+  (:refer-clojure :exclude [sync import])
+  (:import [java.io File]
+           [java.nio.file Files])
   (:require [active.clojure.config :as active.config]
             [active.data.realm :as realm]
             [active.data.realm.validation :as realm-validation]
@@ -35,14 +38,18 @@
             [clojure.string :as string]
             [wisen.backend.geocoding :as geocoding]
             [wisen.backend.skolemizer :as skolemizer]
-            [wisen.backend.importer :as importer]))
+            [wisen.backend.importer :as importer]
+            [wisen.backend.access :as access]))
 
-(defn mint-resource-url! []
-  (str "http://example.org/resource/" (random-uuid)))
+(defn request-set-repository-uri [request repo-uri]
+  (assoc request :repository-uri repo-uri))
 
-(defn create-resource [_request]
-  {:status 200
-   :body {:id (mint-resource-url!)}})
+(defn request-repository-uri [request]
+  (:repository-uri request))
+
+(defn request-base-commit-id [request]
+  (get-in (ring.middleware.params/params-request request)
+          [:query-params "base-commit-id"]))
 
 (declare client-response)
 
@@ -50,34 +57,12 @@
   (let [accept (get-in request [:headers "accept"])]
     (if (or (re-find #"application/ld\+json" accept)
             (re-find #"application/json" accept))
-      (let [id (get-in request [:path-params :id])
+      (let [repo-uri (request-repository-uri request)
+            id (get-in request [:path-params :id])
             uri (r/uri-for-resource-id id)
-            ;; TODO: injection!
-            q (str
-               "CONSTRUCT {<"
-               uri
-               "> ?p ?o .}
-          WHERE { <"
-               uri
-               "> ?p ?o . }")
-
-            base-model
-            (triple-store/run-construct-query! q)
-
-            add-q (str
-                "CONSTRUCT {<"
-                uri
-                "> ?p1 ?o1 . ?o1 ?p2 ?o2 . }
-          WHERE { <"
-                uri
-                "> ?p1 ?o1 . ?o1 ?p2 ?o2 . }"
-                "LIMIT 30")
-
-            additional-model
-            (triple-store/run-construct-query! add-q)
-
-            result-model (.add base-model additional-model)
-            ]
+            commit-id (or (request-base-commit-id request)
+                          (access/head! repo-uri))
+            model (access/resource-description! repo-uri commit-id uri)]
         {:status 200
          ;; We have to take the "Accept" header of the request
          ;; into account for the cache key in the
@@ -85,8 +70,7 @@
          ;; response when the user clicks the back-button for
          ;; example.
          :headers {"Vary" "Accept"}
-         :body (with-out-str
-                 (.write result-model *out* "JSON-LD"))})
+         :body (jsonld/model->json-ld-string model)})
 
       ;; else show app
       client-response)))
@@ -102,53 +86,29 @@
 (defn- deserialize-range [[start cnt]]
   [start cnt])
 
+(defn get-head [request]
+  {:status 200
+   :body (access/head! (request-repository-uri request))})
+
 (defn search [request]
-  (let [q (query/deserialize-query
+  (let [repo-uri (request-repository-uri request)
+
+        commit-id (get-in request [:body-params :commit-id])
+        _ (assert (and (string? commit-id)
+                       (> (count commit-id) 8)))
+
+        q (query/deserialize-query
            (get-in request [:body-params :query]))
 
-        [start-index cnt] (deserialize-range (get-in request [:body-params :range]))
+        range (deserialize-range (get-in request [:body-params :range]))
 
-        _ (println (str "Running query: " (pr-str q)))
-
-        bb (query/query-geo-bounding-box q)
-        min-lat (query/geo-bounding-box-min-lat bb)
-        max-lat (query/geo-bounding-box-max-lat bb)
-        min-lon (query/geo-bounding-box-min-lon bb)
-        max-lon (query/geo-bounding-box-max-lon bb)
-
-        index-bb (index/make-bounding-box min-lat max-lat min-lon max-lon)
-
-        search-result (if (query/everything-query? q)
-                        (index/search-geo! index-bb [start-index cnt])
-                        (index/search-text-and-geo!
-                         (query/query-fuzzy-search-term q)
-                         index-bb
-                         [start-index cnt]))
-
-        total-hits (index/search-result-total-hits search-result)
-
-        uris (index/search-result-uris search-result)
-
-        _ (event-logger/log-event! :info (str "URIs found in index: " (pr-str uris)))
-
-        uris-string (string/join "," (map (fn [uri]
-                                            (str "<" uri ">"))
-                                          uris))
-
-        sparql (str "CONSTRUCT { ?s ?p ?o . ?o ?p2 ?o2 . ?o2 ?p3 ?o3 . }
-                     WHERE { ?s ?p ?o .
-                             OPTIONAL { ?o ?p2 ?o2 . OPTIONAL { ?o2 ?p3 ?o3 . } }
-                             FILTER (?s IN ( " uris-string " )) }")
-
-        _ (event-logger/log-event! :info (str "Running sparql: " (pr-str sparql)))
-
-        result-model (triple-store/run-construct-query! sparql)]
+        search-result (access/search! repo-uri commit-id q range)]
 
     {:status 200
      :body (pr-str
-            {:model (jsonld/model->json-ld-string result-model)
-             :relevance uris
-             :total-hits total-hits})}))
+            {:model (jsonld/model->json-ld-string (access/search-result-model search-result))
+             :relevance (access/search-result-relevance search-result)
+             :total-hits (access/search-result-total-hits search-result)})}))
 
 (defn prepare-changeset [changeset place->geo]
   (-> changeset
@@ -174,13 +134,16 @@
   (reset! indexer i))
 
 (defn add-changes [request]
-  (let [changeset (change-api/edn->changeset
+  (let [repo-uri (request-repository-uri request)
+        changeset (change-api/edn->changeset
                    (get-in request
                            [:body-params :changes]))
+        base-commit-id (get-in request [:body-params :base-commit-id])
         skolemized-geocoded-changeset (prepare-changeset changeset place->lon-lat!)]
-    (triple-store/edit-model! skolemized-geocoded-changeset)
-    (indexer/add-task! @indexer indexer/index-all-task)
-    {:status 200}))
+
+    (let [result-commit-id (access/change! repo-uri base-commit-id skolemized-geocoded-changeset)]
+      {:status 200
+       :body (pr-str {:result-commit-id result-commit-id})})))
 
 (defn osm-lookup [request]
   (let [osmid (get-in request [:path-params :osmid])]
@@ -253,16 +216,17 @@
 (defn get-references [request]
   (let [id (get-in request [:path-params :id])
         uri (r/uri-for-resource-id id)
-        q (str "SELECT DISTINCT ?reference ?name WHERE { ?reference ?p <"
-               uri "> . OPTIONAL { ?reference <http://schema.org/name> ?name . } }")
-        result (triple-store/run-select-query! q)]
+        repo-uri (request-repository-uri request)
+        commit-id (or (request-base-commit-id request)
+                      (access/head! repo-uri))
+        result (access/references! repo-uri commit-id uri)]
     {:status 200
      :headers {"Content-type" "application/json"}
-     :body (map (fn [line]
+     :body (map (fn [ref]
                   (merge
-                   {:uri (.toString (get line "reference"))}
-                   (when-let [name (get line "name")]
-                     {:name (.toString name)})))
+                   {:uri (access/reference-uri ref)}
+                   (when-let [name (access/reference-name ref)]
+                     {:name name})))
                 result)}))
 
 (defn skolemize [request]
@@ -281,7 +245,8 @@
 
 (defn sync [_request]
   (event-logger/log-event! :info "Synchronizing git repository data with Apache Jena data store")
-  (triple-store/reset-from-scm!)
+  ;; TODO
+  #_#_(triple-store/reset-from-scm!)
   (indexer/add-task! @indexer indexer/index-all-task)
   (event-logger/log-event! :info "Synchronization done")
   {:status 200})
@@ -339,6 +304,7 @@
   (ring/ring-handler
    (ring/router
     [["/api"
+      ["/head" {:get {:handler get-head}}]
       ["/search" {:post {:handler search}}]
       ["/changes" {:post {:handler add-changes}}]
       ["/schema" {:get {:handler get-schema}}]
@@ -346,7 +312,7 @@
                                              (output (json-response
                                                       (realm/sequence-of
                                                        (realm/map-with-keys
-                                                        {:name realm/string
+                                                        {:name (realm/optional realm/string)
                                                          :uri realm/string})))))}}]
       ["/skolemize" {:post {:handler skolemize}}]
       ["/import" {:post {:handler import}}]
@@ -441,7 +407,11 @@
   [handler routes client]
   (wrap-client-fn-routes handler routes (constantly client)))
 
-(defn handler [cfg]
+(defn- wrap-repo-uri [handler repo-uri]
+  (fn [request]
+    (handler (request-set-repository-uri request repo-uri))))
+
+(defn handler [cfg repo-uri]
   (let [wrap-session  (fn session-mw [handler]
                         (mw.session/wrap-session handler {:store session-store}))
         openid-config  (active.config/section-subconfig cfg
@@ -452,6 +422,7 @@
         wrap-sso      (auth/mk-sso-mw free-for-all? openid-config)]
 
     (-> #'handler*
+        (wrap-repo-uri repo-uri)
         (ring.middleware.resource/wrap-resource "/")
         (wrap-caching "max-age=0")
         (wrap-client-routes routes/routes client-response)
