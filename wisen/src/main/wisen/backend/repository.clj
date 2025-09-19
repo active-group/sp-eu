@@ -55,31 +55,11 @@
   (str (git/git-directory git)
        "/" model-filename))
 
-(defn- write-model! [repo-uri commit-id model message]
-  (let [git (git/clone! repo-uri)]
 
-    (git/checkout! git commit-id)
-
-    (let [path (model-path git)]
-
-      ;; Render back to model.json string
-      (spit path (jena/model->string model))
-
-      ;; Add
-      (git/add! git model-filename)
-
-      ;; Commit
-      (git/commit! git message)
-
-      ;; Push
-      (let [result-commit-id (pull-push! git)]
-
-        ;; Cleanup
-        (git/kill! git)
-
-        result-commit-id))))
 
 ;; --- API ---
+
+(declare write!)
 
 (defn head! [prefix repo-uri]
   (with-read-git repo-uri
@@ -91,7 +71,7 @@
 
         ;; write back when changed and return new commit-id as head
         (if changed?
-          (write-model! repo-uri head-candidate mdl-skolemized "Skolemize")
+          (write! repo-uri head-candidate mdl-skolemized "Skolemize")
           head-candidate)))))
 
 #_(head! "file:///Users/markusschlegel/Desktop/tmp/repo")
@@ -107,14 +87,38 @@
 #_(read "file:///Users/markusschlegel/Desktop/tmp/repo"
        "b10008d5039214a4bdc03840820a61e8d9bf5e10")
 
-(defn write!
+(defn write! [repo-uri commit-id model commit-message]
+  (let [git (git/clone! repo-uri)]
+
+    (git/checkout! git commit-id)
+
+    (let [path (model-path git)]
+
+      ;; Render back to model.json string
+      (spit path (jena/model->string model))
+
+      ;; Add
+      (git/add! git model-filename)
+
+      ;; Commit
+      (git/commit! git commit-message)
+
+      ;; Push
+      (let [result-commit-id (pull-push! git)]
+
+        ;; Cleanup
+        (git/kill! git)
+
+        result-commit-id))))
+
+(defn change!
   "`base-commit-id` denotes an RDF graph `g`. `changeset` denotes a
   function turning an RDF graph `g` into an RDF graph `g'`. If
   successful, this function returns a commit-id that denotes the
   application of `changeset` onto `g`.
 
   write (g : Graph) (f : Graph -> Graph) = f g"
-  [repo-uri base-commit-id changeset]
+  [repo-uri base-commit-id changeset commit-message]
 
   {:pre [(realm/contains? realm/string repo-uri)
          (realm/contains? git/commit-id base-commit-id)
@@ -137,7 +141,7 @@
       (git/add! git model-filename)
 
       ;; Commit
-      (git/commit! git "update")
+      (git/commit! git commit-message)
 
       ;; Push
       (let [result-commit-id (pull-push! git)]

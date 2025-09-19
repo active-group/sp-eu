@@ -5,6 +5,7 @@
    [wisen.common.query :as query]
    [wisen.backend.index :as index]
    [wisen.backend.repository :as repository]
+   [wisen.backend.decorator :as decorator]
    [wisen.backend.search :as search]
    [clojure.string :as string]))
 
@@ -141,7 +142,7 @@
      search-result-total-hits total-hits)))
 
 (defn change! [repo-uri commit-id changeset]
-  (repository/write! repo-uri commit-id changeset))
+  (repository/change! repo-uri commit-id changeset "Change"))
 
 (defn resource-description! [repo-uri commit-id resource-uri]
   (let [q (str
