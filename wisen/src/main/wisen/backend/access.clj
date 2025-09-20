@@ -101,20 +101,20 @@
 (def ^:private cache (cache.wrapped/lru-cache-factory {}
                                                       :threshold 4))
 
-(defn cache-key [repo-uri commit-id]
+(defn- cache-key [repo-uri commit-id]
   [repo-uri commit-id])
 
-(defn search! [repo-uri commit-id query range]
-  (let [
-        {model :model index :index}
-        (cache.wrapped/lookup-or-miss cache
-                                      (cache-key repo-uri commit-id)
-                                      (fn [k]
-                                        (let [model (repository/read! repo-uri commit-id)
-                                              index (model->index model)]
-                                          {:model model
-                                           :index index})))
+(defn- cache-get! [repo-uri commit-id]
+  (cache.wrapped/lookup-or-miss cache
+                                (cache-key repo-uri commit-id)
+                                (fn [k]
+                                  (let [model (repository/read! repo-uri commit-id)
+                                        index (model->index model)]
+                                    {:model model
+                                     :index index}))))
 
+(defn search! [repo-uri commit-id query range]
+  (let [{model :model index :index} (cache-get! repo-uri commit-id)
 
         [start-index cnt] range
         bb (query/query-geo-bounding-box query)
