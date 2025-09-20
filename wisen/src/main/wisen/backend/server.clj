@@ -7,9 +7,8 @@
 
 (defn start!
   "Given command-line configuration options `opts`, start the wisen server."
-  [indexer config-path repo-uri prefix]
+  [config-path repo-uri prefix]
   (let [cfg (config/try-load-config config-path false)]
-    (handler/set-indexer! indexer)
     (reset! server
             (ring-jetty/run-jetty
              (handler/handler cfg repo-uri prefix)

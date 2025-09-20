@@ -18,12 +18,9 @@
             [muuntaja.core]
             [wisen.backend.auth :as auth]
             [wisen.backend.config :as config]
-            [wisen.backend.triple-store :as triple-store]
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld]
             [wisen.backend.embedding :as embedding]
-            [wisen.backend.index :as index]
-            [wisen.backend.indexer :as indexer]
             [wisen.backend.skolem2 :as skolem2]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
@@ -133,11 +130,6 @@
         [lon lat]))))
 
 #_(place->lon-lat! "Hechinger Str. 12/1" "72072" "Tübingen" "Germany")
-
-(def indexer (atom nil))
-
-(defn set-indexer! [i]
-  (reset! indexer i))
 
 (defn add-changes [request]
   (let [repo-uri (request-repository-uri request)

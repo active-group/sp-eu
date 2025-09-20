@@ -1,11 +1,8 @@
 (ns wisen.backend.main
   (:require [clojure.tools.cli :as cli]
             [wisen.backend.server :as server]
-            [wisen.backend.triple-store :as triple-store]
-            [wisen.backend.skolemizer :as skolemizer]
             [wisen.backend.git :as git]
             [active.clojure.logger.event :as event-logger]
-            [wisen.backend.indexer :as indexer]
             [nrepl.server :as nrepl])
   (:gen-class))
 
@@ -48,11 +45,8 @@
           repo-uri (System/getenv "REPOSITORY")
           prefix (System/getenv "PREFIX")]
 
-      (let [indexer (setup! "Lucene indexer"
-                            (indexer/run-new-indexer!))]
-
-        (setup! "Web server"
-                (server/start! indexer config-path repo-uri prefix)))
+      (setup! "Web server"
+              (server/start! config-path repo-uri prefix))
 
       (when-let [port (:nrepl (:options opts))]
         (setup! "nrepl server"
