@@ -7,6 +7,13 @@
             [wisen.backend.skolem :as skolem]
             [active.data.realm :as realm]))
 
+;; This namespace realizes the idea that a tuple of repository-uri and
+;; commit-id just represent a (RDF) model. `head!` is the only
+;; neccessarily unpure function potentially returning a different
+;; result every time. `read!` is extensionally pure. `write!` and
+;; `change!` are impure but I think they could be made extensionally
+;; pure.
+
 (def ^:private read-git
   (atom {}))
 
