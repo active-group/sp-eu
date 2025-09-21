@@ -137,7 +137,7 @@
 
         result-commit-id))))
 
-#_#_(defn diff
+#_(defn diff
 
   [repo-uri from-commit-id to-commit-id]
 
