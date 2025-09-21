@@ -3,94 +3,94 @@
             [wisen.backend.index :as i]))
 
 (deftest senioren-test
-  (let [dir (i/make-in-memory-index)
-        insert! (fn [id title description]
-                  (i/insert! id 1.0 1.0
-                             title
-                             description
-                             dir))
-        search! (fn [text]
-                  (first
-                   (i/search-result-uris
-                    (i/search-text-and-geo! text
-                                            (i/make-bounding-box
-                                             0.0 2.0
-                                             0.0 2.0)
-                                            [0 99]
-                                            dir))))]
+  (let [make-index-record (fn [id title description]
+                            (i/make-index-record id 1.0 1.0 title description))
 
-    (insert! "senioren"
+        irecs [
+               (make-index-record
+                "senioren"
 
-             "Seniorenberatung Neukölln"
+                "Seniorenberatung Neukölln"
 
-             "Beratung zu Fragen rund ums Alter (Wohnformen,
-              Hilfsmittel, Pflege, sozialrechtliche Ansprüche),
-              Unterstützung bei der Organisation von Hilfen und
-              Antragstellungen. Die Beratung ist unabhängig, neutral
-              und kostenfrei.")
+                "Beratung zu Fragen rund ums Alter (Wohnformen,
+                Hilfsmittel, Pflege, sozialrechtliche Ansprüche),
+                Unterstützung bei der Organisation von Hilfen und
+                Antragstellungen. Die Beratung ist unabhängig, neutral
+                und kostenfrei.")
 
-    #_(insert! "senioren"
+               (make-index-record
+                "queerfeministisch"
 
-               "Seniorentreff freshe Omas"
+                "TINT Filmkollektiv"
 
-               "Bei diesem Seniorentreff kommen Omas ins Gespräch über dies und das.")
+                "TINT ist ein queerfeministisches
+                Filmemacher*innenkollektiv in Berlin. TINT setzt
+                Filmprojekte von der Konzeption bis zur Postproduktion
+                zu gesellschaftlich relevanten Themen um und engagiert
+                sich für Geschlechtergerechtigkeit im Film.")
 
-    (insert! "queerfeministisch"
+               (make-index-record
+                "fussball"
 
-             "TINT Filmkollektiv"
+                "Fußball für Erwachsene – Campus Asyl"
 
-             "TINT ist ein queerfeministisches
-               Filmemacher*innenkollektiv in Berlin. TINT setzt
-               Filmprojekte von der Konzeption bis zur Postproduktion
-               zu gesellschaftlich relevanten Themen um und engagiert
-               sich für Geschlechtergerechtigkeit im Film.")
+                "Ob im Winter oder im Sommer – bei Campus Asyl gibt es
+                regelmäßig die Gelegenheit, Fußball zu spielen. Jeder,
+                der Lust auf Bewegung hat, ist herzlich eingeladen,
+                mitzuspielen, unabhängig von der Herkunft. Dank des
+                interkulturellen Formats finden sich auch immer
+                Mitspielende mit verschiedenen Fremdsprachkenntnissen,
+                wie z. B. arabisch oder englisch. Deutschkenntnisse
+                sind nicht erforderlich. In unserer Erfahrung ist der
+                Großteil der Mitspielenden zwischen 16 und etwa 30
+                Jahre alt. Falls du Interesse hast, das Fußballspielen
+                mit zu betreuen und zu organisieren: Campus Asyl sucht
+                immer nach Freiwilligen, die unterstützen wollen und
+                mit Freude dabei sind.")
 
-    (insert! "fussball"
+               (make-index-record
+                "gleichstellungsbeauftragte"
 
-             "Fußball für Erwachsene – Campus Asyl"
+                "Gleichstellungsbeauftragte"
 
-             "Ob im Winter oder im Sommer – bei Campus Asyl gibt es
-               regelmäßig die Gelegenheit, Fußball zu spielen. Jeder,
-               der Lust auf Bewegung hat, ist herzlich eingeladen,
-               mitzuspielen, unabhängig von der Herkunft. Dank des
-               interkulturellen Formats finden sich auch immer
-               Mitspielende mit verschiedenen Fremdsprachkenntnissen,
-               wie z. B. arabisch oder englisch. Deutschkenntnisse
-               sind nicht erforderlich. In unserer Erfahrung ist der
-               Großteil der Mitspielenden zwischen 16 und etwa 30
-               Jahre alt. Falls du Interesse hast, das Fußballspielen
-               mit zu betreuen und zu organisieren: Campus Asyl sucht
-               immer nach Freiwilligen, die unterstützen wollen und
-               mit Freude dabei sind.")
+                "Die Gleichstellungsbeauftragte setzt sich für die
+               Gleichstellung von Frauen und Männern im Bezirksamt
+               Neukölln ein. Sie berät und unterstützt Frauen in allen
+               Fragen der Gleichstellung, insbesondere bei
+               Diskriminierung und Benachteiligung. Sie wirkt an allen
+               Entscheidungen des Bezirksamtes mit, die Auswirkungen
+               auf die Gleichstellung haben können. Sie ist
+               Ansprechpartnerin für alle Beschäftigten des
+               Bezirksamtes und für die Bürgerinnen und Bürger
+               Neuköllns.")
+               ]
 
-    (insert! "gleichstellungsbeauftragte"
+        idx (i/new-in-memory-index irecs)
 
-             "Gleichstellungsbeauftragte"
-
-             "Die Gleichstellungsbeauftragte setzt sich für die
-             Gleichstellung von Frauen und Männern im Bezirksamt
-             Neukölln ein. Sie berät und unterstützt Frauen in allen
-             Fragen der Gleichstellung, insbesondere bei
-             Diskriminierung und Benachteiligung. Sie wirkt an allen
-             Entscheidungen des Bezirksamtes mit, die Auswirkungen auf
-             die Gleichstellung haben können. Sie ist
-             Ansprechpartnerin für alle Beschäftigten des Bezirksamtes
-             und für die Bürgerinnen und Bürger Neuköllns.")
-
-    (is (= "senioren"
-           (search! "Seniorenberatung")))
+        search (fn [text]
+                 (first
+                  (i/search-result-uris
+                   (i/search-text-and-geo idx
+                                          text
+                                          (i/make-bounding-box
+                                           0.0 2.0
+                                           0.0 2.0)
+                                          [0 99]))))]
 
     (is (= "senioren"
-           (search! "Senioren")))
+           (search "Seniorenberatung")))
+
+    (is (= "senioren"
+           (search "Senioren")))
 
     (is (= "queerfeministisch"
-           (search! "queer")))
+           (search "queer")))
 
     (is (= "fussball"
-           (search! "migranten")))
+           (search "migranten")))
 
     (is (= "gleichstellungsbeauftragte"
-           (search! "gleichstellung")))
+           (search "gleichstellung")))
 
     (is (= "senioren"
-           (search! "Alte Menschen")))))
+           (search "Alte Menschen")))))
