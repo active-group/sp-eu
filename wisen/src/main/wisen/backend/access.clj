@@ -157,8 +157,12 @@
      search-result-relevance uris
      search-result-total-hits total-hits)))
 
+(declare decorate-geo!)
+
 (defn change! [repo-uri commit-id changeset]
-  (repository/change! repo-uri commit-id changeset "Change"))
+  (let [result-commit-id (repository/change! repo-uri commit-id changeset "Change")]
+    (future (decorate-geo! repo-uri result-commit-id))
+    result-commit-id))
 
 (defn resource-description! [repo-uri commit-id resource-uri]
   (let [q (str
