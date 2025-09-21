@@ -69,9 +69,6 @@
         (String. (.getBytes loader) StandardCharsets/UTF_8))
       (throw (RuntimeException. "File not found in commit")))))
 
-(def g
- (clone! "file:///Users/markusschlegel/Desktop/tmp/repo"))
-
 (defn checkout! [git commit-id]
   (.call
    (doto (.checkout (git-handle git))
@@ -147,81 +144,3 @@
     (catch Exception e
       ;; TODO: handle exceptions
       nil)))
-
-#_#_#_#_#_#_#_#_#_#_#_#_#_(def gi (clone! "file:///Users/markusschlegel/Desktop/tmp/repo"))
-(head gi)
-;; => "e3f05a56d0bfc8b39228a8f7ff34ee6c4a3dc167"
-
-(checkout! gi  "e3f05a56d0bfc8b39228a8f7ff34ee6c4a3dc167")
-(def path (str (git-directory gi)
-               "/" "model.json"))
-path
-(spit path "{    }")
-(add! gi "model.json")
-(commit! gi "update par")
-
-(def rspec (RefSpec. "HEAD:refs/heads/master"))
-(def res
-  (push! gi))
-
-res
-
-(.getName
- (.getNewObjectId
-  (.getRemoteUpdate (first res)
-                    "refs/heads/master")))
-
-(str path)
-;; => "/var/folders/bc/pb0xvcwn0vd3xcgmplrvd2200000gn/T/git16079764626341900705/model.json"
-
-
-#_(pull! gi)
-;; => 
-
-#_(def bare-directory "model.git")
-#_(def working-directory "model.working")
-
-#_(def ^:private git (atom nil))
-
-#_(defn- post-receive-contents []
-  (str
-   "curl -X POST " (prefix) "/api/sync"))
-
-#_(defn- setup-bare! []
-  (when-not (.exists (io/file bare-directory))
-    ;; git init
-    (-> (Git/init)
-        (.setBare true)
-        (.setDirectory (java.io.File. bare-directory))
-        (.call))
-
-    ;; post-receive hook
-    (let [post-receive-file (io/file (str bare-directory "/" "hooks/post-receive"))]
-      (spit post-receive-file
-            (post-receive-contents))
-      (.setExecutable post-receive-file true true))))
-
-#_(declare add! commit! push!)
-
-#_(defn clone! [directory-string repo-uri-string]
-  (-> (Git/cloneRepository)
-      (.setDirectory (java.io.File. directory-string))
-      (.setURI repo-uri-string)
-      (.call)))
-
-#_(defn- setup-clone! []
-  ;; git clone
-  (when-not (.exists (io/file working-directory))
-    (-> (Git/cloneRepository)
-        (.setDirectory (java.io.File. working-directory))
-        (.setURI (str "file://" (.getAbsolutePath (java.io.File. bare-directory))))
-        (.call))
-
-    ;; add empty model.json file if not yet exists
-    (let [model-json-file (io/file (str working-directory "/" "model.json"))]
-      (when-not (.exists model-json-file)
-        (spit model-json-file "{}\n")
-        (add! "model.json")
-        (commit! "Initial empty model.json")
-        (push!)))))
-

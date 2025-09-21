@@ -35,13 +35,6 @@
     (jena/model->string
      (jena/apply-changeset! base chngs))))
 
-#_(defn mergetool! [base-file local-file remote-file merged-file]
-  (let [base (slurp base-file)
-        local (slurp local-file)
-        remote (slurp remote-file)]
-    (spit merged-file
-          (merge-strings base local remote))))
-
 (defn- pull-push! [git]
   (or (git/push! git)
       (do
@@ -54,7 +47,6 @@
 (defn- model-path [git]
   (str (git/git-directory git)
        "/" model-filename))
-
 
 
 ;; --- API ---
@@ -74,18 +66,12 @@
           (write! repo-uri head-candidate mdl-skolemized "Skolemize")
           head-candidate)))))
 
-#_(head! "file:///Users/markusschlegel/Desktop/tmp/repo")
-;; => "ec00eec6f253fe8ccc15429d4c54301854d6a651"
-
 (defn read! [repo-uri commit-id]
   (with-read-git
     repo-uri
     (fn [g]
       (let [s (git/get! g commit-id model-filename)]
         (jena/string->model s)))))
-
-#_(read "file:///Users/markusschlegel/Desktop/tmp/repo"
-       "b10008d5039214a4bdc03840820a61e8d9bf5e10")
 
 (defn write! [repo-uri commit-id model commit-message]
   (let [git (git/clone! repo-uri)]
@@ -151,14 +137,6 @@
 
         result-commit-id))))
 
-#_(write! "file:///Users/markusschlegel/Desktop/tmp/repo"
-        "f4f88fe4f8d867bd4816c6e2b3859316c16fea37"
-        [(change-api/make-add
-          (change-api/make-statement
-           "http://example.org/123"
-           "http://schema.org/name"
-           (change-api/make-literal-string "Foobar123")))])
-
 #_#_(defn diff
 
   [repo-uri from-commit-id to-commit-id]
@@ -171,7 +149,3 @@
   (let [from-model (read repo-uri from-commit-id)
         to-model (read repo-uri to-commit-id)]
     (jena/changeset from-model to-model)))
-
-(diff "file:///Users/markusschlegel/Desktop/tmp/repo"
-      "b10008d5039214a4bdc03840820a61e8d9bf5e10"
-      "ec00eec6f253fe8ccc15429d4c54301854d6a651")
