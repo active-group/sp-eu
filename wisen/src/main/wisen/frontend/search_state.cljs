@@ -259,11 +259,6 @@
   (when-let [total-hits (search-session-results-estimated-total-hits ssr)]
     (search-session-results-pages* [[] 0] (keys ssr) total-hits)))
 
-(defn search-session-results-geo-positions [ssr]
-  (mapcat
-   result-geo-positions
-   (vals ssr)))
-
 ;; --- Search session
 
 (def-record search-session
