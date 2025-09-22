@@ -84,7 +84,7 @@
                   (dom/div
                    {:style {:border-right "1px solid #777"
                             :flex 1
-                            :min-height "64ex"
+                            :min-height "24ex"
                             :overflow "auto"}}
                    (ds/textarea+focus {:style {:width "100%"
                                                :height "100%"}})))
