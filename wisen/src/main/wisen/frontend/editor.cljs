@@ -596,7 +596,12 @@
                                                          :z-index "5"}
                                                         (style-for-marked marked-edit-tree))}
                                          (icon-for-marked marked-edit-tree)
-                                         (schema/label-for-predicate ctx predicate))
+                                         (dom/a
+                                          {:href predicate
+                                           :target "_blank"
+                                           :style {:color "inherit"
+                                                   :text-decoration "none"}}
+                                          (schema/label-for-predicate ctx predicate)))
 
                                         (when (and (edit-tree/can-discard-edit? marked-edit-tree)
                                                    force-editing?)
