@@ -38,8 +38,27 @@
 (defn subjects [graph]
   (set (js->clj (.each ^rdflib/Graph graph js/undefined js/undefined js/undefined))))
 
+(defn- distinct-by [key-fn coll]
+  (let [seen (volatile! #{})]
+    (filter (fn [x]
+              (let [k (key-fn x)]
+                (if (contains? @seen k)
+                  false
+                  (do (vswap! seen conj k)
+                      true))))
+            coll)))
+
 (defn subject-predicates [graph subject]
-  (set (.each ^rdflib/Graph graph subject js/undefined js/undefined)))
+  ;; rdflib.js has a bug in that it gives you two! distinct predicates
+  ;; for the graph with these two triples: <a> <b> <c>, <a> <b> <d>
+
+  ;; which in itself is not a problem (they are distinct objects, no
+  ;; value semantics) but when you then ask for corresponding
+  ;; objects (see `subject-predicate-objects`), both of these
+  ;; predicates will give you both <c> and <d> each, so if you
+  ;; `mapcat` you end up with duplicates.
+  (distinct-by #(.-value %)
+               (.each ^rdflib/Graph graph subject js/undefined js/undefined)))
 
 (defn subject-predicate-objects [graph subject predicate]
   (.each ^rdflib/Graph graph subject predicate js/undefined))
