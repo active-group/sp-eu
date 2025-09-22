@@ -60,7 +60,7 @@
                                              :overflow "auto"}}
                                     (create/from-rdf {:style {:flex 1}}
                                                      ctx
-                                                     ""
+                                                     "{}"
                                                      (ds/button-secondary
                                                       {:onClick #(c/return :action close-action)}
                                                       (context/text ctx tr/close))))))))]
