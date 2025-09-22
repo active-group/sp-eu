@@ -2,7 +2,9 @@
   (:require [active.data.record :refer [def-record]]
             [clojure.java.io :as io]
             [wisen.common.prefix :refer [prefix]]
-            [active.data.realm :as realm])
+            [active.data.realm :as realm]
+            [active.clojure.logger.event :as event-logger]
+            [clojure.java.io :as io])
   (:import
    (java.io File)
    (java.nio.file Files)
@@ -40,8 +42,15 @@
      (git git-handle handle
           git-directory dir))))
 
+(defn- delete-files-recursively [f]
+  (when (.isDirectory (io/file f))
+    (doseq [f* (.listFiles (io/file f))]
+      (delete-files-recursively f*)))
+  (io/delete-file f :fail))
+
 (defn kill! [git]
-  ::TODO)
+  (event-logger/log-event! :info (str "Deleting git directory: " (git-directory git)))
+  (delete-files-recursively (git-directory git)))
 
 (defn head [git & [branch]]
   (let [repo (.getRepository (git-handle git))]
