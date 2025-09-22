@@ -429,10 +429,11 @@
 
 (defn set-edit-node-original [enode new-node]
   (assert (unchanged? enode))
-  (if (edit-node? new-node)
-    (edit-node-properties enode
-                          (edit-node-properties (make-edit-tree new-node mark-same)))
-    enode))
+  (let [new-edit-tree (make-edit-tree new-node mark-same)]
+    (if (edit-node? new-edit-tree)
+      (edit-node-properties enode
+                            (edit-node-properties new-edit-tree))
+      enode)))
 
 (defn edit-node-add-property [enode predicate object-tree]
   (lens/overhaul enode edit-node-properties
