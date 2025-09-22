@@ -47,9 +47,9 @@
   de "Veranstaltung"
   en "Event")
 
-(define-text offer
-  de "Angebot"
-  en "Offer")
+(define-text person
+  de "Person"
+  en "Person")
 
 (define-text copy
   de "Kopieren"

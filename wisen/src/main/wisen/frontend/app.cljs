@@ -90,7 +90,7 @@
                          :gap "2em"}}
                 (new-* (context/text ctx tr/organization) default/default-organization)
                 (new-* (context/text ctx tr/event) default/default-event)
-                (new-* (context/text ctx tr/offer) default/default-offer)
+                (new-* (context/text ctx tr/person) default/default-person)
                 (new-graph)
                 (ds/select
                  (forms/option {:value tr/en} "en")
