@@ -223,6 +223,26 @@
   de "Keine Eigenschaften"
   en "No properties")
 
+(define-text rdf-import-title
+  de "RDF-Import"
+  en "RDF Import")
+
+(define-text rdf-import-how-to-use
+  de "Was kann ich hier machen?"
+  en "How to use")
+
+(define-text rdf-import-prolog
+  de "Mit diesem Tool können Sie beliebige RDF-Daten in den Datenspeicher hinzufügen. Die Daten müssen im JSON-LD-Format vorliegen. Idealerweise sollten die Prädikate und Typen aus dem schema.org-Vokabular stammen. Sie können dieses Tool beispielsweise verwenden, indem Sie einen LLM-Dienst wie ChatGPT oder Claude bitten, bestimmte Informationen in RDF wie folgt zu übersetzen:"
+  en "With this tool you can add arbitrary RDF data to the data store. The data must be formatted in the JSON-LD format. Ideally the predicates and types should be from the schema.org vocabulary. You can use this tool e.g. by asking an LLM service such as ChatGPT or Claude to translate some information into RDF like this:")
+
+(define-text rdf-import-sample-prompt
+  de "Translate the information on this website (<some website you want to process>) to JSON-LD using the schema.org vocabulary. Don't make up any information (such as descriptions, phone numbers, etc.) yourself."
+  en "Translate the information on this website (<some website you want to process>) to JSON-LD using the schema.org vocabulary. Don't make up any information (such as descriptions, phone numbers, etc.) yourself.")
+
+(define-text rdf-import-epilog
+  de "Ihr LLM wird Ihnen dann wahrscheinlich einen Codeblock präsentieren, den Sie in das linke Textfeld unten kopieren und einfügen können."
+  en "Your LLM will then probably present you a code block that you can copy and paste into the left textarea below.")
+
 ;; RDF predicates
 
 (def predicates

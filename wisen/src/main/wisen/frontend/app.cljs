@@ -58,7 +58,21 @@
                                    (dom/div
                                     {:style {:min-width "95vw"
                                              :display "flex"
+                                             :flex-direction "column"
                                              :overflow "auto"}}
+                                    (ds/padded-2
+                                     (dom/h2 (context/text ctx tr/rdf-import-title))
+                                     (ds/disclosable
+                                      (context/text ctx tr/rdf-import-how-to-use)
+                                      (dom/div
+                                       (dom/p
+                                        (context/text ctx tr/rdf-import-prolog))
+                                       (dom/p
+                                        {:style {:font-family "monospace"
+                                                 :background "#ddd"
+                                                 :padding "1ex 1em"}}
+                                        (context/text ctx tr/rdf-import-sample-prompt))
+                                       (dom/p (context/text ctx tr/rdf-import-epilog)))))
                                     (create/from-rdf {:style {:flex 1}}
                                                      ctx
                                                      "{}"

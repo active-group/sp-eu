@@ -260,3 +260,8 @@
     {:d "M10.29 3c-0.574-0.612-1.387-0.995-2.289-1l-0.001 1c0.585 0.002 1.115 0.238 1.5 0.62 0.278 0.386 0.459 0.858 0.499 1.37l1.001 0.009c-0.045-0.756-0.305-1.443-0.718-2.011z"
      :fill "currentColor"})))
 
+(c/defn-item disclosable [title & items]
+  (apply
+   dom/details
+   (dom/summary title)
+   items))
