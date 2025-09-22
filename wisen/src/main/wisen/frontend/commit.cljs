@@ -8,13 +8,16 @@
             [wisen.frontend.change :as change]
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.context :as context]
-            [wisen.frontend.translations :as tr]))
+            [wisen.frontend.head :as head]
+            [wisen.frontend.translations :as tr]
+            [cljs.reader :as reader]))
 
 (def-record idle [])
 
 (def-record committing [committing-changeset])
 
-(def-record commit-successful [commit-successful-changes])
+(def-record commit-successful [commit-successful-changes
+                               commit-successful-result-commit-id])
 
 (def-record commit-failed [commit-failed-error])
 
@@ -45,10 +48,13 @@
           (fn [st ac]
             (if (and (ajax/response? ac)
                      (ajax/response-ok? ac))
-              (c/return :state (commit-successful commit-successful-changes
-                                                  (committing-changeset st))
-                        :action (commit-successful commit-successful-changes
-                                                   (committing-changeset st)))
+              (let [success (commit-successful commit-successful-changes
+                                               (committing-changeset st)
+                                               commit-successful-result-commit-id
+                                               (:result-commit-id
+                                                (reader/read-string (ajax/response-value ac))))]
+                (c/return :state success
+                          :action success))
               (commit-failed commit-failed-error
                              (ajax/response-value ac))))))
 
@@ -75,5 +81,7 @@
        (changeset-component ctx (edit-tree/edit-tree-changeset etree)))
       (fn [etree action]
         (if (is-a? commit-successful action)
-          (c/return :state (edit-tree/commit etree))
+          (c/return #_#_:state (edit-tree/commit etree)
+                    :action (head/make-set-head-commit-id-action
+                             (commit-successful-result-commit-id action)))
           (c/return :action action)))))))

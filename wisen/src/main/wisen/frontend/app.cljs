@@ -11,6 +11,7 @@
             [reacl-c-basics.pages.routes :as pages.routes]
             [wisen.frontend.design-system :as ds]
             [wisen.frontend.util :as util]
+            [wisen.frontend.head :as head]
             [wisen.frontend.modal :as modal]
             [wisen.frontend.default :as default]
             [active.data.realm.validation :as validation]
@@ -123,7 +124,7 @@
 (defn toplevel []
   (util/with-schemaorg
     (fn [schema]
-      (util/with-head-commit-id
+      (head/with-head-commit-id
         (fn [head-commit-id]
           (dom/div
            {:style {:width "100%"
