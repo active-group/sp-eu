@@ -102,6 +102,7 @@
       (c/focus ss/graph-as-edit-tree-value
                (c/with-state-as etree
                  (dom/div
+                  {:style {:padding-bottom "72px"}}
                   (editor/edit-tree-component ctx nil true false nil uri-order
                                               (into {}
                                                     (map (fn [[_coords uri]]
@@ -120,7 +121,8 @@
                   (let [show-commit-bar? (not-empty (edit-tree/edit-tree-changeset etree))]
                     (dom/div
                      {:style {:border ds/border
-                              :position "sticky"
+                              :position "absolute"
+                              :right "10px"
                               :bottom (if show-commit-bar?
                                         "10px"
                                         "-60px")
