@@ -160,8 +160,10 @@
 (declare decorate-geo!)
 
 (defn change! [repo-uri commit-id changeset]
-  (let [result-commit-id (repository/change! repo-uri commit-id changeset "Change")]
-    (future (decorate-geo! repo-uri result-commit-id))
+  (let [{model :model} (cache-get! repo-uri commit-id)
+        model* (jena/apply-changeset! model changeset)
+        result-commit-id (repository/write! repo-uri commit-id model* "Change")]
+    #_(future (decorate-geo! repo-uri result-commit-id))
     result-commit-id))
 
 (defn resource-description! [repo-uri commit-id resource-uri]

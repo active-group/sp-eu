@@ -10,9 +10,8 @@
 ;; This namespace realizes the idea that a tuple of repository-uri and
 ;; commit-id just represent a (RDF) model. `head!` is the only
 ;; neccessarily unpure function potentially returning a different
-;; result every time. `read!` is extensionally pure. `write!` and
-;; `change!` are impure but I think they could be made extensionally
-;; pure.
+;; result every time. `read!` is extensionally pure. `write!` is
+;; impure but I think it could be made extensionally pure.
 
 (def ^:private read-git
   (atom {}))
@@ -89,46 +88,6 @@
 
       ;; Render back to model.json string
       (spit path (jena/model->string model))
-
-      ;; Add
-      (git/add! git model-filename)
-
-      ;; Commit
-      (git/commit! git commit-message)
-
-      ;; Push
-      (let [result-commit-id (pull-push! git)]
-
-        ;; Cleanup
-        (git/kill! git)
-
-        result-commit-id))))
-
-(defn change!
-  "`base-commit-id` denotes an RDF graph `g`. `changeset` denotes a
-  function turning an RDF graph `g` into an RDF graph `g'`. If
-  successful, this function returns a commit-id that denotes the
-  application of `changeset` onto `g`.
-
-  write (g : Graph) (f : Graph -> Graph) = f g"
-  [repo-uri base-commit-id changeset commit-message]
-
-  {:pre [(realm/contains? realm/string repo-uri)
-         (realm/contains? git/commit-id base-commit-id)
-         (realm/contains? change-api/changeset changeset)]
-   :post [(realm/contains? git/commit-id %)]}
-
-  (let [git (git/clone! repo-uri)]
-
-    (git/checkout! git base-commit-id)
-
-    (let [path (model-path git)
-          s (slurp path)
-          model (jena/string->model s)
-          model* (jena/apply-changeset! model changeset)]
-
-      ;; Render back to model.json string
-      (spit path (jena/model->string model*))
 
       ;; Add
       (git/add! git model-filename)
