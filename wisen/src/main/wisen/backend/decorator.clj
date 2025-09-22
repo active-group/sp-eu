@@ -16,8 +16,12 @@
                      ?address <http://schema.org/addressLocality> ?locality .
                      OPTIONAL { ?address <http://schema.org/addressCountry> ?country . }
 
-                     FILTER NOT EXISTS { ?address <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?long . }
-}")
+                     FILTER (
+                      NOT EXISTS { ?address <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?long }
+                      ||
+                      NOT EXISTS { ?address <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?lat }
+                     )
+                   }")
         ;; 2. for all results:
         ;;    fetch geo coordinates from OSM/Nominatim
         changed? (reduce (fn [changed? result]
