@@ -41,15 +41,12 @@
                  (dom/div
                   {:style {:padding-bottom "72px"}}
                   (editor/edit-tree-component ctx nil true false nil)
-                  (let [show-commit-bar? (not-empty (edit-tree/edit-tree-changeset result))]
+                  (when (not-empty (edit-tree/edit-tree-changeset result))
                     (dom/div
                      {:style {:border ds/border
                               :position "absolute"
-                              :bottom (if show-commit-bar?
-                                        "10px"
-                                        "-60px")
+                              :bottom "10px"
                               :right "10px"
-                              :transition "bottom 0.3s"
                               :border-radius "4px"
                               :background "#ddd"
                               :z-index "999"}}
