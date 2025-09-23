@@ -193,7 +193,7 @@
            resource-uri
            "> ?p ?o . }")
 
-        model (repository/read! repo-uri commit-id)
+        {model :model} (cache-get! repo-uri commit-id)
 
         base-model
         (search/run-construct-query model q)
