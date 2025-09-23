@@ -1,4 +1,6 @@
 (ns wisen.backend.access
+  (:import
+   [java.util.concurrent Executors TimeUnit])
   (:require
    [active.data.record :as record :refer [def-record]]
    [active.clojure.logger.event :as event-logger]
@@ -165,12 +167,22 @@
         result-commit-id (repository/write! repo-uri commit-id model* commit-message)]
     result-commit-id))
 
+(def ^:private scheduler (Executors/newScheduledThreadPool 1))
+
+(defn- schedule! [f]
+  (.schedule scheduler
+             ^Runnable f
+             1
+             TimeUnit/SECONDS))
+
 (defn change! [repo-uri commit-id changeset]
-  (update-model! repo-uri
-                 commit-id
-                 "Change"
-                 (fn [model]
-                   (jena/apply-changeset! model changeset))))
+  (let [result-commit-id
+        (update-model! repo-uri
+                       commit-id
+                       "Change"
+                       (fn [model]
+                         (jena/apply-changeset! model changeset)))]
+    (schedule! #(decorate-geo! repo-uri result-commit-id))))
 
 (defn resource-description! [repo-uri commit-id resource-uri]
   (let [q (str
