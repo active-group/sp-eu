@@ -159,12 +159,18 @@
 
 (declare decorate-geo!)
 
-(defn change! [repo-uri commit-id changeset]
+(defn- update-model! [repo-uri commit-id commit-message f]
   (let [{model :model} (cache-get! repo-uri commit-id)
-        model* (jena/apply-changeset! model changeset)
-        result-commit-id (repository/write! repo-uri commit-id model* "Change")]
-    #_(future (decorate-geo! repo-uri result-commit-id))
+        model* (f model)
+        result-commit-id (repository/write! repo-uri commit-id model* commit-message)]
     result-commit-id))
+
+(defn change! [repo-uri commit-id changeset]
+  (update-model! repo-uri
+                 commit-id
+                 "Change"
+                 (fn [model]
+                   (jena/apply-changeset! model changeset))))
 
 (defn resource-description! [repo-uri commit-id resource-uri]
   (let [q (str
@@ -220,6 +226,9 @@
       commit-id)))
 
 (defn import! [repo-uri commit-id model]
-  (let [base-model (repository/read! repo-uri commit-id)
-        model* (jena/union base-model model)]
-    (repository/write! repo-uri commit-id model* "Import")))
+  (update-model!
+   repo-uri
+   commit-id
+   "Import"
+   (fn [base-model]
+     (jena/union base-model model))))

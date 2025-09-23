@@ -6,6 +6,7 @@
    (org.apache.jena.datatypes.xsd XSDDatatype)))
 
 (defn decorate-geo! [^Model base-model]
+  ;; FIXME: make this a pure function instead of mutating `base-model`
   ;; 1. search for all addresses without longitude/latitude
   (let [results (search/run-select-query
                  base-model
