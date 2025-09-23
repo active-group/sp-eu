@@ -320,6 +320,12 @@
     de "Land"
     "<addressCountry>")
 
+   "http://schema.org/addressRegion"
+   (text
+    en "Region"
+    de "Region"
+    "<addressRegion>")
+
    "http://schema.org/dayOfWeek"
    (text
     en "Day of week"
@@ -426,4 +432,46 @@
    (text
     en "Geographic area"
     de "Geographischer Bereich"
-    "<geographicArea>")})
+    "<geographicArea>")
+
+   "http://schema.org/courseMode"
+   (text
+    en "Course mode"
+    de "Kursmodus")
+
+   "http://schema.org/coursePrerequisites"
+   (text
+    en "Prerequisites"
+    de "Voraussetzungen")
+
+   "http://schema.org/hasCourseInstance"
+   (text
+    en "Course instance"
+    de "Kursinstanz")
+
+   "http://schema.org/startDate"
+   (text
+    en "Start"
+    de "Beginn")
+
+   "http://schema.org/endDate"
+   (text
+    en "End"
+    de "Ende")
+
+   "http://schema.org/maximumAttendeeCapacity"
+   (text
+    en "Maximum attendees"
+    de "Maximale Teilnehmer:innenzahl")
+
+   "http://schema.org/instructor"
+   (text
+    en "Instructor"
+    de "Kursleiter")
+
+   "http://schema.org/offers"
+   (text
+    en "Offers"
+    de "Angebote")
+
+   })

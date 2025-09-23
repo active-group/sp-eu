@@ -9,8 +9,10 @@
   ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
    "http://schema.org/name"
    "http://schema.org/description"
-   "http://schema.org/keywords"
+   "http://schema.org/startDate"
+   "http://schema.org/endDate"
    "http://schema.org/location"
+   "http://schema.org/keywords"
    "http://schema.org/sameAs"
 
    "http://schema.org/streetAddress"
