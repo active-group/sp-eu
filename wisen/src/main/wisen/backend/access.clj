@@ -182,7 +182,8 @@
                        "Change"
                        (fn [model]
                          (jena/apply-changeset! model changeset)))]
-    (schedule! #(decorate-geo! repo-uri result-commit-id))))
+    (schedule! #(decorate-geo! repo-uri result-commit-id))
+    result-commit-id))
 
 (defn resource-description! [repo-uri commit-id resource-uri]
   (let [q (str
