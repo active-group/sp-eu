@@ -33,7 +33,6 @@
             [wisen.common.query :as query]
             [active.clojure.logger.event :as event-logger]
             [clojure.string :as string]
-            [wisen.backend.geocoding :as geocoding]
             [wisen.backend.access :as access]))
 
 (defn request-set-repository-uri [request repo-uri]
@@ -115,8 +114,7 @@
 
 (defn prepare-changeset [changeset place->geo]
   (-> changeset
-      (skolem2/skolemize-changeset)
-      (geocoding/add-geo-changeset place->geo)))
+      (skolem2/skolemize-changeset)))
 
 (defn place->lon-lat! [street postcode locality country]
   (let [osm-result (osm/search! (osm/address
