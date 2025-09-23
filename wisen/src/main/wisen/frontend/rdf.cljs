@@ -57,8 +57,9 @@
   ;; objects (see `subject-predicate-objects`), both of these
   ;; predicates will give you both <c> and <d> each, so if you
   ;; `mapcat` you end up with duplicates.
-  (distinct-by #(.-value %)
-               (.each ^rdflib/Graph graph subject js/undefined js/undefined)))
+  (set
+   (distinct-by #(.-value %)
+                (.each ^rdflib/Graph graph subject js/undefined js/undefined))))
 
 (defn subject-predicate-objects [graph subject predicate]
   (.each ^rdflib/Graph graph subject predicate js/undefined))
