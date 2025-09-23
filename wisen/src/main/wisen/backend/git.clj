@@ -122,6 +122,7 @@
 (defn pull! [git & [merge-strings]]
   (let [merge-strategy (if merge-strings
                          MergeStrategy/OURS
+                         ;; TODO use custom merge-strategy
                          #_(make-merge-strategy
                           (.getRepository (git-handle git))
                           merge-strings)
