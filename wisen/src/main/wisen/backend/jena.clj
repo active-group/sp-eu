@@ -27,7 +27,26 @@
     (.getURI (.asResource node))
 
     (.isLiteral node)
-    (.getLexicalForm (.asLiteral node))))
+    (let [lit (.asLiteral node)
+          type (.getDatatype lit)]
+      (cond
+        (instance? org.apache.jena.datatypes.xsd.impl.XSDBaseStringType type)
+        (change-api/make-literal-string (.getLexicalForm lit))
+
+        (instance? org.apache.jena.datatypes.xsd.impl.XSDBaseNumericType type)
+        (change-api/make-literal-decimal (.getLexicalForm lit))
+
+        (.equals type XSDDatatype/XSDboolean)
+        (change-api/make-literal-boolean (.getLexicalForm lit))
+
+        (.equals type XSDDatatype/XSDtime)
+        (change-api/make-literal-time (.getLexicalForm lit))
+
+        (.equals type XSDDatatype/XSDdate)
+        (change-api/make-literal-date (.getLexicalForm lit))
+
+        :else ;; fallback: String
+        (change-api/make-literal-string (.getLexicalForm lit))))))
 
 (defn- parse-statement [stmt]
   (change-api/make-statement

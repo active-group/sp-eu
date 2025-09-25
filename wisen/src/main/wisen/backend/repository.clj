@@ -1,6 +1,8 @@
 (ns wisen.backend.repository
   (:import [java.io File]
-           [java.nio.file Files])
+           [java.nio.file Files]
+           [org.eclipse.jgit.dircache DirCache DirCacheEditor DirCacheEditor$PathEdit DirCacheEntry]
+           [org.eclipse.jgit.lib FileMode Constants CommitBuilder])
   (:require [wisen.backend.git :as git]
             [wisen.common.change-api :as change-api]
             [wisen.backend.jena :as jena]
@@ -34,21 +36,24 @@
 (defn merge-strings
   "The implementation of our mergetool in terms of strings"
   [base local remote]
-  (let [chngs (changes
-               (jena/string->model base)
-               (jena/string->model local)
-               (jena/string->model remote))]
+  (let [base-model (jena/string->model base)
+        local-model (jena/string->model local)
+        remote-model (jena/string->model remote)
+        chngs (changes base-model local-model remote-model)]
     (jena/model->string
-     (jena/apply-changeset! base chngs))))
+     (jena/apply-changeset! base-model chngs))))
+
+(def ^:private model-filename
+  "model.json")
+
+(defn- pull! [git]
+  (git/pull! git model-filename merge-strings))
 
 (defn- pull-push! [git]
   (or (git/push! git)
       (do
-        (git/pull! git merge-strings)
+        (pull! git)
         (recur git))))
-
-(def ^:private model-filename
-  "model.json")
 
 (defn- model-path [git]
   (str (git/git-directory git)
@@ -115,3 +120,26 @@
   (let [from-model (read repo-uri from-commit-id)
         to-model (read repo-uri to-commit-id)]
     (jena/changeset from-model to-model)))
+
+
+(comment
+  (def g (git/clone! "/Users/markusschlegel/Desktop/tmp/repo"))
+
+  (git/git-directory g)
+
+  (def rw (new org.eclipse.jgit.revwalk.RevWalk repo))
+
+  (def d2e2-commit (.parseCommit rw (.resolve repo "d2e2a0b")))
+  (def cbda-commit (.parseCommit rw (.resolve repo "cbdaa6a")))
+
+  (.isMergedInto rw cbda-commit d2e2-commit)
+  (git/predecessor? repo (.resolve repo "cbdaa6a") (.resolve repo "d2e2a0b"))
+
+  (def repo (.getRepository (git/git-handle g)))
+  (.resolve repo "d2e2a0b")
+  (.resolve repo "cbdaa6a")
+  (git/merge-base repo
+                  (.resolve repo "d2e2a0b")
+                  (.resolve repo "cbdaa6a"))
+
+  (pull! g))
