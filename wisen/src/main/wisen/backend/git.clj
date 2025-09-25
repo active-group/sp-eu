@@ -184,7 +184,7 @@
                    (.parseCommit rw c1id)
                    (.parseCommit rw c2id))))
 
-(defn pull! [git & [path merge-strings]]
+(defn- pull!* [git & [path merge-strings]]
   (let [repo (.getRepository (git-handle git))
         ours-commit-id (.resolve repo "refs/heads/master")
         _ (println "ours: " (pr-str ours-commit-id))
@@ -216,6 +216,10 @@
           (let [merge-commit-id (merge-commit! repo base-commit ours-commit theirs-commit path merge-strings)]
             (set-master! repo merge-commit-id)
             merge-commit-id))))))
+
+(defn pull! [git & [path merge-strings]]
+  (fetch! git)
+  (pull!* git path merge-strings))
 
 (defn push!
   "Returns a commit-id (String) when successful"
