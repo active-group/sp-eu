@@ -27,10 +27,10 @@
         ;;    fetch geo coordinates from OSM/Nominatim
         changed? (reduce (fn [changed? result]
                            (let [address (get result "address")
-                                 postcode (get result "postcode")
-                                 street (get result "street")
-                                 locality (get result "locality")
-                                 country (get result "country")
+                                 postcode (str (get result "postcode"))
+                                 street (str (get result "street"))
+                                 locality (str (get result "locality"))
+                                 country (str (get result "country"))
 
                                  osm-result (osm/search! (osm/address
                                                           osm/address-country country
