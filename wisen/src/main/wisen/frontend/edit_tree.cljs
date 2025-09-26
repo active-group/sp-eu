@@ -50,10 +50,14 @@
   (is-a? maybe-changed x))
 
 (defn mark-deleted [x]
-  (assert (is-a? maybe-changed x) "Can only mark deleted maybe-changed")
-  (deleted
-   deleted-original-value
-   (maybe-changed-original-value x)))
+  (cond
+    (deleted? x)
+    x
+
+    (maybe-changed? x)
+    (deleted
+     deleted-original-value
+     (maybe-changed-original-value x))))
 
 (def marked (realm/union
              deleted
@@ -1117,3 +1121,12 @@
     (compare
      (knd etree-1)
      (knd etree-2))))
+
+(defn edit-node-mark-all-properties-deleted [enode]
+  (lens/overhaul enode
+                 edit-node-properties
+                 (fn [eprops]
+                   (map-values
+                    (fn [metrees]
+                      (map mark-deleted metrees))
+                    eprops))))

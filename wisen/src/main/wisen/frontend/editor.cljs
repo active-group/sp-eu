@@ -689,34 +689,39 @@
 
                     ks)))))
 
-(c/defn-item ^:private references-indicator [ctx id]
-  (c/isolate-state
-   nil
-   (c/with-state-as result
-     (cond
-       (nil? result)
-       (c/fragment
-        (spinner/main
-         (context/text ctx tr/determining-references))
-        (ajax/fetch (ajax/GET (str "/api/references/" id)
-                              {:params {"base-commit-id" (context/commit-id ctx)}})))
+(c/defn-item ^:private references-indicator [ctx id editing?]
+  (c/with-state-as [enode result :local nil]
+    (cond
+      (nil? result)
+      (c/fragment
+       (spinner/main
+        (context/text ctx tr/determining-references))
+       (c/focus lens/second
+                (ajax/fetch (ajax/GET (str "/api/references/" id)
+                                      {:params {"base-commit-id" (context/commit-id ctx)}}))))
 
-       (and (ajax/response? result)
-            (ajax/response-ok? result))
-       (let [references (ajax/response-value result)
-             n (count references)]
-         (if (> n 0)
-           (ds/popover-button
-            (context/text-fn ctx tr/n-references-in-total n)
-            (apply dom/ul
-                   (map (fn [reference]
-                          (dom/li
-                           (when-let [name (:name reference)]
-                             (str name " – "))
-                           (dom/a {:href (:uri reference)}
-                                  (:uri reference))))
-                        references)))
-           (context/text ctx tr/no-references)))))))
+      (and (ajax/response? result)
+           (ajax/response-ok? result))
+      (let [references (ajax/response-value result)
+            n (count references)]
+        (if (> n 0)
+          (ds/popover-button
+           (context/text-fn ctx tr/n-references-in-total n)
+           (apply dom/ul
+                  (map (fn [reference]
+                         (dom/li
+                          (when-let [name (:name reference)]
+                            (str name " – "))
+                          (dom/a {:href (:uri reference)}
+                                 (:uri reference))))
+                       references)))
+          (c/fragment
+           (context/text ctx tr/no-references)
+           (when editing?
+             (c/focus lens/first
+                      (ds/button-primary {:onClick edit-tree/edit-node-mark-all-properties-deleted}
+                                         "Delete resource"))
+             )))))))
 
 (c/defn-effect copy-to-clipboard! [s]
   (.writeText (.-clipboard js/navigator) s))
@@ -782,7 +787,8 @@
                                         (context/text ctx tr/edit)))))
 
         (when (wisen-uri/is-wisen-uri? uri)
-          (references-indicator ctx (wisen-uri/wisen-uri-id uri))))
+          (c/focus lens/first
+                   (references-indicator ctx (wisen-uri/wisen-uri-id uri) editing?))))
 
        (c/focus
         lens/first
