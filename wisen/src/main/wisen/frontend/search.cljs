@@ -118,7 +118,7 @@
                                                                  #_(map-label-for-uri uri)
                                                                  )])
                                                          (ss/graph-geo-positions graph))))
-                  (let [show-commit-bar? (not-empty (edit-tree/edit-tree-changeset etree))]
+                  (when-let [show-commit-bar? (not-empty (edit-tree/edit-tree-changeset etree))]
                     (dom/div
                      {:style {:border ds/border
                               :position "absolute"
