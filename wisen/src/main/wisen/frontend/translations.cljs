@@ -39,6 +39,10 @@
   de "Keine Ergebnisse bisher"
   en "No results yet")
 
+(define-text pager-show-results
+  de "Zeige"
+  en "Show")
+
 (define-text organization
   de "Organisation"
   en "Organization")
@@ -474,4 +478,13 @@
     en "Offers"
     de "Angebote")
 
+   "http://schema.org/eventAttendanceMode"
+   (text
+    en "Attendance mode"
+    de "Modus")
+
+   "http://schema.org/performer"
+   (text
+    en "Performer"
+    de "Ausführende(r)")
    })
