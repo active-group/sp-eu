@@ -53,7 +53,7 @@
         (pr-str
          (ajax/response-value new-response)))))))
 
-(c/defn-item pager [ssr]
+(c/defn-item pager [ctx ssr]
   (c/with-state-as selected-result-range
     (apply
      dom/div
@@ -63,6 +63,9 @@
               :display "flex"
               :gap "2em"
               :flex-wrap "wrap"}}
+     (str
+      (context/text ctx tr/pager-show-results)
+      ":")
      (map
       (fn [rr]
         (ds/button-secondary
@@ -361,7 +364,11 @@
   (c/with-state-as search-session
     (let [query (ss/search-session-query search-session)
           ssr (ss/search-session-results search-session)
-          selected-result-range (ss/search-session-selected-result-range search-session)]
+          selected-result-range (ss/search-session-selected-result-range search-session)
+
+          pager (c/focus ss/search-session-selected-result-range
+                         (ds/padded-2
+                          (pager ctx ssr)))]
       (c/fragment
 
        (ds/padded-2
@@ -370,13 +377,13 @@
           (dom/h2
            (context/text-fn ctx tr/results-for (query/query-fuzzy-search-term query)))))
 
-       (c/focus ss/search-session-selected-result-range
-                (ds/padded-2
-                 (pager ssr)))
+       pager
 
        (ds/padded-2
         (c/focus ss/search-session-selected-result
-                 (result-component ctx query selected-result-range)))))))
+                 (result-component ctx query selected-result-range)))
+
+       pager))))
 
 (c/defn-item main* [ctx]
   (c/with-state-as search-state
