@@ -9,114 +9,69 @@
    (java.io File)
    (java.nio.file Files)
    (java.nio.charset StandardCharsets)
-   (org.eclipse.jgit.lib Repository FileMode Constants CommitBuilder TreeFormatter)
+   (org.eclipse.jgit.lib Repository FileMode Constants CommitBuilder TreeFormatter AnyObjectId RefUpdate$Result PersonIdent)
    (org.eclipse.jgit.dircache DirCache DirCacheEditor DirCacheEditor$PathEdit DirCacheEntry)
    (org.eclipse.jgit.revwalk RevWalk RevCommit RevTree)
    (org.eclipse.jgit.revwalk.filter RevFilter)
    (org.eclipse.jgit.treewalk TreeWalk)
    (org.eclipse.jgit.treewalk.filter PathFilter )
-   (org.eclipse.jgit.api Git AddCommand CommitCommand)
+   (org.eclipse.jgit.api Git Status AddCommand CommitCommand)
    (org.eclipse.jgit.api.errors RefNotAdvertisedException)
    (org.eclipse.jgit.internal.storage.file FileRepository)
    (org.eclipse.jgit.transport RefSpec RemoteRefUpdate RemoteRefUpdate$Status)))
 
-(def-record git
-  [git-handle
-   git-directory])
+;; ---
+
+(declare file-tree)
+
+(def file realm/string)
+
+(def filename realm/string)
+
+(def folder
+  (realm/map-of filename
+                (realm/delay file-tree)))
+
+(def file-tree
+  (realm/union file folder))
 
 (def commit-id realm/string)
 
-(defn- create-temp-dir! [name]
-  (.toFile
-   (Files/createTempDirectory
-    name
-    (make-array java.nio.file.attribute.FileAttribute 0))))
-
-(defn clone!
-  ([uri]
-   (clone! (create-temp-dir! "git") uri))
-  ([dir uri]
-   (let [handle
-         (-> (Git/cloneRepository)
-             (.setDirectory dir)
-             (.setURI uri)
-             (.call))]
-     (git git-handle handle
-          git-directory dir))))
-
-(defn- delete-files-recursively [f]
-  (when (.isDirectory (io/file f))
-    (doseq [f* (.listFiles (io/file f))]
-      (delete-files-recursively f*)))
-  (io/delete-file f :fail))
-
-(defn kill! [git]
-  (event-logger/log-event! :info (str "Deleting git directory: " (git-directory git)))
-  (delete-files-recursively (git-directory git)))
-
-(defn head [git & [branch]]
-  (let [repo (.getRepository (git-handle git))]
-    ;; TODO: make configurable `master`
-    (when-let [object-id (.resolve repo (str
-                                         "refs/heads/"
-                                         (or branch "master")))]
-      (org.eclipse.jgit.lib.ObjectId/toString object-id))))
-
-(defn get!
-  "Get contents of the given commit-id and filename as a string"
-  [git commit-id filename]
-  (let [repo (.getRepository (git-handle git))
-        object-id (.resolve repo commit-id)
-        rev-walk (RevWalk. repo)
-        commit (.parseCommit rev-walk object-id)
-        tree (.getTree commit)
-        tree-walk (doto (TreeWalk. repo)
-                    (.addTree tree)
-                    (.setRecursive true)
-                    (.setFilter (PathFilter/create filename)))]
-    (if (.next tree-walk)
-      (let [object-id (.getObjectId tree-walk 0)
-            loader (.open repo object-id)]
-        (String. (.getBytes loader) StandardCharsets/UTF_8))
-      (throw (RuntimeException. "File not found in commit")))))
-
-(defn checkout! [git commit-id]
-  (.call
-   (doto (.checkout (git-handle git))
-     (.setName commit-id))))
-
-(defn add! [git file-path]
-  (.call
-   (doto (.add (git-handle git))
-     (.addFilepattern file-path))))
-
-(defn commit! [git message]
-  (.call
-   (doto (.commit (git-handle git))
-     (.setMessage message))))
-
-(defn fetch! [git]
-  (.call (.fetch (git-handle git))))
-
 ;; ---
 
-(defn- commit-for-id [repo commit-id]
-  (let [rev-walk (new RevWalk repo)
-        commit (.parseCommit rev-walk commit-id)]
-    commit))
+(defn git-directory [g]
+  (.getAbsolutePath
+   (.getDirectory
+    (.getRepository g))))
 
-(defn- string-for-path-in-tree [repo path tree]
-  (let [reader (.newObjectReader repo)
-        tw (TreeWalk. reader)
-        filt (PathFilter/create path)]
-    (.addTree tw tree)
-    (.setFilter tw filt)
+(defn- get-string-for-id! [repo object-id]
+  (String. (.getBytes (.open repo object-id))
+           StandardCharsets/UTF_8))
 
-    (when (.next tw)
-      (let [obj-id (.getObjectId tw 0)
-            loader (.open reader obj-id)
-            bytes (.getBytes loader)]
-        (String. bytes StandardCharsets/UTF_8)))))
+(defn- get-tree-for-tree-id! [repo tree-id]
+  (let [rw (RevWalk. repo)]
+    (.parseTree rw tree-id)))
+
+(defn- jgit-tree->file-tree [repo tree]
+  (let [tw (doto (TreeWalk. repo)
+             (.addTree tree)
+             (.setRecursive false))]
+    (loop [acc {}]
+      (if (.next tw)
+        (let [name (.getNameString tw)
+              obj-id (.getObjectId tw 0)]
+          (recur
+           (assoc acc
+                  name
+                  (if (.isSubtree tw)
+                    ;; subtree
+                    (jgit-tree->file-tree
+                     repo
+                     (get-tree-for-tree-id! repo obj-id))
+                    ;; else leaf
+                    (get-string-for-id! repo obj-id)))))
+        ;; else done
+        acc))))
 
 (defn- insert-string! [repo s]
   (let [inserter (.newObjectInserter repo)
@@ -125,119 +80,253 @@
     (.flush inserter)
     blob-id))
 
-(defn- insert-tree-with-file! [repo path blob-id]
+(defn- folder->jgit-tree! [repo file-tree]
   (let [inserter (.newObjectInserter repo)
-        formatter (new TreeFormatter)
-        _ (.append formatter path FileMode/REGULAR_FILE blob-id)
-        tree-id (.insert inserter formatter)]
+        formatter (new TreeFormatter)]
+
+    (doseq [[name ft] file-tree]
+      (if (string? ft)
+        (let [blob-id (insert-string! repo ft)]
+          (.append formatter name FileMode/REGULAR_FILE blob-id))
+        ;; else folder
+        (let [tree-id (folder->jgit-tree! repo ft)]
+          (.append formatter name FileMode/TREE tree-id))))
+    
     (.flush inserter)
-    tree-id))
+    (.insert inserter formatter)))
+
+(defn- create-temp-dir! [name]
+  (.toFile
+   (Files/createTempDirectory
+    name
+    (make-array java.nio.file.attribute.FileAttribute 0))))
+
+(defn clone!
+  "Returns an object that's used as a handle for subsequent operations"
+  ([uri]
+   (clone! (create-temp-dir! "git") uri))
+  ([dir uri]
+   (event-logger/log-event! :info (str "(clone! " uri ")"))
+   (-> (Git/cloneRepository)
+       (.setBare true)
+       (.setDirectory dir)
+       (.setURI uri)
+       (.call))))
+
+(defn- format-status [^Status status]
+  (let [section (fn [title coll formatter]
+                  (when (seq coll)
+                    (str title
+                         (apply str (map #(str "\n  " (formatter %)) coll))
+                         "\n")))]
+    (str
+     (section "Added:" (.getAdded status) identity)
+     (section "Changed:" (.getChanged status) identity)
+     (section "Removed:" (.getRemoved status) identity)
+     (section "Modified:" (.getModified status) identity)
+     (section "Missing:" (.getMissing status) identity)
+     (section "Untracked:" (.getUntracked status) identity)
+     (section "Untracked folders:" (.getUntrackedFolders status) identity)
+     (section "Conflicting (unmerged):" (.getConflicting status) identity)
+     ;; optionally, include stage info per file
+     (when (seq (.getConflictingStageState status))
+       (str "Conflicting stage state:\n"
+            (apply str
+                   (for [[path stage] (.getConflictingStageState status)]
+                     (str "  " path " -> " stage "\n")))))
+     (when-not (.hasUncommittedChanges status)
+       "Working tree clean\n"))))
+
+(defn status! [git]
+  (.call (.status git)))
+
+(defn- delete-files-recursively [f]
+  (when (.isDirectory (io/file f))
+    (doseq [f* (.listFiles (io/file f))]
+      (delete-files-recursively f*)))
+  (io/delete-file f :fail))
+
+#_(defn- log-status! [git]
+  (event-logger/log-event! :info (str "Status for repository: " (git-directory git)))
+  (event-logger/log-event! :info (format-status (status! git))))
+
+(defn kill! [git]
+  (event-logger/log-event! :info (str "Deleting git directory: " (git-directory git)))
+  (delete-files-recursively (git-directory git)))
+
+(defn head [git & [branch]]
+  (let [repo (.getRepository git)]
+    ;; TODO: make configurable `master`
+    (when-let [object-id (.resolve repo (str
+                                         "refs/heads/"
+                                         (or branch "master")))]
+      (org.eclipse.jgit.lib.ObjectId/toString object-id))))
+
+(defn get!
+  "Returns a `file-tree` for the given string `commit-id`"
+  [git commit-id]
+  (let [repo (.getRepository git)]
+    (jgit-tree->file-tree
+     repo
+     (get-tree-for-tree-id! repo
+                            (.resolve repo commit-id)))))
+
+(defn fetch! [git]
+  (event-logger/log-event! :info "(fetch!)")
+  (.getName
+   (.getObjectId
+    (first
+     (seq
+      (.getAdvertisedRefs
+       (.call
+        (.fetch git))))))))
+
+;; ---
+
+(defn- commit-for-id [repo commit-id]
+  (let [rev-walk (new RevWalk repo)
+        commit (.parseCommit rev-walk (.resolve repo commit-id))]
+    commit))
+
+(defn commit!
+  "Create a new commit on top of `parent-commit` with
+  `file-tree`. Returns the resulting commit-id."
+  [git folder message parent-commit-1 & [parent-commit-2]]
+  (let [repo (.getRepository git)
+        tree-id (folder->jgit-tree! repo folder)]
+
+    (let [commit-builder (new CommitBuilder)]
+      (.setTreeId commit-builder tree-id)
+      (if parent-commit-2
+        (.setParentIds commit-builder (.resolve repo parent-commit-1) (.resolve repo parent-commit-2))
+        (.setParentId commit-builder (.resolve repo parent-commit-1)))
+      (.setAuthor commit-builder (new org.eclipse.jgit.lib.PersonIdent "Speubot" "info@active-group.de"))
+      (.setCommitter commit-builder (new org.eclipse.jgit.lib.PersonIdent "Speubot" "info@active-group.de"))
+      (.setMessage commit-builder message)
+
+      (let [inserter (.newObjectInserter repo)
+            commit-id (.insert inserter commit-builder)]
+        (.flush inserter)
+        (.getName commit-id)))))
 
 (defn merge-base
-  "Returns a RevCommit (not an id)"
-  [^Repository repo
-   c1id
-   c2id]
-  (let [rev-walk (new RevWalk repo)]
+  "Returns a commit-id"
+  [git c1id c2id]
+  (let [repo (.getRepository git)
+        rev-walk (new RevWalk repo)]
     (.setRevFilter rev-walk RevFilter/MERGE_BASE)
-    (.markStart rev-walk (commit-for-id repo c1id))
-    (.markStart rev-walk (commit-for-id repo c2id))
-    (.next rev-walk)))
+    (.markStart rev-walk (.parseCommit rev-walk (.resolve repo c1id)))
+    (.markStart rev-walk (.parseCommit rev-walk (.resolve repo c2id)))
+    (.getName
+     (.next rev-walk))))
 
-(defn- merge-commit!
+(defn merge-commit!
   "Return commit-id of resulting merge commit"
-  [^Repository repo
-   ^RevCommit base-commit
-   ^RevCommit ours-commit
-   ^RevCommit theirs-commit
-   path
-   merge-strings]
+  ([git
+    ours-commit
+    theirs-commit
+    merge-folders]
+   (let [base-commit (merge-base git ours-commit theirs-commit)]
+     (merge-commit! git base-commit ours-commit theirs-commit merge-folders)))
 
-  (let [base-string (string-for-path-in-tree repo path (.getTree base-commit))
-        ours-string (string-for-path-in-tree repo path (.getTree ours-commit))
-        theirs-string (string-for-path-in-tree repo path (.getTree theirs-commit))
-        result-string (merge-strings base-string ours-string theirs-string)]
+  ([git
+    base-commit-id
+    ours-commit-id
+    theirs-commit-id
+    merge-folders]
 
-    (let [blob-id (insert-string! repo result-string)
-          tree-id (insert-tree-with-file! repo path blob-id)]
+   (let [repo (.getRepository git)
+         base-folder (jgit-tree->file-tree repo
+                                           (.getTree (commit-for-id
+                                                      repo
+                                                      base-commit-id)))
+         ours-folder (jgit-tree->file-tree repo
+                                           (.getTree (commit-for-id
+                                                      repo
+                                                      base-commit-id)))
+         theirs-folder (jgit-tree->file-tree repo
+                                             (.getTree (commit-for-id
+                                                        repo
+                                                        theirs-commit-id)))
+         result-folder (merge-folders base-folder ours-folder theirs-folder)]
 
-      (let [commit-builder (new CommitBuilder)]
-        (.setTreeId commit-builder tree-id)
-        (.setParentIds commit-builder ours-commit theirs-commit)
-        (.setAuthor commit-builder (new org.eclipse.jgit.lib.PersonIdent "Speubot" "info@active-group.de"))
-        (.setCommitter commit-builder (new org.eclipse.jgit.lib.PersonIdent "Speubot" "info@active-group.de"))
-        (.setMessage commit-builder "Merge")
+     (commit! git result-folder "merge" ours-commit-id theirs-commit-id))))
 
-        (let [inserter (.newObjectInserter repo)
-              commit-id (.insert inserter commit-builder)]
-          (.flush inserter)
-          commit-id)))))
-
-(defn- set-master! [repo commit-id]
-  (let [ref-update (.updateRef repo "refs/heads/master")]
-    (.setNewObjectId ref-update commit-id)
-    (.update ref-update)))
-
-(defn predecessor? [repo c1id c2id]
+(defn- predecessor? [repo c1id c2id]
   (let [rw (new RevWalk repo)]
     (.isMergedInto rw
-                   (.parseCommit rw c1id)
-                   (.parseCommit rw c2id))))
+                   (.parseCommit rw (.resolve repo c1id))
+                   (.parseCommit rw (.resolve repo c2id)))))
 
-(defn- pull!* [git & [path merge-strings]]
-  (let [repo (.getRepository (git-handle git))
-        ours-commit-id (.resolve repo "refs/heads/master")
-        _ (println "ours: " (pr-str ours-commit-id))
-        theirs-commit-id (.resolve repo "refs/remotes/origin/master")
-        _ (println "theirs: " (pr-str theirs-commit-id))
-        base-commit (merge-base repo ours-commit-id theirs-commit-id)
-        _ (println "base: " (pr-str base-commit))
-        ours-commit (commit-for-id repo ours-commit-id)
-        theirs-commit (commit-for-id repo theirs-commit-id)]
+(defn join [git commit-1 commit-2 merge-folders]
+  (let [repo (.getRepository git)]
+    (cond
+      (predecessor? repo commit-1 commit-2)
+      commit-2
 
-    (if (.equals ours-commit-id
-                 theirs-commit-id)
-      ;; nothing to do
-      (do
-        (println "pull!: nothing to do")
-        ours-commit-id)
+      (predecessor? repo commit-2 commit-1)
+      commit-1
 
-      ;; else
-      (if (predecessor? repo ours-commit-id theirs-commit-id)
-        ;; setting our master ref is sufficient
-        (do
-          (println "pull!: fast-forward")
-          (set-master! repo theirs-commit-id)
-          theirs-commit-id)
+      :else
+      (merge-commit! git commit-1 commit-2 merge-folders))))
 
-        ;; else
-        (do
-          (println "real merge")
-          (let [merge-commit-id (merge-commit! repo base-commit ours-commit theirs-commit path merge-strings)]
-            (set-master! repo merge-commit-id)
-            merge-commit-id))))))
+(defn update-master-ref! [git
+                          from-commit
+                          to-commit]
+  (let [repo (.getRepository git)
+        upd (.updateRef repo "refs/heads/master")]
+    (.setExpectedOldObjectId upd (.resolve repo from-commit))
+    (.setNewObjectId upd (.resolve repo to-commit))
+    (.update upd)))
 
-(defn pull! [git & [path merge-strings]]
-  (fetch! git)
-  (pull!* git path merge-strings))
+(defn update-successful? [ref-result]
+  (or
+   (.equals ref-result RefUpdate$Result/FAST_FORWARD)
+   (.equals ref-result RefUpdate$Result/NEW)
+   (.equals ref-result RefUpdate$Result/FORCED)
+   (.equals ref-result RefUpdate$Result/NO_CHANGE)
+   (.equals ref-result RefUpdate$Result/RENAMED)))
+
+(defn join-master [git from-commit to-commit merge-folders]
+  (let [ref-result (update-master-ref! git from-commit to-commit)]
+    (if (update-successful? ref-result)
+      to-commit
+      (let [next-from-commit (head git)
+            join-commit (join git next-from-commit to-commit merge-folders)]
+        ;; try again with join commit
+        (recur git next-from-commit join-commit merge-folders)))))
 
 (defn push!
   "Returns a commit-id (String) when successful"
   [git]
+  (event-logger/log-event! :info "(push!)")
   (try
     (let [refspec (RefSpec. "HEAD:refs/heads/master")
           push-results (.call
-                        (doto (.push (git-handle git))
+                        (doto (.push git)
                           (.setRemote "origin")
                           (.setRefSpecs [refspec])))
           push-result (first push-results)
           upd (.getRemoteUpdate push-result
                                 "refs/heads/master")]
-      (when (or (= RemoteRefUpdate$Status/OK
-                   (.getStatus upd))
-                (= RemoteRefUpdate$Status/UP_TO_DATE
-                   (.getStatus upd)))
-        (.getName (.getNewObjectId upd))))
+      (if (or (= RemoteRefUpdate$Status/OK
+                 (.getStatus upd))
+              (= RemoteRefUpdate$Status/UP_TO_DATE
+                 (.getStatus upd)))
+        (.getName (.getNewObjectId upd))
+        ;; else failed
+        (do
+          (event-logger/log-event! :error (str "push! failed: " (pr-str (.getStatus upd)) " -- " (pr-str upd)))
+          nil)))
     (catch Exception e
-      ;; TODO: handle exceptions
+      (event-logger/log-event! :error (str "push! failed: " (pr-str e)))
       nil)))
+
+(defn push-to-master [git commit-id merge-folders]
+  (or (push! git)
+      (let [head (fetch! git)
+            next-head (join-master git
+                                   commit-id
+                                   head
+                                   merge-folders)]
+        (recur git next-head merge-folders))))
