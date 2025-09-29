@@ -1,8 +1,4 @@
 (ns wisen.backend.repository
-  (:import [java.io File]
-           [java.nio.file Files]
-           [org.eclipse.jgit.dircache DirCache DirCacheEditor DirCacheEditor$PathEdit DirCacheEntry]
-           [org.eclipse.jgit.lib FileMode Constants CommitBuilder])
   (:require [wisen.backend.git :as git]
             [wisen.common.change-api :as change-api]
             [wisen.backend.jena :as jena]
@@ -39,25 +35,27 @@
    (jena/changeset base local)
    (jena/changeset base remote)))
 
-(defn merge-strings
-  "The implementation of our mergetool in terms of strings"
-  [base local remote]
-  (let [base-model (jena/string->model base)
-        local-model (jena/string->model local)
-        remote-model (jena/string->model remote)
-        chngs (changes base-model local-model remote-model)]
-    (jena/model->string
-     (jena/apply-changeset! base-model chngs))))
+(defn- folder->model [folder]
+  (jena/string->model (get folder model-filename)))
 
-(defn merge-folders [base ours theirs]
-  {model-filename (merge-strings
-                   (get base model-filename)
-                   (get ours model-filename)
-                   (get theirs model-filename))})
+(defn- model->folder [model]
+  {model-filename (jena/model->string model)})
 
-(defn- model-path [git]
-  (str (git/git-directory git)
-       "/" model-filename))
+(defn- via-3 [in out f]
+  (fn [x y z]
+    (out
+     (f (in x)
+        (in y)
+        (in z)))))
+
+(defn- merge-models [base-model ours-model theirs-model]
+  (let [chngs (changes base-model ours-model theirs-model)]
+    (jena/apply-changeset! base-model chngs)))
+
+(def merge-folders
+  (via-3 folder->model
+         model->folder
+         merge-models))
 
 
 ;; --- API ---
