@@ -209,7 +209,10 @@
                              cl
                              next-commit
                              (fn [base ours theirs]
-                               {"foo.txt" "merge result"})))))
+                               {"foo.txt" "merge result"}))))
+
+    (is (= next-commit
+           (git/head! g))))
 
   ;; merge
   (let [[g c1 c2 cl cr] (make-bare-git)]
