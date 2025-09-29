@@ -78,19 +78,19 @@
                                    "initial commit")
           second-commit-id (commit! repo
                                     "foo.txt"
-                                    "second"
-                                    "second commit"
+                                    "<2>"
+                                    "<2>"
                                     first-commit-id)
           left-commit-id (commit! repo
                                   "foo.txt"
-                                  "left contents"
-                                  "left message"
+                                  "<l>"
+                                  "<l>"
                                   second-commit-id)
 
           right-commit-id (commit! repo
                                    "foo.txt"
-                                   "right contents"
-                                   "right message"
+                                   "<r>"
+                                   "<r>"
                                    second-commit-id)]
 
       (let [ref-upd (.updateRef repo "refs/heads/master")]
@@ -120,13 +120,13 @@
     (is (= {"foo.txt" "initial"}
            (git/get! g c1)))
 
-    (is (= {"foo.txt" "second"}
+    (is (= {"foo.txt" "<2>"}
            (git/get! g c2)))
 
-    (is (= {"foo.txt" "left contents"}
+    (is (= {"foo.txt" "<l>"}
            (git/get! g cl)))
 
-    (is (= {"foo.txt" "right contents"}
+    (is (= {"foo.txt" "<r>"}
            (git/get! g cr)))))
 
 (deftest clone-test
@@ -196,9 +196,12 @@
                                 cl
                                 cr
                                 (fn [base ours theirs]
-                                  {"foo.txt" "merge result"}))]
+                                  {"foo.txt"
+                                   (str
+                                    (get ours "foo.txt")
+                                    (get theirs "foo.txt"))}))]
 
-    (is (= {"foo.txt" "merge result"}
+    (is (= {"foo.txt" "<l><r>"}
            (git/get! g merge-commit)))))
 
 (deftest join-master-test
@@ -209,7 +212,6 @@
 
     (is (= next-commit
            (git/join-master! g
-                             cl
                              next-commit
                              (fn [base ours theirs]
                                {"foo.txt" "merge result"}))))
@@ -220,15 +222,17 @@
   ;; merge
   (let [[g c1 c2 cl cr] (make-bare-git)]
 
-    (is (= {"foo.txt" "merge result"}
+    (is (= {"foo.txt" "<l><r>"}
            (git/get! g
                      (git/join-master! g
-                                       c2
                                        cr
                                        (fn [base ours theirs]
-                                         {"foo.txt" "merge result"})))))))
+                                         {"foo.txt"
+                                          (str
+                                           (get ours "foo.txt")
+                                           (get theirs "foo.txt"))})))))))
 
-(deftest push-to-master-test
+(deftest sync-master-test
   ;; Not diverged
   (let [[g-origin c1 c2 cl cr] (make-bare-git)
 
@@ -240,46 +244,41 @@
 
         _ (is (git/update-successful? update-res))
 
-        push-result (git/push-to-master g-local
-                                        next-commit-id
-                                        (fn [base ours theirs]
-                                          {"foo.txt" "merge result"}))]
+        sync-result (git/sync-master! g-local
+                                      (fn [base ours theirs]
+                                        {"foo.txt" "merge result"}))]
 
     
 
-    (is (= push-result
+    (is (= sync-result
            next-commit-id))))
 
-#_(deftest push-to-master-diverged-test
-    ;; Not diverged
-    (let [[g-origin c1 c2 cl cr] (make-bare-git)
-          repo-origin (.getRepository (git/git-handle g-origin))
+(deftest sync-master-diverged-test
+  (let [[g-origin c1 c2 cl cr] (make-bare-git)
 
-          remote-url (str "file://" (git/git-directory g-origin))
-          g-local (git/clone! remote-url)
-          repo-local (.getRepository (git/git-handle g-local))
+        remote-url (str "file://" (git/git-directory g-origin))
+        g-local (git/clone! remote-url)
 
-          next-commit-id-on-origin (git/commit!2 repo-origin {"foo.txt" "<origin>"} "message origin" (.resolve repo-origin cl))
-          update-res-origin (git/update-master-ref! repo-origin
-                                                    (.resolve repo-origin cl)
-                                                    next-commit-id-on-origin)
+        origin-next-commit-id (git/commit! g-origin {"foo.txt" "<origin>"} "message" cl)
+        _ (println "origin-next-commit-id: " origin-next-commit-id)
+        origin-update-res (git/update-master-ref! g-origin cl origin-next-commit-id)
+        _ (is (git/update-successful? origin-update-res))
+        _ (is (= origin-next-commit-id (git/head! g-origin)))
 
-          _ (is (git/update-successful? update-res-origin))
+        local-next-commit-id (git/commit! g-local {"foo.txt" "<local>"} "message" cl)
+        _ (println "local-next-commit-id: " local-next-commit-id)
+        local-update-res (git/update-master-ref! g-local cl local-next-commit-id)
+        _ (is (git/update-successful? local-update-res))
+        _ (is (= local-next-commit-id (git/head! g-local)))
 
-          next-commit-id-on-local (git/commit!2 repo-local {"foo.txt" "<local>"} "message local" (.resolve repo-local cl))
-          update-res-local (git/update-master-ref! repo-local
-                                                   (.resolve repo-local cl)
-                                                   next-commit-id-on-local)
+        sync-result (git/sync-master! g-local
+                                      (fn [base ours theirs]
+                                        {"foo.txt"
+                                         (str
+                                          (get ours "foo.txt")
+                                          (get theirs "foo.txt"))}))]
 
-          _ (is (git/update-successful? update-res-local))
+    
 
-          push-result (git/push-to-master g-local next-commit-id-on-local (fn [base ours theirs]
-                                                                            {"foo.txt"
-                                                                             (str
-                                                                              (get ours "foo.txt")
-                                                                              (get theirs "foo.txt"))}))]
-
-      
-
-      (is (= {"foo.txt" "<origin><local>"}
-             (git/get!2 g-origin push-result)))))
+    (is (= {"foo.txt" "<local><origin>"}
+           (git/get! g-origin sync-result)))))

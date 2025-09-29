@@ -249,7 +249,7 @@
          ours-folder (jgit-tree->file-tree repo
                                            (.getTree (commit-for-id
                                                       repo
-                                                      base-commit-id)))
+                                                      ours-commit-id)))
          theirs-folder (jgit-tree->file-tree repo
                                              (.getTree (commit-for-id
                                                         repo
@@ -293,14 +293,14 @@
    (.equals ref-result RefUpdate$Result/NO_CHANGE)
    (.equals ref-result RefUpdate$Result/RENAMED)))
 
-(defn join-master! [git from-commit to-commit merge-folders]
-  (let [ref-result (update-master-ref! git from-commit to-commit)]
+(defn join-master! [git to-commit merge-folders]
+  (let [hd (head! git)
+        ref-result (update-master-ref! git hd to-commit)]
     (if (update-successful? ref-result)
       to-commit
-      (let [next-from-commit (head! git)
-            join-commit (join! git next-from-commit to-commit merge-folders)]
+      (let [join-commit (join! git hd to-commit merge-folders)]
         ;; try again with join commit
-        (recur git next-from-commit join-commit merge-folders)))))
+        (recur git join-commit merge-folders)))))
 
 (defn push!
   "Returns a commit-id (String) when successful"
@@ -328,11 +328,10 @@
       (event-logger/log-event! :error (str "push! failed: " (pr-str e)))
       nil)))
 
-(defn push-to-master [git commit-id merge-folders]
+(defn sync-master! [git merge-folders]
   (or (push! git)
-      (let [head (fetch! git)
-            next-head (join-master! git
-                                    commit-id
-                                    head
-                                    merge-folders)]
-        (recur git next-head merge-folders))))
+      (let [origin-head (fetch! git)
+            _next-hd (join-master! git
+                                   origin-head
+                                   merge-folders)]
+        (recur git merge-folders))))
