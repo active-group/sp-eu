@@ -18,6 +18,9 @@
 (def ^:private read-git
   (atom {}))
 
+(defn- just-theirs [_base _ours theirs]
+  theirs)
+
 (defn with-read-git [remote-uri f]
   (let [g (or (get @read-git remote-uri)
               (let [g (git/clone! remote-uri)]
@@ -25,7 +28,7 @@
                        (fn [m]
                          (assoc m remote-uri g)))
                 g))]
-    (git/fetch! g)
+    (git/join-master! g (git/fetch! g) just-theirs)
     (f g)))
 
 (def ^:private model-filename
