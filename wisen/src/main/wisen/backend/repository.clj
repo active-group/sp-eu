@@ -25,8 +25,11 @@
                        (fn [m]
                          (assoc m remote-uri g)))
                 g))]
-    (git/pull! g)
+    (git/fetch! g)
     (f g)))
+
+(def ^:private model-filename
+  "model.json")
 
 (defn- changes [base local remote]
   (change-api/union-changeset
@@ -43,17 +46,11 @@
     (jena/model->string
      (jena/apply-changeset! base-model chngs))))
 
-(def ^:private model-filename
-  "model.json")
-
-(defn- pull! [git]
-  (git/pull! git model-filename merge-strings))
-
-(defn- pull-push! [git]
-  (or (git/push! git)
-      (do
-        (pull! git)
-        (recur git))))
+(defn merge-folders [base ours theirs]
+  {model-filename (merge-strings
+                   (get base model-filename)
+                   (get ours model-filename)
+                   (get theirs model-filename))})
 
 (defn- model-path [git]
   (str (git/git-directory git)
@@ -67,8 +64,9 @@
 (defn head! [prefix repo-uri]
   (with-read-git repo-uri
     (fn [g]
-      (let [head-candidate (git/head g)
-            s (git/get! g head-candidate model-filename)
+      (let [head-candidate (git/head! g)
+            folder (git/get! g head-candidate)
+            s (get folder model-filename)
             mdl (jena/string->model s)
             [mdl-skolemized changed?] (skolem/skolemize-model mdl prefix)]
 
@@ -81,65 +79,20 @@
   (with-read-git
     repo-uri
     (fn [g]
-      (let [s (git/get! g commit-id model-filename)]
+      (let [folder (git/get! g commit-id)
+            s (get folder model-filename)]
         (jena/string->model s)))))
 
 (defn write! [repo-uri commit-id model commit-message]
-  (let [git (git/clone! repo-uri)]
+  (let [git (git/clone! repo-uri)
+        change-commit-id (git/commit! git
+                                      {model-filename (jena/model->string model)}
+                                      commit-message
+                                      commit-id)
+        new-head (git/join-master! git
+                                   change-commit-id
+                                   merge-folders)
+        push-commit (git/sync-master! git merge-folders)]
 
-    (git/checkout! git commit-id)
-
-    (let [path (model-path git)]
-
-      ;; Render back to model.json string
-      (spit path (jena/model->string model))
-
-      ;; Add
-      (git/add! git model-filename)
-
-      ;; Commit
-      (git/commit! git commit-message)
-
-      ;; Push
-      (let [result-commit-id (pull-push! git)]
-
-        ;; Cleanup
-        (git/kill! git)
-
-        result-commit-id))))
-
-#_(defn diff
-
-  [repo-uri from-commit-id to-commit-id]
-
-  {:pre [(realm/contains? realm/string repo-uri)
-         (realm/contains? git/commit-id from-commit-id)
-         (realm/contains? git/commit-id to-commit-id)]
-   :post [(realm/contains? change-api/changeset %)]}
-
-  (let [from-model (read repo-uri from-commit-id)
-        to-model (read repo-uri to-commit-id)]
-    (jena/changeset from-model to-model)))
-
-
-(comment
-  (def g (git/clone! "/Users/markusschlegel/Desktop/tmp/repo"))
-
-  (git/git-directory g)
-
-  (def rw (new org.eclipse.jgit.revwalk.RevWalk repo))
-
-  (def d2e2-commit (.parseCommit rw (.resolve repo "d2e2a0b")))
-  (def cbda-commit (.parseCommit rw (.resolve repo "cbdaa6a")))
-
-  (.isMergedInto rw cbda-commit d2e2-commit)
-  (git/predecessor? repo (.resolve repo "cbdaa6a") (.resolve repo "d2e2a0b"))
-
-  (def repo (.getRepository (git/git-handle g)))
-  (.resolve repo "d2e2a0b")
-  (.resolve repo "cbdaa6a")
-  (git/merge-base repo
-                  (.resolve repo "d2e2a0b")
-                  (.resolve repo "cbdaa6a"))
-
-  (pull! g))
+    (git/kill! git)
+    push-commit))
