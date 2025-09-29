@@ -173,13 +173,19 @@
 
 (defn fetch! [git]
   (event-logger/log-event! :info "(fetch!)")
-  (.getName
-   (.getObjectId
-    (first
-     (seq
-      (.getAdvertisedRefs
-       (.call
-        (.fetch git))))))))
+  (let [repo (.getRepository git)
+        config (.getConfig repo)
+        remote-config (org.eclipse.jgit.transport.RemoteConfig. config "origin")
+        uri (.get (.getURIs remote-config) 0)
+        transport (org.eclipse.jgit.transport.Transport/open repo uri)
+        ref-spec (RefSpec. "refs/heads/master:refs/heads/origin/master")
+        fetch-result (.fetch transport org.eclipse.jgit.lib.NullProgressMonitor/INSTANCE [ref-spec])]
+    (.getName
+     (.getObjectId
+      (first
+       (seq
+        (.getAdvertisedRefs
+         fetch-result)))))))
 
 ;; ---
 

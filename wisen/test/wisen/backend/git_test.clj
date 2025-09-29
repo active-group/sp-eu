@@ -144,13 +144,16 @@
 
         next-commit-id (git/commit! g-origin {"foo.txt" "neu"} "message" cl)
         update-res (git/update-master-ref! g-origin cl next-commit-id)
-
-        fetched-commit-id (git/fetch! g-local)]
+        ]
 
     (is (git/update-successful? update-res))
+    (is (= (git/head! g-origin) next-commit-id))
 
     (is (= next-commit-id
-           fetched-commit-id))))
+           (git/fetch! g-local)))
+
+    ;; fetch must not pull
+    (is (= cl (git/head! g-local)))))
 
 (deftest commit-test
   (let [[g c1 c2 cl cr] (make-bare-git)
