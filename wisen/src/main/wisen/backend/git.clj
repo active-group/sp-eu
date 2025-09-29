@@ -154,7 +154,7 @@
   (event-logger/log-event! :info (str "Deleting git directory: " (git-directory git)))
   (delete-files-recursively (git-directory git)))
 
-(defn head [git & [branch]]
+(defn head! [git & [branch]]
   (let [repo (.getRepository git)]
     ;; TODO: make configurable `master`
     (when-let [object-id (.resolve repo (str
@@ -258,7 +258,7 @@
                    (.parseCommit rw (.resolve repo c1id))
                    (.parseCommit rw (.resolve repo c2id)))))
 
-(defn join [git commit-1 commit-2 merge-folders]
+(defn join! [git commit-1 commit-2 merge-folders]
   (let [repo (.getRepository git)]
     (cond
       (predecessor? repo commit-1 commit-2)
@@ -287,12 +287,12 @@
    (.equals ref-result RefUpdate$Result/NO_CHANGE)
    (.equals ref-result RefUpdate$Result/RENAMED)))
 
-(defn join-master [git from-commit to-commit merge-folders]
+(defn join-master! [git from-commit to-commit merge-folders]
   (let [ref-result (update-master-ref! git from-commit to-commit)]
     (if (update-successful? ref-result)
       to-commit
-      (let [next-from-commit (head git)
-            join-commit (join git next-from-commit to-commit merge-folders)]
+      (let [next-from-commit (head! git)
+            join-commit (join! git next-from-commit to-commit merge-folders)]
         ;; try again with join commit
         (recur git next-from-commit join-commit merge-folders)))))
 
@@ -325,8 +325,8 @@
 (defn push-to-master [git commit-id merge-folders]
   (or (push! git)
       (let [head (fetch! git)
-            next-head (join-master git
-                                   commit-id
-                                   head
-                                   merge-folders)]
+            next-head (join-master! git
+                                    commit-id
+                                    head
+                                    merge-folders)]
         (recur git next-head merge-folders))))

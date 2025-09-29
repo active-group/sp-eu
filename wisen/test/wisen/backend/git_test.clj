@@ -112,7 +112,7 @@
 (deftest head-test
   (let [[g c1 c2 cl cr] (make-bare-git)]
     (is (= cl
-           (git/head g)))))
+           (git/head! g)))))
 
 (deftest get-test
   (let [[g c1 c2 cl cr] (make-bare-git)]
@@ -134,7 +134,7 @@
         remote-url (str "file://" (git/git-directory g-origin))
         g-local (git/clone! remote-url)]
     (is (= cl
-           (git/head g-local)))))
+           (git/head! g-local)))))
 
 (deftest fetch-test
   (let [[g-origin c1 c2 cl cr] (make-bare-git)
@@ -168,32 +168,32 @@
 (deftest join-test
   ;; c2 wins
   (let [[g c1 c2 cl cr] (make-bare-git)
-        merge-commit (git/join g
-                               c1
-                               c2
-                               (fn [base ours theirs]
-                                 {"foo.txt" "merge result"}))]
+        merge-commit (git/join! g
+                                c1
+                                c2
+                                (fn [base ours theirs]
+                                  {"foo.txt" "merge result"}))]
 
     (is (= c2
            merge-commit)))
 
   ;; c2 wins
   (let [[g c1 c2 cl cr] (make-bare-git)
-        merge-commit (git/join g
-                               c2
-                               c1
-                               (fn [base ours theirs]
-                                 {"foo.txt" "merge result"}))]
+        merge-commit (git/join! g
+                                c2
+                                c1
+                                (fn [base ours theirs]
+                                  {"foo.txt" "merge result"}))]
 
     (is (= c2 merge-commit)))
 
   ;; merge
   (let [[g c1 c2 cl cr] (make-bare-git)
-        merge-commit (git/join g
-                               cl
-                               cr
-                               (fn [base ours theirs]
-                                 {"foo.txt" "merge result"}))]
+        merge-commit (git/join! g
+                                cl
+                                cr
+                                (fn [base ours theirs]
+                                  {"foo.txt" "merge result"}))]
 
     (is (= {"foo.txt" "merge result"}
            (git/get! g merge-commit)))))
@@ -205,22 +205,22 @@
         next-commit (.getName (commit! repo "foo.txt" "update" "update message" (.resolve repo cl)))]
 
     (is (= next-commit
-           (git/join-master g
-                            cl
-                            next-commit
-                            (fn [base ours theirs]
-                              {"foo.txt" "merge result"})))))
+           (git/join-master! g
+                             cl
+                             next-commit
+                             (fn [base ours theirs]
+                               {"foo.txt" "merge result"})))))
 
   ;; merge
   (let [[g c1 c2 cl cr] (make-bare-git)]
 
     (is (= {"foo.txt" "merge result"}
            (git/get! g
-                     (git/join-master g
-                                      c2
-                                      cr
-                                      (fn [base ours theirs]
-                                        {"foo.txt" "merge result"})))))))
+                     (git/join-master! g
+                                       c2
+                                       cr
+                                       (fn [base ours theirs]
+                                         {"foo.txt" "merge result"})))))))
 
 (deftest push-to-master-test
   ;; Not diverged
