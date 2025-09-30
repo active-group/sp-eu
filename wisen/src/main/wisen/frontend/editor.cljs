@@ -29,7 +29,8 @@
             [wisen.frontend.ask-ai :as ask-ai]
             [clojure.string :as string]
             [wisen.frontend.context :as context]
-            [wisen.frontend.translations :as tr]))
+            [wisen.frontend.translations :as tr]
+            [wisen.common.urn :as urn]))
 
 (def-record discard-edit-action
   [discard-edit-action-predicate
@@ -763,8 +764,11 @@
                              ds/plus-icon)
                     (pr-uri uri))
                    (dom/a
-                    {:id (tree/uri-string uri)
-                     :href (tree/uri-string uri)}
+                    (let [uri-string (tree/uri-string uri)]
+                      {:id uri-string
+                       :href (if (urn/urn? uri-string)
+                               (prefix/resource-description uri-string)
+                               uri-string)})
                     (pr-uri uri)))
 
                  (when (or (not (existential/existential? uri))

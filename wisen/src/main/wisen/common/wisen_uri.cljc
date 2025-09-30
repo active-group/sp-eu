@@ -4,7 +4,10 @@
 
 (defn is-wisen-uri? [uri]
   (and (string? uri)
-       (s/starts-with? uri (prefix/resource-prefix))))
+       (or (s/starts-with? uri (prefix/resource-prefix))
+           (s/starts-with? uri "urn:triples:"))))
 
 (defn wisen-uri-id [uri]
-  (subs uri (count (prefix/resource-prefix))))
+  (if (s/starts-with? uri "urn:triples:")
+    uri
+    (subs uri (count (prefix/resource-prefix)))))

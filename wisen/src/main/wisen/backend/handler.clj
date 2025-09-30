@@ -80,7 +80,7 @@
   (try
     (let [id (get-in request [:path-params :id])]
       {:status 303
-       :headers {"Location" (r/description-url-for-resource-id id)}})
+       :headers {"Location" (prefix/resource-description id)}})
     (catch Exception _e
       {:status 400})))
 

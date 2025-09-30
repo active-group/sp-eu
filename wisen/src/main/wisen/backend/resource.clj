@@ -1,9 +1,8 @@
 (ns wisen.backend.resource
-  (:require [wisen.common.prefix :as prefix]))
+  (:require [wisen.common.prefix :as prefix
+             wisen.common.urn :as urn]))
 
 (defn uri-for-resource-id [id]
-  (prefix/resource id))
-
-;; this must match wisen.common.routes/resource
-(defn description-url-for-resource-id [id]
-  (str (prefix/prefix) "/resource/" id "/about"))
+  (if (urn/urn? id)
+    id
+    (prefix/resource id)))

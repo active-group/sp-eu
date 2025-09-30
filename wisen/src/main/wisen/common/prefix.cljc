@@ -11,5 +11,8 @@
 (defn resource [resource-id]
   (str (prefix) "/resource/" resource-id))
 
+(defn resource-description [resource-id]
+  (str (prefix) "/resource/" resource-id "/about"))
+
 (defn resource-prefix []
   (str (prefix) "/resource/"))
