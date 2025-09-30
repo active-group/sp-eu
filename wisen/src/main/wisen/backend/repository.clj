@@ -35,8 +35,18 @@
    (jena/changeset base local)
    (jena/changeset base remote)))
 
+(defn- is-json-ld-filename? [s]
+  (boolean (re-matches #".*\.json(ld)?$" s)))
+
 (defn- folder->model [folder]
-  (jena/string->model (get folder model-filename)))
+  (reduce (fn [model [filename file-tree]]
+            (if (and (string? file-tree)
+                     (is-json-ld-filename? filename))
+              (jena/union model
+                          (jena/string->model file-tree))
+              model))
+          jena/empty-model
+          folder))
 
 (defn- model->folder [model]
   {model-filename (jena/model->string model)})
@@ -67,8 +77,7 @@
     (fn [g]
       (let [head-candidate (git/head! g)
             folder (git/get! g head-candidate)
-            s (get folder model-filename)
-            mdl (jena/string->model s)
+            mdl (folder->model folder)
             [mdl-skolemized changed?] (skolem/skolemize-model mdl prefix)]
 
         ;; write back when changed and return new commit-id as head
@@ -80,14 +89,13 @@
   (with-read-git
     repo-uri
     (fn [g]
-      (let [folder (git/get! g commit-id)
-            s (get folder model-filename)]
-        (jena/string->model s)))))
+      (let [folder (git/get! g commit-id)]
+        (folder->model folder)))))
 
 (defn write! [repo-uri commit-id model commit-message]
   (let [git (git/clone! repo-uri)
         change-commit-id (git/commit! git
-                                      {model-filename (jena/model->string model)}
+                                      (model->folder model)
                                       commit-message
                                       commit-id)
         new-head (git/join-master! git

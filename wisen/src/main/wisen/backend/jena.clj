@@ -118,5 +118,8 @@
           (remove-statement! model (change-api/delete-statement change)))
         (recur (rest changeset*))))))
 
+(def empty-model
+  (ModelFactory/createDefaultModel))
+
 (defn union [model-1 model-2]
   (.union model-1 model-2))
