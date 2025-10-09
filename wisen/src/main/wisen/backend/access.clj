@@ -162,7 +162,8 @@
 (declare decorate-geo!)
 
 (defn- update-model! [repo-uri commit-id commit-message f]
-  (let [{model :model} (cache-get! repo-uri commit-id)
+  (repository/update!! repo-uri commit-id f commit-message)
+  #_(let [{model :model} (cache-get! repo-uri commit-id)
         model* (f model)
         result-commit-id (repository/write! repo-uri commit-id model* commit-message)]
     result-commit-id))
@@ -177,7 +178,8 @@
 
 (defn change! [repo-uri commit-id changeset]
   (let [result-commit-id
-        (update-model! repo-uri
+        (repository/folder-apply-changeset! repo-uri commit-id changeset)
+        #_(update-model! repo-uri
                        commit-id
                        "Change"
                        (fn [model]

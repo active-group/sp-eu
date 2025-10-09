@@ -1,27 +1,141 @@
 (ns wisen.backend.repository-test
   (:require [clojure.test :refer [deftest is]]
-            [wisen.backend.repository :as r]))
+            [wisen.backend.repository :as r]
+            [wisen.backend.jena :as jena]
+            [wisen.backend.git-tree :as git-tree]
+            [wisen.common.change-api :as change-api]))
 
 (deftest merge-folders-test
   (is (=
-       {"model.json" "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n"}
-       (r/merge-folders {"model.json" "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}"}
-                        {"model.json" "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}"}
-                        {"model.json" "{\"@id\": \"http://x.com\", \"http://schema.org/name\": \"Quarki\"}"})))
+       (git-tree/make-folder
+        {"model.json"
+         (git-tree/make-file
+          "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})
+       (r/merge-folders (git-tree/make-folder
+                         {"model.json"
+                          (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}")})
+                        (git-tree/make-folder
+                         {"model.json"
+                          (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}")})
+                        (git-tree/make-folder
+                         {"model.json"
+                          (git-tree/make-file "{\"@id\": \"http://x.com\", \"http://schema.org/name\": \"Quarki\"}")}))))
 
   ;; multiple json-ld files
   (is (=
 
-       {"model.json"
-        "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/email\": \"bla@bar.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n"}
+       (git-tree/make-folder
+        {"model.json"
+         (git-tree/make-file "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/email\": \"bla@bar.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})
 
        (r/merge-folders
 
-        {"m1.json" "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}"
-         "m2.json" "{\"@id\": \"http://x.com\",\"http://schema.org/email\": \"foo@bar.com\"}"}
+        (git-tree/make-folder
+         {"m1.json" (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}")
+          "m2.json" (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/email\": \"foo@bar.com\"}")})
 
-        {"m1.json" "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}"
-         "m2.json" "{\"@id\": \"http://x.com\",\"http://schema.org/email\": \"bla@bar.com\"}"}
+        (git-tree/make-folder
+         {"m1.json" (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}")
+          "m2.json" (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/email\": \"bla@bar.com\"}")})
 
-        {"m1.json" "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Quarki\"}"
-         "m2.json" "{\"@id\": \"http://x.com\",\"http://schema.org/email\": \"foo@bar.com\"}"}))))
+        (git-tree/make-folder
+         {"m1.json" (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Quarki\"}")
+          "m2.json" (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/email\": \"foo@bar.com\"}")})))))
+
+(defn apply-changeset-commutes [changeset folder]
+
+  ;;  folder1 ----[r/apply-changeset!]---> folder2
+  ;;    |                                    |
+  ;;   [folder->model]                      [folder->model]
+  ;;    |                                    |
+  ;;    v                                    v
+  ;;  model1 ----[jena/apply-changeset!]---> model2
+
+  (is (= (jena/model->string
+          (jena/apply-changeset!
+           (r/folder->model folder)
+           changeset))
+
+         (jena/model->string
+          (r/folder->model
+           (r/folder-apply-changeset changeset folder))))))
+
+(deftest folder-apply-changeset-test
+  (apply-changeset-commutes
+   []
+   (git-tree/empty-folder))
+
+  (apply-changeset-commutes
+   [(change-api/make-add
+     (change-api/make-statement
+      "urn:markus"
+      "urn:says"
+      (change-api/make-literal-string "hi")))]
+   (git-tree/empty-folder))
+
+  (apply-changeset-commutes
+   [(change-api/make-delete
+     (change-api/make-statement
+      "urn:markus"
+      "urn:says"
+      (change-api/make-literal-string "hi")))]
+   (-> (git-tree/empty-folder)
+       (git-tree/assoc
+        "0.nt" ;; "urn:markus" -> "0.nt"
+        (git-tree/make-file "<urn:markus> <urn:says> \"hi\" .")
+        )))
+
+  (apply-changeset-commutes
+   [(change-api/make-delete
+     (change-api/make-statement
+      "urn:markus"
+      "urn:says"
+      (change-api/make-literal-string "hi")))]
+   (-> (git-tree/empty-folder)
+       (git-tree/assoc
+        "0.nt" ;; "urn:markus" -> "0.nt"
+        (git-tree/make-file "<urn:bla> <urn:foo> <urn:bar> .\n
+                             <urn:markus> <urn:says> \"hi\" .")
+        )))
+
+  ;; unaffected files must not be touched
+  (apply-changeset-commutes
+   [(change-api/make-delete
+     (change-api/make-statement
+      "urn:markus"
+      "urn:says"
+      (change-api/make-literal-string "hi")))]
+   (-> (git-tree/empty-folder)
+       (git-tree/assoc
+        "0.nt" ;; "urn:markus" -> "0.nt"
+        (git-tree/make-file "<urn:markus> <urn:says> \"hi\" ."))
+       (git-tree/assoc
+        "1.nt"
+        (git-tree/make-file
+         "<urn:bla> <urn:foo> <urn:bar> ."))))
+
+  (let [folder (-> (git-tree/empty-folder)
+                   (git-tree/assoc
+                    "0.nt" ;; "urn:markus" -> "0.nt"
+                    (git-tree/make-file "<urn:markus> <urn:says> \"hi\" ."))
+                   (git-tree/assoc
+                    "1.nt"
+                    (git-tree/make-file
+                     "OBJ-ID-1"
+                     "<urn:bla> <urn:foo> <urn:bar> .")))
+        changeset [(change-api/make-delete
+                    (change-api/make-statement
+                     "urn:markus"
+                     "urn:says"
+                     (change-api/make-literal-string "hi")))]]
+
+    (is (= (-> (git-tree/empty-folder)
+               (git-tree/assoc
+                "0.nt" ;; "urn:markus" -> "0.nt"
+                (git-tree/make-file ""))
+               (git-tree/assoc
+                "1.nt"
+                (git-tree/make-file
+                 "OBJ-ID-1"
+                 "<urn:bla> <urn:foo> <urn:bar> .")))
+           (r/folder-apply-changeset changeset folder)))))

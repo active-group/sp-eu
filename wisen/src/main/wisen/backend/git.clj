@@ -1,10 +1,12 @@
 (ns wisen.backend.git
+  (:refer-clojure :exclude [update])
   (:require [active.data.record :refer [def-record]]
             [clojure.java.io :as io]
             [wisen.common.prefix :refer [prefix]]
             [active.data.realm :as realm]
             [active.clojure.logger.event :as event-logger]
-            [clojure.java.io :as io])
+            [clojure.java.io :as io]
+            [wisen.backend.git-tree :as git-tree])
   (:import
    (java.io File)
    (java.nio.file Files)
@@ -22,19 +24,6 @@
 
 ;; ---
 
-(declare file-tree)
-
-(def file realm/string)
-
-(def filename realm/string)
-
-(def folder
-  (realm/map-of filename
-                (realm/delay file-tree)))
-
-(def file-tree
-  (realm/union file folder))
-
 (def commit-id realm/string)
 
 ;; ---
@@ -44,56 +33,17 @@
    (.getDirectory
     (.getRepository g))))
 
-(defn- get-string-for-id! [repo object-id]
-  (String. (.getBytes (.open repo object-id))
-           StandardCharsets/UTF_8))
-
-(defn- get-tree-for-tree-id! [repo tree-id]
+(defn- get-tree-for-tree-id!
+  "result : RevTree"
+  [repo tree-id]
   (let [rw (RevWalk. repo)]
     (.parseTree rw tree-id)))
 
 (defn- jgit-tree->file-tree [repo tree]
-  (let [tw (doto (TreeWalk. repo)
-             (.addTree tree)
-             (.setRecursive false))]
-    (loop [acc {}]
-      (if (.next tw)
-        (let [name (.getNameString tw)
-              obj-id (.getObjectId tw 0)]
-          (recur
-           (assoc acc
-                  name
-                  (if (.isSubtree tw)
-                    ;; subtree
-                    (jgit-tree->file-tree
-                     repo
-                     (get-tree-for-tree-id! repo obj-id))
-                    ;; else leaf
-                    (get-string-for-id! repo obj-id)))))
-        ;; else done
-        acc))))
+  (git-tree/from-jgit repo tree))
 
-(defn- insert-string! [repo s]
-  (let [inserter (.newObjectInserter repo)
-        blob-id (.insert inserter Constants/OBJ_BLOB
-                         (.getBytes s "UTF-8"))]
-    (.flush inserter)
-    blob-id))
-
-(defn- folder->jgit-tree! [repo file-tree]
-  (let [inserter (.newObjectInserter repo)
-        formatter (new TreeFormatter)]
-
-    (doseq [[name ft] file-tree]
-      (if (string? ft)
-        (let [blob-id (insert-string! repo ft)]
-          (.append formatter name FileMode/REGULAR_FILE blob-id))
-        ;; else folder
-        (let [tree-id (folder->jgit-tree! repo ft)]
-          (.append formatter name FileMode/TREE tree-id))))
-    
-    (.flush inserter)
-    (.insert inserter formatter)))
+(defn- folder->jgit-tree! [repo folder]
+  (git-tree/to-jgit repo folder))
 
 (defn- create-temp-dir! [name]
   (.toFile
@@ -214,6 +164,15 @@
             commit-id (.insert inserter commit-builder)]
         (.flush inserter)
         (.getName commit-id)))))
+
+(defn update [git tree-f & [commit-message]]
+  (fn [commit-id]
+    (let [in-tree (get! git commit-id)
+          out-tree (tree-f in-tree)]
+      (commit! git
+               out-tree
+               (or commit-message "update")
+               commit-id))))
 
 (defn merge-base
   "Returns a commit-id"

@@ -1,6 +1,7 @@
 (ns wisen.backend.git-test
   (:require [clojure.test :refer [deftest is]]
-            [wisen.backend.git :as git])
+            [wisen.backend.git :as git]
+            [wisen.backend.git-tree :as git-tree])
   (:import
    (java.io File)
    (java.nio.file Files)
@@ -117,16 +118,38 @@
 (deftest get-test
   (let [[g c1 c2 cl cr] (make-bare-git)]
 
-    (is (= {"foo.txt" "initial"}
+    #_(is (= "initial"
+             (git-tree/file-string
+              (git-tree/get (git/get! g c1)
+                            "foo.txt"))))
+
+    (is (= (git-tree/make-folder
+            "e1c397a817f537f406d9eedfade7bd57d05a4949"
+            {"foo.txt"
+             (git-tree/make-file "c72f08c3900d3b64371fe8d74f09624e277be2c6"
+                                 "initial")})
            (git/get! g c1)))
 
-    (is (= {"foo.txt" "<2>"}
+
+    (is (= (git-tree/make-folder
+            "a1ad2dc0023fd814cbee2abe5b10170415c329ea"
+            {"foo.txt"
+             (git-tree/make-file "84f9ee49fe0a58c59fe0508612eb3b59c7761cc4"
+                                 "<2>")})
            (git/get! g c2)))
 
-    (is (= {"foo.txt" "<l>"}
+    (is (= (git-tree/make-folder
+            "0a44169aa44282e11191413aa680d9eab5c9c6a7"
+            {"foo.txt"
+             (git-tree/make-file "b5a10de8d5434349e0f9d25d77dec274bdd30837"
+                                 "<l>")})
            (git/get! g cl)))
 
-    (is (= {"foo.txt" "<r>"}
+    (is (= (git-tree/make-folder
+            "19fd831b0b08a853d0b0fac8cb26a9169fa14dcd"
+            {"foo.txt"
+             (git-tree/make-file "0344962bd87d7ebe1e571f03c0d08b7e85f4d88d"
+                                 "<r>")})
            (git/get! g cr)))))
 
 (deftest clone-test
@@ -142,7 +165,12 @@
         remote-url (str "file://" (git/git-directory g-origin))
         g-local (git/clone! remote-url)
 
-        next-commit-id (git/commit! g-origin {"foo.txt" "neu"} "message" cl)
+        next-commit-id (git/commit! g-origin
+                                    (-> (git-tree/empty-folder)
+                                        (git-tree/assoc "foo.txt"
+                                                        (git-tree/make-file "neu")))
+                                    "message"
+                                    cl)
         update-res (git/update-master-ref! g-origin cl next-commit-id)
         ]
 
@@ -157,9 +185,18 @@
 
 (deftest commit-test
   (let [[g c1 c2 cl cr] (make-bare-git)
-        next-commit-id (git/commit! g {"foo.txt" "neu"} "message" cl)]
+        next-commit-id (git/commit! g
+                                    (-> (git-tree/empty-folder)
+                                        (git-tree/assoc "foo.txt"
+                                                        (git-tree/make-file "neu")))
+                                    "message"
+                                    cl)]
 
-    (is (= {"foo.txt" "neu"}
+    (is (= (git-tree/make-folder
+            "cddd7c6d2444a1d0f1e3a1694fecee7a464db730"
+            {"foo.txt"
+             (git-tree/make-file "3d6ef48cccf032ad21b9180358d000c61166cc09"
+                                 "neu")})
            (git/get! g next-commit-id)))))
 
 (deftest merge-base-test
@@ -175,7 +212,9 @@
                                 c1
                                 c2
                                 (fn [base ours theirs]
-                                  {"foo.txt" "merge result"}))]
+                                  (-> (git-tree/empty-folder)
+                                      (git-tree/assoc "foo.txt"
+                                                      (git-tree/make-file "merge-result")))))]
 
     (is (= c2
            merge-commit)))
@@ -186,7 +225,9 @@
                                 c2
                                 c1
                                 (fn [base ours theirs]
-                                  {"foo.txt" "merge result"}))]
+                                  (-> (git-tree/empty-folder)
+                                      (git-tree/assoc "foo.txt"
+                                                      (git-tree/make-file "merge-result")))))]
 
     (is (= c2 merge-commit)))
 
@@ -196,12 +237,19 @@
                                 cl
                                 cr
                                 (fn [base ours theirs]
-                                  {"foo.txt"
-                                   (str
-                                    (get ours "foo.txt")
-                                    (get theirs "foo.txt"))}))]
+                                  (-> (git-tree/empty-folder)
+                                      (git-tree/assoc "foo.txt"
+                                                      (git-tree/make-file
+                                                       (str (git-tree/file-string
+                                                             (git-tree/get ours "foo.txt"))
+                                                            (git-tree/file-string
+                                                             (git-tree/get theirs "foo.txt"))))))))]
 
-    (is (= {"foo.txt" "<l><r>"}
+    (is (= (git-tree/make-folder
+            "6b00705753c25719db1f84d8608da0a8a153bd24"
+            {"foo.txt"
+             (git-tree/make-file "9984b19f56670a42be817fce1e61b4e05d665884"
+                                 "<l><r>")})
            (git/get! g merge-commit)))))
 
 (deftest join-master-test
@@ -214,7 +262,9 @@
            (git/join-master! g
                              next-commit
                              (fn [base ours theirs]
-                               {"foo.txt" "merge result"}))))
+                               (-> (git-tree/empty-folder)
+                                   (git-tree/assoc "foo.txt"
+                                                   (git-tree/make-file "merge-result")))))))
 
     (is (= next-commit
            (git/head! g))))
@@ -222,15 +272,22 @@
   ;; merge
   (let [[g c1 c2 cl cr] (make-bare-git)]
 
-    (is (= {"foo.txt" "<l><r>"}
+    (is (= (git-tree/make-folder
+            "6b00705753c25719db1f84d8608da0a8a153bd24"
+            {"foo.txt"
+             (git-tree/make-file "9984b19f56670a42be817fce1e61b4e05d665884"
+                                 "<l><r>")})
            (git/get! g
                      (git/join-master! g
                                        cr
                                        (fn [base ours theirs]
-                                         {"foo.txt"
-                                          (str
-                                           (get ours "foo.txt")
-                                           (get theirs "foo.txt"))})))))))
+                                         (-> (git-tree/empty-folder)
+                                             (git-tree/assoc "foo.txt"
+                                                             (git-tree/make-file
+                                                              (str (git-tree/file-string
+                                                                    (git-tree/get ours "foo.txt"))
+                                                                   (git-tree/file-string
+                                                                    (git-tree/get theirs "foo.txt")))))))))))))
 
 (deftest sync-master-test
   ;; Not diverged
@@ -239,14 +296,21 @@
         remote-url (str "file://" (git/git-directory g-origin))
         g-local (git/clone! remote-url)
 
-        next-commit-id (git/commit! g-local {"foo.txt" "neu"} "message" cl)
+        next-commit-id (git/commit! g-local
+                                    (-> (git-tree/empty-folder)
+                                        (git-tree/assoc "foo.txt"
+                                                        (git-tree/make-file "neu")))
+                                    "message"
+                                    cl)
         update-res (git/update-master-ref! g-local cl next-commit-id)
 
         _ (is (git/update-successful? update-res))
 
         sync-result (git/sync-master! g-local
                                       (fn [base ours theirs]
-                                        {"foo.txt" "merge result"}))]
+                                        (-> (git-tree/empty-folder)
+                                            (git-tree/assoc "foo.txt"
+                                                            (git-tree/make-file "merge-result")))))]
 
     
 
@@ -259,13 +323,23 @@
         remote-url (str "file://" (git/git-directory g-origin))
         g-local (git/clone! remote-url)
 
-        origin-next-commit-id (git/commit! g-origin {"foo.txt" "<origin>"} "message" cl)
+        origin-next-commit-id (git/commit! g-origin
+                                           (-> (git-tree/empty-folder)
+                                               (git-tree/assoc "foo.txt"
+                                                               (git-tree/make-file "<origin>")))
+                                           "message"
+                                           cl)
         _ (println "origin-next-commit-id: " origin-next-commit-id)
         origin-update-res (git/update-master-ref! g-origin cl origin-next-commit-id)
         _ (is (git/update-successful? origin-update-res))
         _ (is (= origin-next-commit-id (git/head! g-origin)))
 
-        local-next-commit-id (git/commit! g-local {"foo.txt" "<local>"} "message" cl)
+        local-next-commit-id (git/commit! g-local
+                                          (-> (git-tree/empty-folder)
+                                              (git-tree/assoc "foo.txt"
+                                                              (git-tree/make-file "<local>")))
+                                          "message"
+                                          cl)
         _ (println "local-next-commit-id: " local-next-commit-id)
         local-update-res (git/update-master-ref! g-local cl local-next-commit-id)
         _ (is (git/update-successful? local-update-res))
@@ -273,12 +347,19 @@
 
         sync-result (git/sync-master! g-local
                                       (fn [base ours theirs]
-                                        {"foo.txt"
-                                         (str
-                                          (get ours "foo.txt")
-                                          (get theirs "foo.txt"))}))]
+                                        (-> (git-tree/empty-folder)
+                                            (git-tree/assoc "foo.txt"
+                                                            (git-tree/make-file
+                                                             (str (git-tree/file-string
+                                                                   (git-tree/get ours "foo.txt"))
+                                                                  (git-tree/file-string
+                                                                   (git-tree/get theirs "foo.txt"))))))))]
 
     
 
-    (is (= {"foo.txt" "<local><origin>"}
+    (is (= (git-tree/make-folder
+            "9f1d34ec3b321067205cb2c0b90e63a7b2c2803f"
+            {"foo.txt"
+             (git-tree/make-file "d2e801cdb7c9e1125b6b759d7bfb6c4a385393c7"
+                                 "<local><origin>")})
            (git/get! g-origin sync-result)))))

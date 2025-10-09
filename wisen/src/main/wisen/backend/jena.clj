@@ -13,13 +13,13 @@
   (let [model (ModelFactory/createDefaultModel)]
     (doto (RDFParser/create)
       (.source (java.io.StringReader. s))
-      (.lang Lang/JSONLD11)
+      (.lang Lang/NTRIPLES)
       (.parse model))
     model))
 
 (defn model->string [model]
   (with-out-str
-    (.write model *out* "JSONLD")))
+    (.write model *out* "NTRIPLES")))
 
 (defn unwrap [node]
   (cond
@@ -118,7 +118,7 @@
           (remove-statement! model (change-api/delete-statement change)))
         (recur (rest changeset*))))))
 
-(def empty-model
+(defn empty-model []
   (ModelFactory/createDefaultModel))
 
 (defn union [model-1 model-2]
