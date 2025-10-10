@@ -110,13 +110,13 @@
   (cache.wrapped/lookup-or-miss cache
                                 (cache-key repo-uri commit-id)
                                 (fn [k]
-                                  (let [model (repository/read! repo-uri commit-id)
-                                        index (model->index model)]
+                                  (let [model (repository/read! repo-uri commit-id)]
                                     {:model model
-                                     :index index}))))
+                                     :index (future (model->index model))}))))
 
 (defn search! [repo-uri commit-id query range]
-  (let [{model :model index :index} (cache-get! repo-uri commit-id)
+  (let [{model :model index-future :index} (cache-get! repo-uri commit-id)
+        index @index-future
 
         [start-index cnt] range
         bb (query/query-geo-bounding-box query)
@@ -180,10 +180,20 @@
   (let [result-commit-id
         (repository/folder-apply-changeset! repo-uri commit-id changeset)
         #_(update-model! repo-uri
-                       commit-id
-                       "Change"
-                       (fn [model]
-                         (jena/apply-changeset! model changeset)))]
+                         commit-id
+                         "Change"
+                         (fn [model]
+                           (jena/apply-changeset! model changeset)))]
+    ;; pre-populate cache, which here we can do very performantly
+    (let [{model :model} (cache-get! repo-uri commit-id)]
+      (cache.wrapped/through-cache cache
+                                   [repo-uri result-commit-id]
+                                   (constantly
+                                    {:model
+                                     (jena/apply-changeset! model changeset)
+                                     :index
+                                     (future
+                                       (model->index model))})))
     (schedule! #(decorate-geo! repo-uri result-commit-id))
     result-commit-id))
 
@@ -222,7 +232,7 @@
    reference-name])
 
 (defn references! [repo-uri commit-id resource-uri]
-  (let [model (repository/read! repo-uri commit-id)
+  (let [{model :model} (cache-get! repo-uri commit-id)
         q (str "SELECT DISTINCT ?reference ?name WHERE { ?reference ?p <"
                resource-uri "> . OPTIONAL { ?reference <http://schema.org/name> ?name . } }")
         result (search/run-select-query model q)]
