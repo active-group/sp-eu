@@ -5,12 +5,33 @@
             [wisen.backend.git-tree :as git-tree]
             [wisen.common.change-api :as change-api]))
 
+(deftest folder->model-test
+  (is (= "<http://x.com> <http://schema.org/name> \"Quarki\" .\n"
+         (jena/model->nt
+          (r/folder->model
+           (git-tree/make-folder
+            {"foo.json"
+             (git-tree/make-file
+              "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})))))
+
+  (is (= "<http://x.com> <http://schema.org/description> \"foo\" .\n<http://x.com> <http://schema.org/name> \"Quarki\" .\n"
+         (jena/model->nt
+          (r/folder->model
+           (git-tree/make-folder
+            {"foo.json"
+             (git-tree/make-file
+              "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")
+             "foo.nt"
+             (git-tree/make-file
+              "<http://x.com> <http://schema.org/description> \"foo\" .\n")}))))))
+
 (deftest merge-folders-test
+  ;; Note: upon merge we transform from json-ld to NTRIPLES
   (is (=
        (git-tree/make-folder
-        {"model.json"
+        {"24.nt"
          (git-tree/make-file
-          "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})
+          "<http://x.com> <http://schema.org/name> \"Quarki\" .\n")})
        (r/merge-folders (git-tree/make-folder
                          {"model.json"
                           (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Marki\"}")})
@@ -25,8 +46,10 @@
   (is (=
 
        (git-tree/make-folder
-        {"model.json"
-         (git-tree/make-file "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/email\": \"bla@bar.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})
+        {"24.nt"
+         (git-tree/make-file
+          "<http://x.com> <http://schema.org/name> \"Quarki\" .\n<http://x.com> <http://schema.org/email> \"bla@bar.com\" .\n"
+          #_"{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/email\": \"bla@bar.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})
 
        (r/merge-folders
 
@@ -42,7 +65,7 @@
          {"m1.json" (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/name\": \"Quarki\"}")
           "m2.json" (git-tree/make-file "{\"@id\": \"http://x.com\",\"http://schema.org/email\": \"foo@bar.com\"}")})))))
 
-(defn apply-changeset-commutes [changeset folder]
+(defmacro apply-changeset-commutes [changeset folder]
 
   ;;  folder1 ----[r/apply-changeset!]---> folder2
   ;;    |                                    |
@@ -51,14 +74,14 @@
   ;;    v                                    v
   ;;  model1 ----[jena/apply-changeset!]---> model2
 
-  (is (= (jena/model->string
-          (jena/apply-changeset!
-           (r/folder->model folder)
-           changeset))
+  `(is (= (jena/model->nt
+           (jena/apply-changeset!
+            (r/folder->model ~folder)
+            ~changeset))
 
-         (jena/model->string
-          (r/folder->model
-           (r/folder-apply-changeset changeset folder))))))
+          (jena/model->nt
+           (r/folder->model
+            (r/folder-apply-changeset ~changeset ~folder))))))
 
 (deftest folder-apply-changeset-test
   (apply-changeset-commutes
@@ -81,7 +104,7 @@
       (change-api/make-literal-string "hi")))]
    (-> (git-tree/empty-folder)
        (git-tree/assoc
-        "0.nt" ;; "urn:markus" -> "0.nt"
+        "30.nt" ;; "urn:markus" -> "30.nt"
         (git-tree/make-file "<urn:markus> <urn:says> \"hi\" .")
         )))
 
@@ -93,7 +116,7 @@
       (change-api/make-literal-string "hi")))]
    (-> (git-tree/empty-folder)
        (git-tree/assoc
-        "0.nt" ;; "urn:markus" -> "0.nt"
+        "30.nt" ;; "urn:markus" -> "30.nt"
         (git-tree/make-file "<urn:bla> <urn:foo> <urn:bar> .\n
                              <urn:markus> <urn:says> \"hi\" .")
         )))
@@ -107,7 +130,7 @@
       (change-api/make-literal-string "hi")))]
    (-> (git-tree/empty-folder)
        (git-tree/assoc
-        "0.nt" ;; "urn:markus" -> "0.nt"
+        "30.nt" ;; "urn:markus" -> "30.nt"
         (git-tree/make-file "<urn:markus> <urn:says> \"hi\" ."))
        (git-tree/assoc
         "1.nt"
@@ -116,7 +139,7 @@
 
   (let [folder (-> (git-tree/empty-folder)
                    (git-tree/assoc
-                    "0.nt" ;; "urn:markus" -> "0.nt"
+                    "30.nt" ;; "urn:markus" -> "30.nt"
                     (git-tree/make-file "<urn:markus> <urn:says> \"hi\" ."))
                    (git-tree/assoc
                     "1.nt"
@@ -131,7 +154,7 @@
 
     (is (= (-> (git-tree/empty-folder)
                (git-tree/assoc
-                "0.nt" ;; "urn:markus" -> "0.nt"
+                "30.nt" ;; "urn:markus" -> "30.nt"
                 (git-tree/make-file ""))
                (git-tree/assoc
                 "1.nt"

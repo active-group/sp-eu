@@ -39,14 +39,25 @@
    (jena/changeset base remote)))
 
 (defn- is-nt-filename? [s]
-  (boolean (re-matches #".*\.nt?$" s)))
+  (boolean (re-matches #".*\.nt$" s)))
+
+(defn- is-jsonld-filename? [s]
+  (boolean (re-matches #".*\.json(ld)?$" s)))
 
 (defn folder->model [folder]
   (reduce (fn [model [filename file-tree]]
-            (if (and (git-tree/file? file-tree)
-                     (is-nt-filename? filename))
-              (jena/union model
-                          (jena/string->model (git-tree/file-string file-tree)))
+            (if (git-tree/file? file-tree)
+              (cond
+                (is-nt-filename? filename)
+                (jena/union model
+                            (jena/nt->model (git-tree/file-string file-tree)))
+
+                (is-jsonld-filename? filename)
+                (jena/union model
+                            (jena/jsonld->model (git-tree/file-string file-tree)))
+
+                :else
+                model)
               model))
           (jena/empty-model)
           (git-tree/folder-contents folder)))
@@ -76,78 +87,11 @@
   (classifier-filename
    (uri-classifier (.getURI (.getSubject stmt)))))
 
-(defn- model->string [model]
-  (with-out-str
-    (.write model *out* "NTRIPLES")))
-
 (defn- statements->string-jena [stmts]
-  (model->string
+  (jena/model->nt
    (let [mdl (jena/empty-model)]
      (.add mdl stmts)
      mdl)))
-
-#_(comment
-
-  
-
-  (defn- node->string [node]
-    (if (instance? org.apache.jena.rdf.model.Literal node)
-      (let [lang (.getLanguage node)
-            dt (.getDatatypeURI node)]
-        (str "\""
-             (.getString node)
-             "\""
-             (when (and lang
-                        (not= "" lang))
-               (str "@" lang))
-             (when (and dt
-                        (not= "" dt))
-               (str "^^<" dt ">")
-               )))
-      (str "<"
-           (.getURI node)
-           ">")))
-
-  (defn- append-statement! [sb stmt]
-    (.append sb "<")
-    (.append sb (.getURI (.getSubject stmt)))
-    (.append sb "> <")
-    (.append sb (.getURI (.getPredicate stmt)))
-    (.append sb "> ")
-    (.append sb (node->string (.getObject stmt)))
-    (.append sb " .\n"))
-
-  (defn- statements->string-sb [stmts]
-    (let [sb (StringBuilder.)]
-      (doseq [stmt stmts]
-        (append-statement! sb stmt))
-      (str sb)))
-
-  (defn- statements->string-str [stmts]
-    (reduce (fn [s stmt]
-              (str s (pr-str stmt)))
-            ""
-            stmts))
-
-  
-
-  (def ss
-    (take 100 (model-statements mdl)))
-
-  (def ss2 (model-statements mdl))
-
-  (defn- no [x]
-    "no")
-
-  (defn- do-time [x]
-    (time x))
-
-  (statements->string-sb ss2)
-  (statements->string-str ss2)
-  (statements->string-jena ss2)
-  (crit/bench (statements->string-sb ss))
-  (crit/bench (statements->string-str ss))
-  (crit/bench (statements->string-jena ss)))
 
 (defn- model-statements [model]
   (iterator-seq
@@ -164,25 +108,6 @@
 
 (defn model->folder [model]
   (statements->folder (model-statements model)))
-
-#_(comment
-  (def json (slurp "/Users/markusschlegel/Documents/active-group/SP-EU/live-data/model/model.json"))
-
-  (map count (vals (bucket-statements
-                    (take 50 (model-statements mdl)))))
-
-  (def little-statements
-    (take 10 (model-statements mdl)))
-
-  (map count (map git-tree/file-string (vals (git-tree/folder-contents (statements->folder little-statements)))))
-
-  (.getURI (.getSubject (first (model-statements mdl))))
-
-  (def mdl (jena/string->model json))
-  (def fldr (model->folder mdl))
-  (git-tree/file-string (first (vals (git-tree/folder-contents fldr))))
-  (take 3 (model->folder mdl))
-  (crit/bench (model->folder mdl)))
 
 (defn- via-3 [in out f]
   (fn [x y z]
@@ -251,14 +176,15 @@
 
 
 (defn- folder-apply-changeset* [folder [filename changeset]]
+  (println "folder-apply-changeset*" (pr-str folder filename changeset))
   (git-tree/update folder
                    filename
                    (fn [file-tree]
                      (let [model (if (git-tree/file? file-tree)
-                                   (jena/string->model (git-tree/file-string file-tree))
+                                   (jena/nt->model (git-tree/file-string file-tree))
                                    (jena/empty-model))]
                        (git-tree/make-file
-                        (jena/model->string
+                        (jena/model->nt
                          (jena/apply-changeset!
                           model
                           changeset)))))))

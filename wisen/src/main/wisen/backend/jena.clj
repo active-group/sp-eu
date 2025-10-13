@@ -9,7 +9,7 @@
 
 ;; TODO: skolemization when?
 
-(defn string->model [s]
+(defn nt->model [s]
   (let [model (ModelFactory/createDefaultModel)]
     (doto (RDFParser/create)
       (.source (java.io.StringReader. s))
@@ -17,7 +17,15 @@
       (.parse model))
     model))
 
-(defn model->string [model]
+(defn jsonld->model [s]
+  (let [model (ModelFactory/createDefaultModel)]
+    (doto (RDFParser/create)
+      (.source (java.io.StringReader. s))
+      (.lang Lang/JSONLD)
+      (.parse model))
+    model))
+
+(defn model->nt [model]
   (with-out-str
     (.write model *out* "NTRIPLES")))
 
