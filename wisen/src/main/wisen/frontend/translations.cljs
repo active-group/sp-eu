@@ -21,7 +21,8 @@
 
 (define-text search
   de "Suche"
-  en "Search")
+  en "Search"
+  fr "Chercher")
 
 (define-text search-everything
   de "Komplettsuche"
