@@ -176,7 +176,6 @@
 
 
 (defn- folder-apply-changeset* [folder [filename changeset]]
-  (println "folder-apply-changeset*" (pr-str folder filename changeset))
   (git-tree/update folder
                    filename
                    (fn [file-tree]
