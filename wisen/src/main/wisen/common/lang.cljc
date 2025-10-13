@@ -36,5 +36,6 @@
                   prs)]
     `(defn ~?name [lang# & args#]
        (or
-        (apply (get ~m lang#) args#)
+        (when-let [f# (get ~m lang#)]
+          (apply f# args#))
         (str '~?name)))))
