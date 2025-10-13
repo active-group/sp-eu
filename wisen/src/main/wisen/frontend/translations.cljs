@@ -6,6 +6,7 @@
 
 (def de "de")
 (def en "en")
+(def fr "fr")
 
 (defn- parse-bcp47 [s]
   (.-language (js/Intl.Locale. s)))
