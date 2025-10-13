@@ -11,7 +11,7 @@
    [wisen.backend.search :as search]
    [wisen.backend.jena :as jena]
    [clojure.string :as string]
-   [clojure.core.cache.wrapped :as cache.wrapped]))
+   [wisen.backend.access.cache :as cache]))
 
 (defn- direct-index-records [model]
   (let [res
@@ -91,6 +91,8 @@
     (via-event-index-records model)
     (via-contact-point-index-records model))))
 
+(def cache (cache/new-cache! model->index))
+
 (defn head! [prefix repo-uri]
   (repository/head! prefix repo-uri))
 
@@ -99,23 +101,8 @@
    search-result-relevance
    search-result-total-hits])
 
-;; map [repo-uri commit-id] -> {:index :model}
-(def ^:private cache (cache.wrapped/lru-cache-factory {}
-                                                      :threshold 4))
-
-(defn- cache-key [repo-uri commit-id]
-  [repo-uri commit-id])
-
-(defn- cache-get! [repo-uri commit-id]
-  (cache.wrapped/lookup-or-miss cache
-                                (cache-key repo-uri commit-id)
-                                (fn [k]
-                                  (let [model (repository/read! repo-uri commit-id)]
-                                    {:model model
-                                     :index (future (model->index model))}))))
-
 (defn search! [repo-uri commit-id query range]
-  (let [{model :model index-future :index} (cache-get! repo-uri commit-id)
+  (let [{model :model index-future :index} (cache/get! cache repo-uri commit-id)
         index @index-future
 
         [start-index cnt] range
@@ -177,23 +164,23 @@
              TimeUnit/SECONDS))
 
 (defn change! [repo-uri commit-id changeset]
-  (let [result-commit-id
-        (repository/folder-apply-changeset! repo-uri commit-id changeset)
-        #_(update-model! repo-uri
+  (let [cache-result (cache/get! cache repo-uri commit-id)
+        result-commit-id
+        (if (cache/result-is-controlled? cache-result)
+          ;; controlled -> performance shortcut via folder-apply-changeset!
+          (repository/folder-apply-changeset! repo-uri commit-id changeset)
+          ;; not controlled -> cannot shortcut
+          (update-model! repo-uri
                          commit-id
                          "Change"
                          (fn [model]
-                           (jena/apply-changeset! model changeset)))]
+                           (jena/apply-changeset! model changeset))))]
     ;; pre-populate cache, which here we can do very performantly
-    (let [{model :model} (cache-get! repo-uri commit-id)]
-      (cache.wrapped/through-cache cache
-                                   [repo-uri result-commit-id]
-                                   (constantly
-                                    {:model
-                                     (jena/apply-changeset! model changeset)
-                                     :index
-                                     (future
-                                       (model->index model))})))
+    (cache/set-model! cache
+                      repo-uri
+                      result-commit-id
+                      (jena/apply-changeset! (cache/result-model cache-result) changeset)
+                      true)
     (schedule! #(decorate-geo! repo-uri result-commit-id))
     result-commit-id))
 
@@ -206,7 +193,8 @@
            resource-uri
            "> ?p ?o . }")
 
-        {model :model} (cache-get! repo-uri commit-id)
+        model (cache/result-model
+               (cache/get! cache repo-uri commit-id))
 
         base-model
         (search/run-construct-query model q)
@@ -232,7 +220,8 @@
    reference-name])
 
 (defn references! [repo-uri commit-id resource-uri]
-  (let [{model :model} (cache-get! repo-uri commit-id)
+  (let [model (cache/result-model
+               (cache/get! cache repo-uri commit-id))
         q (str "SELECT DISTINCT ?reference ?name WHERE { ?reference ?p <"
                resource-uri "> . OPTIONAL { ?reference <http://schema.org/name> ?name . } }")
         result (search/run-select-query model q)]
@@ -244,7 +233,8 @@
          result)))
 
 (defn decorate-geo! [repo-uri commit-id]
-  (let [mdl (repository/read! repo-uri commit-id)
+  (let [mdl (cache/result-model
+             (cache/get! cache repo-uri commit-id))
         [mdl-decorated changed?] (decorator/decorate-geo! mdl)]
     (if changed?
       (repository/write! repo-uri commit-id mdl-decorated "Add geo information")
