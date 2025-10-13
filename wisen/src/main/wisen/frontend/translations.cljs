@@ -18,7 +18,8 @@
 (def language
   (realm/enum
    de
-   en))
+   en
+   fr))
 
 (define-text search
   de "Suche"

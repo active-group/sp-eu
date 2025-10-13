@@ -109,7 +109,9 @@
                 (new-graph)
                 (ds/select
                  (forms/option {:value tr/en} "en")
-                 (forms/option {:value tr/de} "de")))))))
+                 (forms/option {:value tr/de} "de")
+                 (forms/option {:value tr/fr} "fr")
+                 ))))))
 
 (def ^:private lang-local-storage-key
   "language")
