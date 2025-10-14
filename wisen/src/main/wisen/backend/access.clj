@@ -233,7 +233,7 @@
          result)))
 
 (defn decorate-geo! [repo-uri commit-id]
-  (let [mdl (cache/result-model
+  (let [mdl (cache/controlled-model
              (cache/get! cache repo-uri commit-id))
         [mdl-decorated changed?] (decorator/decorate-geo! mdl)]
     (if changed?
