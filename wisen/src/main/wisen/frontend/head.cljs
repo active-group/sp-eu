@@ -40,17 +40,19 @@
                (fn [_ _]
                  nil))))))
 
-(defn with-head-commit-id [k]
+(defn with-head-commit-id [loading k]
   (c/with-state-as [state commit-id :local nil]
     (c/fragment
 
-     (when (some? commit-id)
+     (if false #_(some? commit-id)
        (c/handle-action
         (c/focus lens/first
                  (k commit-id))
         (fn [[st comm-id] action]
           (if (set-head-commit-id-action? action)
             (c/return :state [st (set-head-commit-id-action-commit-id action)])
-            (c/return :action action)))))
+            (c/return :action action))))
+       ;; else loading
+       loading)
 
      (c/focus lens/second (load-head-commit-id)))))

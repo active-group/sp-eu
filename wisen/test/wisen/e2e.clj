@@ -14,4 +14,4 @@
       (e/fill {:tag :input :type :text :id "username"} "admin-user")
       (e/fill {:tag :input :type :password} "password")
       (e/click {:tag :button :type :submit :name "login"})
-      (e/wait-visible {:xpath "//a[text()='Search']"}))))
+      (e/wait-visible {:xpath "//*[@id='headspinner'] | //a[text()='Search']"}))))

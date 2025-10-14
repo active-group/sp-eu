@@ -20,7 +20,8 @@
             [reacl-c-basics.forms.core :as forms]
             [wisen.frontend.translations :as tr]
             [wisen.frontend.context :as context]
-            [wisen.frontend.localstorage :as ls]))
+            [wisen.frontend.localstorage :as ls]
+            [wisen.frontend.spinner :as spinner]))
 
 (defn menu [ctx]
   (letfn [(new-* [title initial-tree]
@@ -140,16 +141,20 @@
 (defn toplevel []
   (util/with-schemaorg
     (fn [schema]
-      (head/with-head-commit-id
-        (fn [head-commit-id]
-          (dom/div
-           {:style {:width "100%"
-                    :height "100%"
-                    :background "#eee"
-                    :display "flex"
-                    :flex-direction "column"
-                    :overflow "hidden"}}
-
+      (dom/div
+       {:style {:width "100%"
+                :height "100%"
+                :background "#eee"
+                :display "flex"
+                :flex-direction "column"
+                :overflow "hidden"}}
+       (head/with-head-commit-id
+         (dom/div {:style {:display "flex"
+                           :justify-content "center"
+                           :padding "2em"}}
+                  (spinner/main {:id "headspinner"}
+                                "Loading head commit id"))
+         (fn [head-commit-id]
            (with-lang
              (c/with-state-as lang
                (let [ctx (context/make lang schema head-commit-id)]
