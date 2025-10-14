@@ -200,6 +200,18 @@
                        (conj types
                              (edit-tree/tree-uri etree)))))))
 
+      (and (= predicate "http://schema.org/logo")
+           (or (edit-tree/edit-node? etree)
+               (edit-tree/ref? etree)))
+      (let [url (edit-tree/tree-uri etree)]
+        (dom/div
+         {:style {:height "100px"
+                  :border ds/border
+                  :border-radius "12px"
+                  :overflow "hidden"}}
+         (dom/img {:src url
+                   :height 100})))
+
       (and (= predicate "http://schema.org/dayOfWeek")
            (or (edit-tree/edit-node? etree)
                (edit-tree/ref? etree)))

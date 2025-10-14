@@ -490,4 +490,9 @@
    (text
     en "Performer"
     de "Ausführende(r)")
+
+   "http://schema.org/logo"
+   (text
+    en "Logo"
+    de "Logo")
    })
