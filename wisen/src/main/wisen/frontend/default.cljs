@@ -216,10 +216,10 @@
     (= kind tree/literal-boolean)
     (lit-b true)
 
-    (= type tree/literal-time)
+    (= kind tree/literal-time)
     (lit-t "10:00")
 
-    (= type tree/literal-date)
+    (= kind tree/literal-date)
     (lit-date "2025-01-01")
 
     (= kind tree/ref)
