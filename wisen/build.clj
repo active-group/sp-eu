@@ -32,15 +32,16 @@
       (System/exit exit))))
 
 (defn shadow-cljs [opts]
-  (let [target (:target opts)
+  (let [targets (:targets opts)
         task (:task opts)]
     (process
      (b/java-command {:basis @cljs-basis
                       :main 'clojure.main
-                      :main-args ["-m"
-                                  "shadow.cljs.devtools.cli"
-                                  task
-                                  target]}))))
+                      :main-args (concat
+                                  ["-m"
+                                   "shadow.cljs.devtools.cli"
+                                   task]
+                                  targets)}))))
 
 (defn compile-clj [_]
   (b/compile-clj {:basis @basis
@@ -60,7 +61,7 @@
 
 (defn uber [_]
   (clean nil)
-  (shadow-cljs {:task "release" :target "frontend"})
+  (shadow-cljs {:task "release" :targets ["frontend"]})
   (copy-dirs nil)
   (compile-clj nil)
   (make-uber nil))
@@ -80,7 +81,7 @@
       :basis basis})))
 
 (defn test-cljs [_]
-  (shadow-cljs {:task "compile" :target "karma-test"})
+  (shadow-cljs {:task "compile" :targets ["karma-test"]})
   (process {:command-args ["npx" "karma" "start" "--single-run"]}))
 
 (defn test-clj [_]
@@ -90,7 +91,7 @@
             :err :inherit}))
 
 (defn cljs-watch [_]
-  (shadow-cljs {:task "watch" :target "frontend"}))
+  (shadow-cljs {:task "watch" :targets ["frontend" "test"]}))
 
 (defn cljs-watch-test [_]
-  (shadow-cljs {:task "watch" :target "test"}))
+  (shadow-cljs {:task "watch" :targets ["test"]}))
