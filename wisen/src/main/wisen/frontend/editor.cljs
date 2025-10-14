@@ -501,7 +501,9 @@
                               (context/text ctx tr/set-reference)))))))))
 
 (defn- refresh-node-request [uri]
-  (ajax/GET uri
+  (ajax/GET (if (urn/urn? uri)
+              (prefix/resource-description uri)
+              uri)
             {:headers {"accept" "application/ld+json"}}))
 
 (c/defn-item ^:private refresh-node [uri]
