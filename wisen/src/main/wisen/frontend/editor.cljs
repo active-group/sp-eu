@@ -724,11 +724,15 @@
            (context/text-fn ctx tr/n-references-in-total n)
            (apply dom/ul
                   (map (fn [reference]
-                         (dom/li
-                          (when-let [name (:name reference)]
-                            (str name " – "))
-                          (dom/a {:href (:uri reference)}
-                                 (:uri reference))))
+                         (let [uri (:uri reference)]
+                           (dom/li
+                            (when-let [name (:name reference)]
+                              (str name " – "))
+                            (dom/a {:href
+                                    (if (urn/urn? uri)
+                                      (prefix/resource-description uri)
+                                      uri)}
+                                   uri))))
                        references)))
           (c/fragment
            (context/text ctx tr/no-references)
