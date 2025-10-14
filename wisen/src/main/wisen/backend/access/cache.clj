@@ -1,18 +1,25 @@
 (ns wisen.backend.access.cache
   (:require
-   [active.data.record :as record :refer [def-record]]
+   [active.data.record :as record :refer [def-record is-a?]]
    [clojure.core.cache.wrapped :as cache.wrapped]
    [wisen.backend.repository :as repository]
    [wisen.backend.index :as index]))
 
-(def-record result
-  [result-model
-   result-index-future
-   result-is-controlled?
-   ])
+(def-record controlled
+  [controlled-model
+   ^:private controlled-index-future])
 
-(defn result-index [cr]
-  @(result-index-future cr))
+(defn controlled? [x]
+  (is-a? controlled x))
+
+(defn controlled-index [x]
+  @(controlled-index-future x))
+
+(def-record uncontrolled
+  [uncontrolled-model])
+
+(defn uncontrolled? [x]
+  (is-a? uncontrolled x))
 
 (def-record ^:private cache
   [^:private cache-cache
@@ -39,18 +46,15 @@
                                 (fn [_k]
                                   (let [model (repository/read! repo-uri commit-id)
                                         model->index (cache-model->index cache)]
-                                    (result
-                                     result-model model
-                                     result-index-future (future (model->index model))
-                                     result-is-controlled? false)))))
+                                    (uncontrolled
+                                     uncontrolled-model model)))))
 
 
-(defn set-model! [cache repo-uri commit-id model controlled?]
+(defn set-model! [cache repo-uri commit-id model]
   (let [model->index (cache-model->index cache)]
     (cache.wrapped/through-cache (cache-cache cache)
                                  (cache-key repo-uri commit-id)
                                  (constantly
-                                  (result
-                                   result-model model
-                                   result-index-future (future (model->index model))
-                                   result-is-controlled? controlled?)))))
+                                  (controlled
+                                   controlled-model model
+                                   controlled-index-future (future (model->index model)))))))

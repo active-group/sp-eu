@@ -11,7 +11,8 @@
    [wisen.backend.search :as search]
    [wisen.backend.jena :as jena]
    [clojure.string :as string]
-   [wisen.backend.access.cache :as cache]))
+   [wisen.backend.access.cache :as cache]
+   [wisen.backend.skolem :as skolem]))
 
 (defn- direct-index-records [model]
   (let [res
@@ -94,7 +95,18 @@
 (def cache (cache/new-cache! model->index))
 
 (defn head! [prefix repo-uri]
-  (repository/head! prefix repo-uri))
+  (let [head-candidate (repository/head! prefix repo-uri)
+        result (cache/get! cache repo-uri head-candidate)]
+    (cond
+      (cache/controlled? result)
+      head-candidate
+
+      (cache/uncontrolled? result)
+      (let [model (cache/uncontrolled-model result)
+            [model-skolemized _changed?] (skolem/skolemize-model model prefix)]
+        (let [result-commit-id (repository/write! repo-uri head-candidate model-skolemized "Skolemize")]
+          (cache/set-model! cache repo-uri result-commit-id model-skolemized)
+          result-commit-id)))))
 
 (def-record search-result
   [search-result-model
@@ -102,8 +114,9 @@
    search-result-total-hits])
 
 (defn search! [repo-uri commit-id query range]
-  (let [{model :model index-future :index} (cache/get! cache repo-uri commit-id)
-        index @index-future
+  (let [controlled-result (cache/get! cache repo-uri commit-id)
+        model (cache/controlled-model controlled-result)
+        index (cache/controlled-index controlled-result)
 
         [start-index cnt] range
         bb (query/query-geo-bounding-box query)
@@ -149,11 +162,7 @@
 (declare decorate-geo!)
 
 (defn- update-model! [repo-uri commit-id commit-message f]
-  (repository/update!! repo-uri commit-id f commit-message)
-  #_(let [{model :model} (cache-get! repo-uri commit-id)
-        model* (f model)
-        result-commit-id (repository/write! repo-uri commit-id model* commit-message)]
-    result-commit-id))
+  (repository/update!! repo-uri commit-id f commit-message))
 
 (def ^:private scheduler (Executors/newScheduledThreadPool 1))
 
@@ -164,23 +173,14 @@
              TimeUnit/SECONDS))
 
 (defn change! [repo-uri commit-id changeset]
-  (let [cache-result (cache/get! cache repo-uri commit-id)
-        result-commit-id
-        (if (cache/result-is-controlled? cache-result)
-          ;; controlled -> performance shortcut via folder-apply-changeset!
-          (repository/folder-apply-changeset! repo-uri commit-id changeset)
-          ;; not controlled -> cannot shortcut
-          (update-model! repo-uri
-                         commit-id
-                         "Change"
-                         (fn [model]
-                           (jena/apply-changeset! model changeset))))]
+  ;; assert: commit-id refers to a controlled model
+  (let [controlled-result (cache/get! cache repo-uri commit-id)
+        result-commit-id (repository/folder-apply-changeset! repo-uri commit-id changeset)]
     ;; pre-populate cache, which here we can do very performantly
     (cache/set-model! cache
                       repo-uri
                       result-commit-id
-                      (jena/apply-changeset! (cache/result-model cache-result) changeset)
-                      true)
+                      (jena/apply-changeset! (cache/controlled-model controlled-result) changeset))
     (schedule! #(decorate-geo! repo-uri result-commit-id))
     result-commit-id))
 
@@ -193,7 +193,7 @@
            resource-uri
            "> ?p ?o . }")
 
-        model (cache/result-model
+        model (cache/controlled-model
                (cache/get! cache repo-uri commit-id))
 
         base-model
@@ -220,7 +220,7 @@
    reference-name])
 
 (defn references! [repo-uri commit-id resource-uri]
-  (let [model (cache/result-model
+  (let [model (cache/controlled-model
                (cache/get! cache repo-uri commit-id))
         q (str "SELECT DISTINCT ?reference ?name WHERE { ?reference ?p <"
                resource-uri "> . OPTIONAL { ?reference <http://schema.org/name> ?name . } }")

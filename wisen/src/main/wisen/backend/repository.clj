@@ -2,10 +2,7 @@
   (:require [wisen.backend.git :as git]
             [wisen.backend.git-tree :as git-tree]
             [wisen.common.change-api :as change-api]
-            [wisen.backend.jena :as jena]
-            [wisen.backend.skolem :as skolem]
-            [active.data.realm :as realm]
-            [active.clojure.lens :as lens]))
+            [wisen.backend.jena :as jena]))
 
 ;; This namespace realizes the idea that a tuple of repository-uri and
 ;; commit-id just represent a (RDF) model. `head!` is the only
@@ -130,17 +127,7 @@
 (declare write!)
 
 (defn head! [prefix repo-uri]
-  (with-read-git repo-uri
-    (fn [g]
-      (let [head-candidate (git/head! g)
-            folder (git/get! g head-candidate)
-            mdl (folder->model folder)
-            [mdl-skolemized changed?] (skolem/skolemize-model mdl prefix)]
-
-        ;; write back when changed and return new commit-id as head
-        (if changed?
-          (write! repo-uri head-candidate mdl-skolemized "Skolemize")
-          head-candidate)))))
+  (with-read-git repo-uri git/head!))
 
 (defn read! [repo-uri commit-id]
   (with-read-git
