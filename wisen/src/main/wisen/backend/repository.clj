@@ -5,8 +5,7 @@
             [wisen.backend.jena :as jena]
             [wisen.backend.skolem :as skolem]
             [active.data.realm :as realm]
-            [active.clojure.lens :as lens]
-            [criterium.core :as crit]))
+            [active.clojure.lens :as lens]))
 
 ;; This namespace realizes the idea that a tuple of repository-uri and
 ;; commit-id just represent a (RDF) model. `head!` is the only
