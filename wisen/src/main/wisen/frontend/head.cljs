@@ -44,7 +44,7 @@
   (c/with-state-as [state commit-id :local nil]
     (c/fragment
 
-     (if false #_(some? commit-id)
+     (if (some? commit-id)
        (c/handle-action
         (c/focus lens/first
                  (k commit-id))
