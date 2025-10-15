@@ -14,7 +14,7 @@
              (git-tree/make-file
               "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})))))
 
-  (is (= "<http://x.com> <http://schema.org/description> \"foo\" .\n<http://x.com> <http://schema.org/name> \"Quarki\" .\n"
+  (is (= "<http://x.com> <http://schema.org/name> \"Quarki\" .\n<http://x.com> <http://schema.org/description> \"foo\" .\n"
          (jena/model->nt
           (r/folder->model
            (git-tree/make-folder

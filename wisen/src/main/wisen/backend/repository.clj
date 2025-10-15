@@ -41,22 +41,20 @@
   (boolean (re-matches #".*\.json(ld)?$" s)))
 
 (defn folder->model [folder]
-  (reduce (fn [model [filename file-tree]]
-            (if (git-tree/file? file-tree)
-              (cond
-                (is-nt-filename? filename)
-                (jena/union model
-                            (jena/nt->model (git-tree/file-string file-tree)))
+  (apply jena/union
+         (pmap (fn [[filename file-tree]]
+                 (if (git-tree/file? file-tree)
+                   (cond
+                     (is-nt-filename? filename)
+                     (jena/nt->model (git-tree/file-string file-tree))
 
-                (is-jsonld-filename? filename)
-                (jena/union model
-                            (jena/jsonld->model (git-tree/file-string file-tree)))
+                     (is-jsonld-filename? filename)
+                     (jena/jsonld->model (git-tree/file-string file-tree))
 
-                :else
-                model)
-              model))
-          (jena/empty-model)
-          (git-tree/folder-contents folder)))
+                     :else
+                     (jena/empty-model))
+                   (jena/empty-model)))
+               (git-tree/folder-contents folder))))
 
 (defn- uri-classifier [uri]
   (mod (hash uri)
@@ -137,18 +135,19 @@
         (folder->model folder)))))
 
 (defn write! [repo-uri commit-id model commit-message]
-  (let [git (git/clone! repo-uri)
-        change-commit-id (git/commit! git
-                                      (model->folder model)
-                                      commit-message
-                                      commit-id)
-        new-head (git/join-master! git
-                                   change-commit-id
-                                   merge-folders)
-        push-commit (git/sync-master! git merge-folders)]
+  (with-read-git
+    repo-uri
+    (fn [git]
+      (let [change-commit-id (git/commit! git
+                                          (model->folder model)
+                                          commit-message
+                                          commit-id)
+            new-head (git/join-master! git
+                                       change-commit-id
+                                       merge-folders)
+            push-commit (git/sync-master! git merge-folders)]
 
-    (git/kill! git)
-    push-commit))
+        push-commit))))
 
 (defn update! [repo-uri commit-id tree-f & [commit-message]]
   (with-read-git

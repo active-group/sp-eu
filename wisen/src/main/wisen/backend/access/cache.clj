@@ -44,8 +44,7 @@
   (cache.wrapped/lookup-or-miss (cache-cache cache)
                                 (cache-key repo-uri commit-id)
                                 (fn [_k]
-                                  (let [model (repository/read! repo-uri commit-id)
-                                        model->index (cache-model->index cache)]
+                                  (let [model (repository/read! repo-uri commit-id)]
                                     (uncontrolled
                                      uncontrolled-model model)))))
 

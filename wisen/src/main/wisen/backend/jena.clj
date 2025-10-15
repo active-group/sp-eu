@@ -129,5 +129,13 @@
 (defn empty-model []
   (ModelFactory/createDefaultModel))
 
-(defn union [model-1 model-2]
-  (.union model-1 model-2))
+(defn- union-2 [m1 m2]
+  (ModelFactory/createUnion m1 m2))
+
+(defn union
+  ([]
+   (empty-model))
+  ([model]
+   model)
+  ([model & models]
+   (reduce union-2 model models)))
