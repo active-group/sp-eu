@@ -36,7 +36,7 @@
 
      (c/focus lens/second
               (c/handle-action
-               (basics/interval 5000)
+               (basics/interval 15000)
                (fn [_ _]
                  nil))))))
 
