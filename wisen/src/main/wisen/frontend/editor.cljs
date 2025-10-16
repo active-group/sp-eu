@@ -226,7 +226,7 @@
       (= predicate "http://schema.org/description")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
-               (ds/textarea+focus {:style {:width "100%"
+               (ds/textarea+focus {:style {:min-width "50em"
                                            :min-height "6em"}
                                    :disabled (when-not editing?
                                                "disabled")}))
