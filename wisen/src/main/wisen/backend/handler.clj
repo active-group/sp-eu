@@ -135,9 +135,10 @@
                    (get-in request
                            [:body-params :changes]))
         base-commit-id (get-in request [:body-params :base-commit-id])
+        commit-message (get-in request [:body-params :commit-message] "Update")
         skolemized-geocoded-changeset (prepare-changeset changeset place->lon-lat!)]
 
-    (let [result-commit-id (access/change! repo-uri base-commit-id skolemized-geocoded-changeset)]
+    (let [result-commit-id (access/change! repo-uri base-commit-id skolemized-geocoded-changeset commit-message)]
       {:status 200
        :body (pr-str {:result-commit-id result-commit-id})})))
 

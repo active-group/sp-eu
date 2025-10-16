@@ -180,8 +180,11 @@
            (comp statement-filename change-statement)
            changeset)))
 
-(defn folder-apply-changeset! [repo-uri commit-id changeset]
-  (update! repo-uri commit-id (partial folder-apply-changeset changeset)))
+(defn folder-apply-changeset! [repo-uri commit-id changeset commit-message]
+  (update! repo-uri
+           commit-id
+           (partial folder-apply-changeset changeset)
+           commit-message))
 
 (defn update!! [repo-uri commit-id f commit-message]
   (update! repo-uri

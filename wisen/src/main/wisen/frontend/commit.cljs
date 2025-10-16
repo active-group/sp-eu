@@ -14,7 +14,8 @@
 
 (def-record idle [])
 
-(def-record committing [committing-changeset])
+(def-record committing [committing-changeset
+                        committing-commit-message])
 
 (def-record commit-successful [commit-successful-changes
                                commit-successful-result-commit-id])
@@ -27,6 +28,7 @@
    (c/with-state-as state
      (dom/div
       {:style {:display "flex"
+               :align-items "center"
                :gap "1em"}}
 
       (change/changeset-summary ctx changeset)
@@ -34,9 +36,23 @@
       (cond
         (is-a? idle state)
         (when-not (empty? changeset)
-          (ds/button-primary {:onclick (fn [_]
-                                         (committing committing-changeset changeset))}
-                             (context/text ctx tr/commit-changes)))
+          (c/local-state
+           "Update"
+           (dom/div
+            {:style {:display "flex"
+                     :gap "1em"}}
+            (c/focus lens/second
+                     (c/with-state-as msg
+                       (ds/input {:type "text"
+                                  :style {:padding "1ex 1em"
+                                          :border "1px solid #ddd"
+                                          :background "#ececec"
+                                          :field-sizing "content"}})))
+            (ds/button-primary {:onclick (fn [[_ commit-message]]
+                                           [(committing committing-changeset changeset
+                                                        committing-commit-message commit-message)
+                                            ""])}
+                               (context/text ctx tr/commit-changes)))))
 
         (is-a? committing state)
         (dom/div
@@ -44,7 +60,8 @@
          (wisen.frontend.spinner/main)
          (c/handle-action
           (ajax/execute (change/commit-changeset-request (context/commit-id ctx)
-                                                         (committing-changeset state)))
+                                                         (committing-changeset state)
+                                                         (committing-commit-message state)))
           (fn [st ac]
             (if (and (ajax/response? ac)
                      (ajax/response-ok? ac))

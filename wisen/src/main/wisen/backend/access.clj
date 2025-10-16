@@ -172,10 +172,10 @@
              1
              TimeUnit/SECONDS))
 
-(defn change! [repo-uri commit-id changeset]
+(defn change! [repo-uri commit-id changeset commit-message]
   ;; assert: commit-id refers to a controlled model
   (let [controlled-result (cache/get! cache repo-uri commit-id)
-        result-commit-id (repository/folder-apply-changeset! repo-uri commit-id changeset)]
+        result-commit-id (repository/folder-apply-changeset! repo-uri commit-id changeset commit-message)]
     ;; pre-populate cache, which here we can do very performantly
     (cache/set-model! cache
                       repo-uri
