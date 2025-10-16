@@ -30,6 +30,9 @@
    "http://schema.org/opens"
    "http://schema.org/closes"
 
+   "http://schema.org/startTime"
+   "http://schema.org/endTime"
+
    ])
 
 (defn- index-of [s v]
