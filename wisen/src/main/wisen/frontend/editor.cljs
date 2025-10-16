@@ -487,7 +487,18 @@
     (c/local-state
      (let [uri (edit-tree/tree-uri node)]
        [uri (wisen.frontend.forms/make-selected 0 (count (str uri)))])
-     (dom/div
+     (forms/form
+      {:onSubmit
+       (fn [[node [new-uri _]] e]
+         (.preventDefault e)
+         (let [old-uri (edit-tree/tree-uri node)]
+           (c/return :action (set-reference-action
+                              set-reference-action-old-uri old-uri
+                              set-reference-action-new-uri (or
+                                                            (existential/string->existential new-uri)
+
+                                                            new-uri))
+                     :action close-action)))}
       (modal/padded
        (dom/h3
         (context/text ctx tr/set-as-reference-to-another-node))
@@ -495,22 +506,11 @@
        (c/focus lens/second (ds/input+focus {:size 80})))
 
       (modal/toolbar
-       (ds/button-secondary {:onClick #(c/return :action close-action)}
+       (ds/button-secondary {:type "button"
+                             :onClick #(c/return :action close-action)}
                             (context/text ctx tr/cancel))
-       (c/with-state-as state
-         (let [text (first (second state))]
-
-           (ds/button-primary {:onClick
-                               (fn [[node [new-uri _]]]
-                                 (let [old-uri (edit-tree/tree-uri node)]
-                                   (c/return :action (set-reference-action
-                                                      set-reference-action-old-uri old-uri
-                                                      set-reference-action-new-uri (or
-                                                                                    (existential/string->existential new-uri)
-
-                                                                                    new-uri))
-                                             :action close-action)))}
-                              (context/text ctx tr/set-reference)))))))))
+       (ds/button-primary {:type "submit"}
+                          (context/text ctx tr/set-reference)))))))
 
 (defn- refresh-node-request [uri]
   (ajax/GET (if (urn/urn? uri)
