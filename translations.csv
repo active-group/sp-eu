@@ -1,4 +1,4 @@
-"id";en;de;fr;it;es;pl;ro;nl;hu;cs;el
+"id";de;en;fr;it;es;pl;ro;nl;hu;cs;el
 search;"Suche";"Search";;;;;;;
 search-everything;"Komplettsuche";"Search everything";;;;;;;
 results;"Ergebnisse";"Results";;;;;;;
@@ -96,7 +96,7 @@ rdf-import-epilog;"Ihr LLM wird Ihnen dann wahrscheinlich einen Codeblock präse
 "https://schema.org/additionalProperty";;;;;;;;;;;
 "https://schema.org/additionalType";;;;;;;;;;;
 "https://schema.org/additionalVariable";;;;;;;;;;;
-"https://schema.org/address";"Address";"Adresse";;;;;;;;;
+"https://schema.org/address";"Adresse";"Address";;;;;;;;;
 "https://schema.org/addressCountry";;;;;;;;;;;
 "https://schema.org/addressLocality";;;;;;;;;;;
 "https://schema.org/addressRegion";;;;;;;;;;;
@@ -426,7 +426,7 @@ rdf-import-epilog;"Ihr LLM wird Ihnen dann wahrscheinlich einen Codeblock präse
 "https://schema.org/departureTime";;;;;;;;;;;
 "https://schema.org/dependencies";;;;;;;;;;;
 "https://schema.org/depth";;;;;;;;;;;
-"https://schema.org/description";"Description";"Beschreibung";;;;;;;;;
+"https://schema.org/description";"Beschreibung";"Description";;;;;;;;;
 "https://schema.org/device";;;;;;;;;;;
 "https://schema.org/diagnosis";;;;;;;;;;;
 "https://schema.org/diagram";;;;;;;;;;;
