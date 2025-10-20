@@ -495,4 +495,9 @@
    (text
     en "Logo"
     de "Logo")
+
+   "http://schema.org/sameAs"
+   (text
+    en "Same as"
+    de "Identisch mit")
    })
