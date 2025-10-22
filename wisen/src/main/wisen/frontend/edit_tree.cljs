@@ -237,6 +237,23 @@
 
 ;;
 
+(def-record literal-datetime
+  [literal-datetime-value :- realm/string
+   literal-datetime-focused? :- forms/selection-info])
+
+(defn make-literal-datetime
+  ([s]
+   (literal-datetime literal-datetime-value s
+                     literal-datetime-focused? forms/unselected))
+  ([s focused?]
+   (literal-datetime literal-datetime-value s
+                     literal-datetime-focused? focused?)))
+
+(defn literal-datetime? [x]
+  (is-a? literal-datetime x))
+
+;;
+
 (def edit-tree (realm/union
                 ref
                 literal-string
@@ -244,6 +261,7 @@
                 literal-boolean
                 literal-time
                 literal-date
+                literal-datetime
                 exists
                 edit-node))
 
@@ -255,6 +273,7 @@
    [literal-boolean literal-boolean-focused?]
    [literal-time literal-time-focused?]
    [literal-date literal-date-focused?]
+   [literal-datetime literal-datetime-focused?]
    [many many-focused?]
    [edit-node edit-node-focused?]))
 
@@ -278,6 +297,9 @@
     (edit-tree-focused? etree (forms/selected))
 
     (literal-date? etree)
+    (edit-tree-focused? etree (forms/selected))
+
+    (literal-datetime? etree)
     (edit-tree-focused? etree (forms/selected))
 
     (is-a? many etree)
@@ -356,6 +378,9 @@
     (tree/literal-date? tree)
     (make-literal-date (tree/literal-date-value tree))
 
+    (tree/literal-datetime? tree)
+    (make-literal-datetime (tree/literal-datetime-value tree))
+
     (tree/node? tree)
     (edit-node
      edit-node-uri (tree/node-uri tree)
@@ -423,6 +448,9 @@
     (literal-date? etree)
     (tree/make-literal-date (literal-date-value etree))
 
+    (literal-datetime? etree)
+    (tree/make-literal-datetime (literal-datetime-value etree))
+
     (is-a? many etree)
     (tree/make-many (map edit-tree-result-tree (many-edit-trees etree)))
 
@@ -471,6 +499,9 @@
     (literal-date? etree)
     [(constructor (change/make-statement subject predicate (tree/make-literal-date (literal-date-value etree))))]
 
+    (literal-datetime? etree)
+    [(constructor (change/make-statement subject predicate (tree/make-literal-datetime (literal-datetime-value etree))))]
+
     (many? etree)
     (mapcat #(edit-tree-changeset* constructor subject predicate %)
             (many-edit-trees etree))
@@ -508,6 +539,9 @@
     []
 
     (literal-date? etree)
+    []
+
+    (literal-datetime? etree)
     []
 
     (many? etree)
@@ -683,6 +717,9 @@
        (literal-date? etree)
        tree/literal-date
 
+       (literal-datetime? etree)
+       tree/literal-datetime
+
        (ref? etree)
        tree/ref
 
@@ -766,6 +803,11 @@
          (literal-date? res))
     (= (literal-date-value orig)
        (literal-date-value res))
+
+    (and (literal-datetime? orig)
+         (literal-datetime? res))
+    (= (literal-datetime-value orig)
+       (literal-datetime-value res))
 
     (and (many? orig)
          (many? res))
@@ -1027,6 +1069,9 @@
     (literal-date? etree)
     ::lit-date
 
+    (literal-datetime? etree)
+    ::lit-datetime
+
     (is-a? many etree)
     ::many
 
@@ -1079,6 +1124,13 @@
     (compare
      (literal-date-value etree-1)
      (literal-date-value etree-2))
+
+    (and
+     (literal-datetime? etree-1)
+     (literal-datetime? etree-2))
+    (compare
+     (literal-datetime-value etree-1)
+     (literal-datetime-value etree-2))
 
     (and
      (is-a? many etree-1)

@@ -156,6 +156,9 @@
     (= kind tree/literal-date)
     (context/text ctx tr/date)
 
+    (= kind tree/literal-datetime)
+    (context/text ctx tr/datetime)
+
     (= kind tree/ref)
     (context/text ctx tr/node)
 
@@ -1146,6 +1149,13 @@
         (c/focus (lens/pattern [edit-tree/literal-date-value
                                 edit-tree/literal-date-focused?])
                  (ds/input+focus {:type "date"
+                                  :disabled (when-not force-editing?
+                                              "disabled")}))
+
+        (edit-tree/literal-datetime? etree)
+        (c/focus (lens/pattern [edit-tree/literal-datetime-value
+                                edit-tree/literal-datetime-focused?])
+                 (ds/input+focus {:type "datetime-local"
                                   :disabled (when-not force-editing?
                                               "disabled")}))
 

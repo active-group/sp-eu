@@ -79,6 +79,9 @@
     (tree/literal-date? tree)
     []
 
+    (tree/literal-datetime? tree)
+    []
+
     (tree/many? tree)
     (mapcat tree-geo-positions (tree/many-trees tree))
 

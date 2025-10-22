@@ -138,6 +138,10 @@
   de "Datum"
   en "Date")
 
+(define-text datetime
+  de "Datum und Uhrzeit"
+  en "Date and time")
+
 (define-text node
   de "Knoten"
   en "Node")

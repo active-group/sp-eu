@@ -133,12 +133,29 @@
 
 ;;
 
+(def-record literal-datetime
+  [literal-datetime-value :- realm/string])
+
+(defn make-literal-datetime [s]
+  (literal-datetime literal-datetime-value s))
+
+(defn literal-datetime? [x]
+  (record/is-a? literal-datetime x))
+
+(def literal-datetime<->edn
+  (lens/xmap
+   literal-datetime-value
+   make-literal-datetime))
+
+;;
+
 (def leaf (realm/union
            literal-string
            literal-decimal
            literal-boolean
            literal-time
            literal-date
+           literal-datetime
            uri-or-ex))
 
 (def leaf<->edn
@@ -148,6 +165,7 @@
    [literal-boolean? #(= "literal-boolean" (first %)) (tagged "literal-boolean" literal-boolean<->edn)]
    [literal-time? #(= "literal-time" (first %)) (tagged "literal-time" literal-time<->edn)]
    [literal-date? #(= "literal-date" (first %)) (tagged "literal-date" literal-date<->edn)]
+   [literal-datetime? #(= "literal-datetime" (first %)) (tagged "literal-datetime" literal-datetime<->edn)]
    [uri? #(= "uri" (first %)) (tagged "uri" uri<->edn)]
    [existential? #(= "existential" (first %)) (tagged "existential" existential<->edn)]))
 

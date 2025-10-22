@@ -88,6 +88,9 @@
     "http://www.w3.org/2001/XMLSchema#date"
     tree/literal-date
 
+    "http://www.w3.org/2001/XMLSchema#dateTime"
+    tree/literal-datetime
+
     "http://www.w3.org/ns/shacl#IRI"
     tree/literal-string
 

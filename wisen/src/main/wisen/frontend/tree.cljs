@@ -110,6 +110,17 @@
 
 ;;
 
+(def-record literal-datetime
+  [literal-datetime-value :- realm/string])
+
+(defn make-literal-datetime [s]
+  (literal-datetime literal-datetime-value s))
+
+(defn literal-datetime? [x]
+  (record/is-a? literal-datetime x))
+
+;;
+
 (def-record property
   [property-predicate :- URI
    property-object #_#_:- (realm/delay tree)
@@ -197,6 +208,7 @@
            literal-boolean
            literal-time
            literal-date
+           literal-datetime
            node
            many
            exists))
@@ -254,6 +266,9 @@
 
     (rdf/literal-date? x)
     [links existentials (make-literal-date (rdf/literal-date-value x))]
+
+    (rdf/literal-datetime? x)
+    [links existentials (make-literal-datetime (rdf/literal-datetime-value x))]
 
     (rdf/literal-time? x)
     [links existentials (make-literal-time (rdf/literal-time-value x))]
@@ -333,6 +348,9 @@
     []
 
     (literal-date? tree)
+    []
+
+    (literal-datetime? tree)
     []
 
     (node? tree)

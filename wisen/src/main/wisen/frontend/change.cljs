@@ -52,6 +52,7 @@
                                     tree/literal-boolean
                                     tree/literal-time
                                     tree/literal-date
+                                    tree/literal-datetime
                                     existential/existential
                                     tree/URI)])
 
@@ -108,6 +109,10 @@
          (tree/literal-date? obj)
          (change-api/make-literal-date
           (tree/literal-date-value obj))
+
+         (tree/literal-datetime? obj)
+         (change-api/make-literal-datetime
+          (tree/literal-datetime-value obj))
 
          (existential/existential? obj)
          (change-api/make-existential obj)

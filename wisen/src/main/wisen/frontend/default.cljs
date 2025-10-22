@@ -8,6 +8,7 @@
 (def ^:private lit-b tree/make-literal-boolean)
 (def ^:private lit-t tree/make-literal-time)
 (def ^:private lit-date tree/make-literal-date)
+(def ^:private lit-datetime tree/make-literal-datetime)
 
 (defn- schema [s]
   (str "http://schema.org/" s))
@@ -121,6 +122,9 @@
     (= type tree/literal-date)
     (lit-date "2025-01-01")
 
+    (= type tree/literal-datetime)
+    (lit-datetime "2025-01-01T10:00:00")
+
     (= type tree/ref)
     (tree/make-ref "https://wisen.active-group.de/")
 
@@ -221,6 +225,9 @@
 
     (= kind tree/literal-date)
     (lit-date "2025-01-01")
+
+    (= kind tree/literal-datetime)
+    (lit-datetime "2025-01-01T10:00:00")
 
     (= kind tree/ref)
     (tree/make-ref "https://wisen.active-group.de/")
