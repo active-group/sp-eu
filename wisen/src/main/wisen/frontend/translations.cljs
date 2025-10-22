@@ -254,6 +254,10 @@
   de "Ihr LLM wird Ihnen dann wahrscheinlich einen Codeblock präsentieren, den Sie in das linke Textfeld unten kopieren und einfügen können."
   en "Your LLM will then probably present you a code block that you can copy and paste into the left textarea below.")
 
+(define-text go-to-result
+  de "Zum Ergebnis"
+  en "Go to result")
+
 ;; RDF predicates
 
 (def predicates
@@ -504,4 +508,9 @@
    (text
     en "Same as"
     de "Identisch mit")
+
+   "http://schema.org/alternateName"
+   (text
+    en "Alternate name"
+    de "Alternativer Name")
    })
