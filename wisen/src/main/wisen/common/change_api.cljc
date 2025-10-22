@@ -306,9 +306,10 @@
 
                     (delete? chng)
                     [(-> to-add
-                         (conj (statement-subject (add-statement chng)))
+                         (conj (statement-subject (delete-statement chng)))
                          (conj (statement-object (delete-statement chng))))
                      to-remove]))
                 [#{} #{}]
                 cs)]
-    (clojure.set/difference to-add to-remove)))
+    (filter uri?
+            (clojure.set/difference to-add to-remove))))
