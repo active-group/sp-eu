@@ -504,6 +504,11 @@
     en "Logo"
     de "Logo")
 
+   "http://schema.org/image"
+   (text
+    en "Image"
+    de "Bild")
+
    "http://schema.org/sameAs"
    (text
     en "Same as"

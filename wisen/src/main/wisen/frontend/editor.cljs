@@ -203,17 +203,28 @@
                        (conj types
                              (edit-tree/tree-uri etree)))))))
 
-      (and (= predicate "http://schema.org/logo")
+      (and (or (= predicate "http://schema.org/logo")
+               (= predicate "http://schema.org/image"))
            (or (edit-tree/edit-node? etree)
                (edit-tree/ref? etree)))
       (let [url (edit-tree/tree-uri etree)]
         (dom/div
-         {:style {:height "100px"
-                  :border ds/border
-                  :border-radius "12px"
-                  :overflow "hidden"}}
-         (dom/img {:src url
-                   :height 100})))
+         {:style {:border ds/border
+                  :border-radius "12px"}}
+         (dom/div
+          {:style {:height "100px"
+                   :overflow "hidden"}}
+          (dom/img {:src url
+                    :height 100}))
+         (when editing?
+           (edit-tree-component*
+            ctx
+            (schema/types-for-predicate (context/schema ctx) predicate)
+            editable?
+            editing?
+            background-color
+            compare-edit-tree
+            adornment))))
 
       (and (= predicate "http://schema.org/dayOfWeek")
            (or (edit-tree/edit-node? etree)

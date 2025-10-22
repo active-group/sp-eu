@@ -8,6 +8,7 @@
 (def ^:private predicate-priority
   ["http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
    "http://schema.org/logo"
+   "http://schema.org/image"
    "http://schema.org/name"
    "http://schema.org/description"
    "http://schema.org/startDate"
