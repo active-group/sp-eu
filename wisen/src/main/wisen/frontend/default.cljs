@@ -43,9 +43,9 @@
 (def default-postal-address
   (make-node
    (schema "PostalAddress")
-   (property "streetAddress" (lit-s "Hechinger Str. 12/1"))
-   (property "postalCode" (lit-s "72072"))
-   (property "addressLocality" (lit-s "Tübingen"))
+   (property "streetAddress" (lit-s "Charitéplatz 1"))
+   (property "postalCode" (lit-s "10117"))
+   (property "addressLocality" (lit-s "Berlin"))
    (property "addressCountry" (lit-s "DE"))))
 
 (def default-opening-hours-specification
@@ -69,7 +69,7 @@
    (property "keywords" (lit-s "education, fun, games"))
    (property "location" default-place)
    (property "url" (lit-s "https://..."))
-   (tree/make-property "https://wisen.active-group.de/target-group" (lit-s "elderly"))))
+   #_(tree/make-property "https://wisen.active-group.de/target-group" (lit-s "elderly"))))
 
 (def default-offer
   (make-node
@@ -101,8 +101,7 @@
    (property "name" (lit-s "John Doe"))
    (property "email" (lit-s "john.doe@example.com"))
    (property "telephone" (lit-s "+1-123-456-7890"))
-   (property "birthDate" (lit-s "1980-01-01"))
-   (property "gender" (lit-s "Male"))
+   (property "birthDate" (lit-date "1980-01-01"))
    (property "address" default-postal-address)))
 
 (defn default-tree-for-sort [type]
