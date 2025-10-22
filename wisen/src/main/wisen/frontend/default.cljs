@@ -74,7 +74,7 @@
 (def default-offer
   (make-node
    (schema "Offer")
-   (property "price" (lit-s "7.50"))
+   (property "price" (lit-d "7.50"))
    (property "priceCurrency" (lit-s "EUR"))))
 
 (def default-event
@@ -89,7 +89,7 @@
                                        (tree/node-type (tree/make-node
                                                         (schema "DayOfWeek")))))
                          (property "startTime"
-                                   (lit-s "16:30:00"))))
+                                   (lit-t "16:30:00"))))
    (property "eventAttendanceMode" (tree/make-node (schema "OfflineEventAttendanceMode")))
    (property "location" default-place)
    #_(property "organizer" default-organization)

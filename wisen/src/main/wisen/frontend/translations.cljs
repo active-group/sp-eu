@@ -513,4 +513,14 @@
    (text
     en "Alternate name"
     de "Alternativer Name")
+
+   "http://schema.org/price"
+   (text
+    en "Price"
+    de "Preis")
+
+   "http://schema.org/priceCurrency"
+   (text
+    en "Currency unit"
+    de "Einheit")
    })
