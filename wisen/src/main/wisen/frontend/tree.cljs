@@ -299,10 +299,7 @@
            (let [[links* existentials* tree] (node->tree g links existentials x)]
              [links* existentials* (conj trees tree)]))
          [#{} [] []]
-         ;; TODO: we shouldn't assume that there are roots. e.g. A -> B, B
-         ;; -> A has no roots.  rather look for "basis", a minimal set of
-         ;; nodes from which every other root is reachable
-         (rdf/roots g))]
+         (rdf/basis g))]
     (reduce wrap-ex
             (if (= 1 (count trees))
               (first trees)

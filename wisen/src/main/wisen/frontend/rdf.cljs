@@ -91,11 +91,43 @@
 (defn- ingoing [graph node]
   (set (js->clj (.each ^rdflib/Graph graph js/undefined js/undefined node))))
 
-(defn roots [graph]
-  (filter
-   (fn [node]
-     (empty? (ingoing graph node)))
-   (subjects graph)))
+(declare node? node-uri)
+
+(defn- unpack [x]
+  (if (node? x)
+    (node-uri x)
+    x))
+
+(defn- conj* [m x]
+  (assoc m (unpack x) x))
+
+(defn- disj* [m x]
+  (dissoc m (unpack x)))
+
+(defn- contains?* [m x]
+  (contains? m (unpack x)))
+
+(defn basis [graph]
+  (vals
+   (first
+    (reduce (fn [[basis reachable] stmt]
+              (let [s (.-subject stmt)
+                    o (.-object stmt)]
+                (if (contains?* reachable s)
+                  [basis (conj* reachable o)]
+
+                  ;; else s not yet reachable
+                  [(if (contains?* basis o)
+                     (-> basis
+                         (disj* o)
+                         (conj* s))
+                     (-> basis
+                         (conj* s)))
+                   (-> reachable
+                       (conj* s)
+                       (conj* o))])))
+            [{} {}]
+            (js->clj (.-statements graph))))))
 
 (defn has-outgoing-edges? [graph subj]
   (seq (subject-predicates graph subj)))
@@ -292,23 +324,6 @@
     g))
 
 ;; ---
-
-(defn get-subcomponents
-  "Collects connected subcomponents of a graph"
-  [graph]
-  (let [root-nodes (roots graph)
-        subcomponents-triples (map #(collect-connected-component graph %)
-                                   root-nodes)
-        subcomponents-stms (mapv (fn [triples]
-                                   (mapv (fn [triple]
-                                           (apply make-statement triple))
-                                         triples))
-                                 subcomponents-triples)
-        ]
-    (map statements->graph subcomponents-stms)))
-;; ---
-
-
 
 (defn- schmontains? [coll x]
   (reduce (fn [acc y]

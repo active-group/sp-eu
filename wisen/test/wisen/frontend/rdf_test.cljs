@@ -14,6 +14,10 @@
 
 (def g (rdf/json-ld-string->graph-promise jsonld))
 
+(defn make-graph [edn]
+  (rdf/json-ld-string->graph-promise
+   (js/JSON.stringify (clj->js edn))))
+
 (deftest types-test
 
   (let [uri "http://example.org/foo"
@@ -54,6 +58,66 @@
   (is (= (rdf/make-symbol "http://example.org/name")
          (rdf/make-symbol "http://example.org/name"))))
 
+(deftest basis-test
+  (async done
+    (.then (make-graph
+            {"@context" {"foaf" "http://xmlns.com/foaf/0.1/"}
+             "@id" "http://example.org/alice"
+             "foaf:knows" {"@id" "http://example.org/bob"}})
+           (fn [g]
+             (is (= '("http://example.org/alice")
+                    (map rdf/symbol-uri (rdf/basis g))))
+             (done))))
+
+  (async done
+    (.then (make-graph
+            {"@context" {"foaf" "http://xmlns.com/foaf/0.1/"}
+             "@id" "http://example.org/alice"
+             "foaf:knows" {"@id" "http://example.org/bob"
+                           "foaf:knows" {"@id" "http://example.org/alice"}}})
+           (fn [g]
+             (is (or (= '("http://example.org/alice")
+                        (map rdf/symbol-uri (rdf/basis g)))
+                     (= '("http://example.org/bob")
+                        (map rdf/symbol-uri (rdf/basis g)))))
+             (done))))
+
+  (async done
+    (.then (make-graph
+            {"@context" {"foaf" "http://xmlns.com/foaf/0.1/"}
+             "@id" "http://example.org/alice"
+             "foaf:knows" {"@id" "http://example.org/bob"
+                           "foaf:knows" {"@id" "http://example.org/karen"
+                                         "foaf:knows" {"@id" "http://example.org/bob"}}}})
+           (fn [g]
+             (is (= '("http://example.org/alice")
+                    (map rdf/symbol-uri (rdf/basis g))))
+             (done))))
+
+  (async done
+    (.then (make-graph
+            {"@context" {"foaf" "http://xmlns.com/foaf/0.1/"}
+             "@id" "http://example.org/alice"
+             "foaf:knows" {"@id" "http://example.org/bob"
+                           "foaf:knows" [{"@id" "http://example.org/karen"}
+                                         {"@id" "http://example.org/alice"}]}})
+           (fn [g]
+             (is (or (= '("http://example.org/alice")
+                        (map rdf/symbol-uri (rdf/basis g)))
+                     (= '("http://example.org/bob")
+                        (map rdf/symbol-uri (rdf/basis g)))))
+             (done))))
+
+  (async done
+    (.then (make-graph
+            {"@id" "urn:klostermuehle"
+             "http://schema.org/name" "klosterposter"
+             "http://schema.org/location" {"http://schema.org/geo" {"http://schema.org/longitude" 9.225}}})
+           (fn [g]
+             (is (= '("urn:klostermuehle")
+                    (map rdf/symbol-uri (rdf/basis g))))
+             (done)))))
+
 (deftest graph-test
   (async done
     (.then g
@@ -61,10 +125,6 @@
              (testing "subjects"
                (is (= '("http://example.org/alice" "http://example.org/bob")
                       (map rdf/symbol-uri (rdf/subjects g)))))
-
-             (testing "roots"
-               (is (= '("http://example.org/alice")
-                      (map rdf/symbol-uri (rdf/roots g)))))
 
              (testing "subject-properties"
                (let [props (rdf/subject-properties g (rdf/make-symbol "http://example.org/alice"))]

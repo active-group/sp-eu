@@ -291,7 +291,7 @@
 (defn edn->changeset [edn]
   (changeset<->edn nil edn))
 
-;; determine the roots of a changeset
+;; determine the basis of a changeset
 
 (defn changeset-result-basis
   "Take a skolemized changeset and return all nodes that form a basis of
