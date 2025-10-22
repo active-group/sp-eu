@@ -10,6 +10,8 @@
             [wisen.frontend.context :as context]
             [wisen.frontend.head :as head]
             [wisen.frontend.translations :as tr]
+            [wisen.common.urn :as urn]
+            [wisen.common.prefix :as prefix]
             [cljs.reader :as reader]))
 
 (def-record idle [])
@@ -18,7 +20,8 @@
                         committing-commit-message])
 
 (def-record commit-successful [commit-successful-changes
-                               commit-successful-result-commit-id])
+                               commit-successful-result-commit-id
+                               commit-successful-result-basis])
 
 (def-record commit-failed [commit-failed-error])
 
@@ -65,18 +68,29 @@
           (fn [st ac]
             (if (and (ajax/response? ac)
                      (ajax/response-ok? ac))
-              (let [success (commit-successful commit-successful-changes
+              (let [response-edn (reader/read-string (ajax/response-value ac))
+                    success (commit-successful commit-successful-changes
                                                (committing-changeset st)
                                                commit-successful-result-commit-id
-                                               (:result-commit-id
-                                                (reader/read-string (ajax/response-value ac))))]
+                                               (:result-commit-id response-edn)
+                                               commit-successful-result-basis
+                                               (:result-basis response-edn))]
                 (c/return :state success
                           :action success))
               (commit-failed commit-failed-error
                              (ajax/response-value ac))))))
 
         (is-a? commit-successful state)
-        (context/text ctx tr/commit-successful)
+        (dom/div
+         {:style {:display "flex"
+                  :gap "1em"}}
+         (context/text ctx tr/commit-successful)
+         (let [results (commit-successful-result-basis state)
+               result (first results)]
+           (dom/a {:href (if (urn/urn? result)
+                           (prefix/resource-description result)
+                           result)}
+                  (context/text ctx tr/go-to-result))))
 
         (is-a? commit-failed state)
         (dom/div

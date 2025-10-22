@@ -140,7 +140,8 @@
 
     (let [result-commit-id (access/change! repo-uri base-commit-id skolemized-geocoded-changeset commit-message)]
       {:status 200
-       :body (pr-str {:result-commit-id result-commit-id})})))
+       :body (pr-str {:result-commit-id result-commit-id
+                      :result-basis (change-api/changeset-result-basis skolemized-geocoded-changeset)})})))
 
 (defn osm-lookup [request]
   (let [osmid (get-in request [:path-params :osmid])]

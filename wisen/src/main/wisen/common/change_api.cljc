@@ -272,3 +272,25 @@
 
 (defn edn->changeset [edn]
   (changeset<->edn nil edn))
+
+;; determine the roots of a changeset
+
+(defn changeset-result-basis
+  "Take a skolemized changeset and return all nodes that form a basis of
+  the affected subgraph of the resulting graph."
+  [cs]
+  (let [[to-add to-remove]
+        (reduce (fn [[to-add to-remove] chng]
+                  (cond
+                    (add? chng)
+                    [(conj to-add (statement-subject (add-statement chng)))
+                     (conj to-remove (statement-object (add-statement chng)))]
+
+                    (delete? chng)
+                    [(-> to-add
+                         (conj (statement-subject (add-statement chng)))
+                         (conj (statement-object (delete-statement chng))))
+                     to-remove]))
+                [#{} #{}]
+                cs)]
+    (clojure.set/difference to-add to-remove)))
