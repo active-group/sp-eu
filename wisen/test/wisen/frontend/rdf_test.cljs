@@ -58,7 +58,7 @@
   (is (= (rdf/make-symbol "http://example.org/name")
          (rdf/make-symbol "http://example.org/name"))))
 
-(deftest basis-test
+(deftest basis-test-1
   (async done
     (.then (make-graph
             {"@context" {"foaf" "http://xmlns.com/foaf/0.1/"}
@@ -67,8 +67,9 @@
            (fn [g]
              (is (= '("http://example.org/alice")
                     (map rdf/symbol-uri (rdf/basis g))))
-             (done))))
+             (done)))))
 
+(deftest basis-test-2
   (async done
     (.then (make-graph
             {"@context" {"foaf" "http://xmlns.com/foaf/0.1/"}
@@ -80,8 +81,9 @@
                         (map rdf/symbol-uri (rdf/basis g)))
                      (= '("http://example.org/bob")
                         (map rdf/symbol-uri (rdf/basis g)))))
-             (done))))
+             (done)))))
 
+(deftest basis-test-3
   (async done
     (.then (make-graph
             {"@context" {"foaf" "http://xmlns.com/foaf/0.1/"}
@@ -92,8 +94,9 @@
            (fn [g]
              (is (= '("http://example.org/alice")
                     (map rdf/symbol-uri (rdf/basis g))))
-             (done))))
+             (done)))))
 
+(deftest basis-test-4
   (async done
     (.then (make-graph
             {"@context" {"foaf" "http://xmlns.com/foaf/0.1/"}
@@ -106,13 +109,27 @@
                         (map rdf/symbol-uri (rdf/basis g)))
                      (= '("http://example.org/bob")
                         (map rdf/symbol-uri (rdf/basis g)))))
-             (done))))
+             (done)))))
 
+(deftest basis-test-5
   (async done
     (.then (make-graph
             {"@id" "urn:klostermuehle"
              "http://schema.org/name" "klosterposter"
              "http://schema.org/location" {"http://schema.org/geo" {"http://schema.org/longitude" 9.225}}})
+           (fn [g]
+             (is (= '("urn:klostermuehle")
+                    (map rdf/symbol-uri (rdf/basis g))))
+             (done)))))
+
+(deftest basis-test-6
+  (async done
+    (.then (make-graph
+            {"@graph"
+             [{"@id" "urn:klostermuehle"
+               "http://schema.org/name" "foooooooo"
+               "http://schema.org/description" "klooooooo"
+               "http://schema.org/location" {"http://schema.org/name" "loc"}}]})
            (fn [g]
              (is (= '("urn:klostermuehle")
                     (map rdf/symbol-uri (rdf/basis g))))

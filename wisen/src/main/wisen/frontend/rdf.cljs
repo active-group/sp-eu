@@ -98,36 +98,54 @@
     (node-uri x)
     x))
 
-(defn- conj* [m x]
-  (assoc m (unpack x) x))
+(defn- bfs-reachable [adj start]
+  (loop [queue [start]
+         visited #{}]
+    (if (empty? queue)
+      visited
+      (let [node (first queue)
+            new-nodes (set/difference (adj node #{}) visited)]
+        (recur (concat (rest queue) new-nodes)
+               (conj visited node))))))
 
-(defn- disj* [m x]
-  (dissoc m (unpack x)))
+(defn- greedy-reachability-set [edges]
+  (let [all-nodes (set (mapcat identity edges))
+        adj (reduce (fn [m [u v]]
+                      (update m u (fnil conj #{}) v))
+                    (zipmap all-nodes (repeat #{}))
+                    edges)]
+    (loop [reachable #{}
+           B #{}]
+      (if (= reachable all-nodes)
+        B
+        (let [remaining (set/difference all-nodes reachable)
+              ;; For each node, count how many remaining nodes it can reach
+              best (apply max-key
+                          (fn [x]
+                            (count (set/intersection remaining (bfs-reachable adj x))))
+                          remaining)
+              newly-reached (bfs-reachable adj best)]
+          (recur (set/union reachable newly-reached)
+                 (conj B best)))))))
 
-(defn- contains?* [m x]
-  (contains? m (unpack x)))
+(defn- statement->edge [stmt]
+  (let [s (.-subject stmt)
+        o (.-object stmt)]
+    [(unpack s) (unpack o)]))
 
 (defn basis [graph]
-  (vals
-   (first
-    (reduce (fn [[basis reachable] stmt]
-              (let [s (.-subject stmt)
-                    o (.-object stmt)]
-                (if (contains?* reachable s)
-                  [basis (conj* reachable o)]
-
-                  ;; else s not yet reachable
-                  [(if (contains?* basis o)
-                     (-> basis
-                         (disj* o)
-                         (conj* s))
-                     (-> basis
-                         (conj* s)))
-                   (-> reachable
-                       (conj* s)
-                       (conj* o))])))
-            [{} {}]
-            (js->clj (.-statements graph))))))
+  (let [stmts (js->clj (.-statements graph))
+        edges (map statement->edge stmts)
+        originals (reduce (fn [orig stmt]
+                            (let [s (.-subject stmt)
+                                  o (.-object stmt)]
+                              (-> orig
+                                  (assoc (unpack s) s)
+                                  (assoc (unpack o) o))))
+                          {}
+                          stmts)]
+    (map originals
+         (greedy-reachability-set edges))))
 
 (defn has-outgoing-edges? [graph subj]
   (seq (subject-predicates graph subj)))
