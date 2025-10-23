@@ -235,20 +235,22 @@
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
                (ds/input+focus {:disabled (when-not editing? "disabled")
-                                :style {:font-size "2em"}}))
+                                :style {:font-size "2em"
+                                        :field-sizing "content"}}))
 
       (= predicate "http://schema.org/description")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
-               (ds/textarea+focus {:style {:min-width "50em"
-                                           :min-height "6em"}
+               (ds/textarea+focus {:style {:field-sizing "content"
+                                           :max-width "50em"}
                                    :disabled (when-not editing?
                                                "disabled")}))
 
       (= predicate "http://schema.org/keywords")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               edit-tree/edit-tree-focused?])
-               (ds/input+focus {:disabled (when-not editing? "disabled")}))
+               (ds/input+focus {:disabled (when-not editing? "disabled")
+                                :style {:field-sizing "content"}}))
 
       (and (= predicate "http://schema.org/byDay")
            (or (edit-tree/edit-node? etree)
@@ -301,7 +303,8 @@
                                 edit-tree/literal-string-focused?])
                  (ds/input+focus {:type "url"
                                   :placeholder "https://example.com"
-                                  :disabled (when-not editing? "disabled")}))
+                                  :disabled (when-not editing? "disabled")
+                                  :style {:field-sizing "content"}}))
 
         (edit-tree/edit-node? etree)
         (c/focus (lens/pattern [edit-tree/edit-node-uri
@@ -1124,7 +1127,8 @@
         (edit-tree/literal-string? etree)
         (c/focus (lens/pattern [edit-tree/literal-string-value
                                 edit-tree/literal-string-focused?])
-                 (ds/input+focus {:disabled (when-not force-editing?
+                 (ds/input+focus {:style {:field-sizing "content"}
+                                  :disabled (when-not force-editing?
                                               "disabled")}))
 
         (edit-tree/literal-decimal? etree)
