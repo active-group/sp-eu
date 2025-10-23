@@ -502,7 +502,8 @@
      (let [uri (edit-tree/tree-uri node)]
        [uri (wisen.frontend.forms/make-selected 0 (count (str uri)))])
      (forms/form
-      {:onSubmit
+      {:style {:margin 0}
+       :onSubmit
        (fn [[node [new-uri _]] e]
          (.preventDefault e)
          (let [old-uri (edit-tree/tree-uri node)]
