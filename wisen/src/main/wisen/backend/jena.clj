@@ -96,6 +96,9 @@
     (change-api/literal-date? obj)
     (.createTypedLiteral model (change-api/literal-date-value obj) XSDDatatype/XSDdate)
 
+    (change-api/literal-datetime? obj)
+    (.createTypedLiteral model (change-api/literal-datetime-value obj) XSDDatatype/XSDdateTime)
+
     (change-api/uri? obj)
     (.createResource model (change-api/uri-value obj))))
 
