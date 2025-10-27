@@ -100,7 +100,7 @@
 
          (tree/literal-boolean? obj)
          (change-api/make-literal-boolean
-          (tree/literal-boolean-value obj))
+          (str (tree/literal-boolean-value obj)))
 
          (tree/literal-time? obj)
          (change-api/make-literal-time
