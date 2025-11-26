@@ -1,7 +1,7 @@
 * Social Prescribing EU – App
 
 This repository describes a web application to support the efforts of
-the [SP-EU project](https://social-prescribing.eu). Social Prescribing
+the [[https://social-prescribing.eu][SP-EU project]]. Social Prescribing
 is a way to bridge the gap between health service providers (for
 example general practicioners) and non-medical support providers
 called link workers. It's based on the understanding that many health
@@ -11,8 +11,8 @@ loneliness, isolation, or problems with debt or housing.
 This application caters to link workers. The application can be used
 to insert, manage and lookup information about organizations, offers,
 events, etc that seem relevant to the social prescribing effort. For a
-quick introduction to the app you can [watch this short
-tutorial.](https://www.youtube.com/watch?v=VYNv-CsDOEo)
+quick introduction to the app you can [[https://www.youtube.com/watch?v=VYNv-CsDOEo][watch this short
+tutorial.]]
 
 * Development
 
@@ -66,10 +66,10 @@ service). See [[./nix/secrets][this directory]].
 ** Overview
 
 The project consists of a ClojureScript frontend and a Clojure
-backend. The backend application uses a [git](https://git-scm.com)
+backend. The backend application uses a [[https://git-scm.com][git]]
 repository as its data store. The data model consists of a knowledge
-graph based on the [Resource Description Framework
-(RDF)](https://www.w3.org/RDF/). Knowledge graph data is stored as RDF
+graph based on the [[https://www.w3.org/RDF/][Resource Description Framework
+(RDF)]]. Knowledge graph data is stored as RDF
 serializations in the git repository. The application periodically
 reads from the git repository and presents the resulting knowledge
 graph to users of the frontend to query and update. Users can modify
@@ -86,7 +86,7 @@ such as RDBMS.
    existing ecosystem of the semantic web. For example, a power-user
    may completely forego our custom web frontend and solely interact
    with the application's data by using an application like
-   [Protégé](https://protege.stanford.edu).
+   [[https://protege.stanford.edu][Protégé]].
 3. Bulk import: It may be worthwhile to convert existing data stores
    to RDF and then import this data into the SP-EU app in bulk. This
    can easily and transparently be achieved with the git data store
@@ -113,13 +113,13 @@ flowchart TD
 
 *** JGit
 
-We use [JGit](https://github.com/eclipse-jgit/jgit) to talk to the git
+We use [[https://github.com/eclipse-jgit/jgit][JGit]] to talk to the git
 repository. We mostly use the lower-level plumbing APIs.
 
 *** Apache Jena
 
-Knowledge graphs are managed with the help of the [Apache
-Jena](https://jena.apache.org) library ecosystem. Jena handles
+Knowledge graphs are managed with the help of the [[https://jena.apache.org][Apache Jena]]
+library ecosystem. Jena handles
 serialization, deserialization and querying (with SPARQL) of knowledge
 graphs. We use Jena graphs in-memory and not as storage devices. The
 single-source-of-truth is always to be found in the serialized files
