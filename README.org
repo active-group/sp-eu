@@ -139,3 +139,47 @@ in a separate Lucene index. This presents us with a list of URIs
 (resource identifiers) which we then use in a SPARQL query passed to a
 Jena knowledge graph. Lucene indices are sometimes created on demand
 (very slow), and mostly kept in caches.
+
+*** Caching
+
+Lucene indices and Jena knowledge graphs are often cached for faster
+subsequent reads. All cached objects are keyed by the corresponding
+commit hash. Currently we keep four pairs of Lucene index and Jena
+knowledge graph around in a least-recently used fashion.
+
+** Head
+
+For each interaction the web frontend explicitly refers to a specific
+git commit hash. Currently, this commit hash is obtained by frequently
+issuing a request for the "head" of the data store. For reading,
+searching, and querying, this "head request" is the only impure
+interaction between frontend and backend. All subsequent read requests
+are pure.
+
+The following sequence diagram shows a sample interaction between
+frontend, backend, and an external user directly accessing the git
+repository.
+
+#+BEGIN_SRC mermaid
+sequenceDiagram
+    Frontend->>+Backend: head?
+    Backend->>+Local Repository: head?
+    Local Repository-->>-Backend: 7ba34c...
+    Backend-->>-Frontend: 7ba34c...
+
+    User-->>Local Repository: New commit!
+
+    Frontend->>+Backend: head?
+    Backend->>+Local Repository: head?
+    Local Repository-->>-Backend: 8aaab...
+    Backend-->>-Frontend: 8aaab...
+#+END_SRC
+
+** Reading, searching, querying
+
+Users can search for resources in the knowledge graph(s) via the web
+frontend. Most searches name a fuzzy search term ("Sports for
+elderly") and a geographic area defined by longitude and latitude
+ranges. As described in the previous section, all read and search
+requests explicitly refer to a git commit hash and can be considered
+pure functions.
