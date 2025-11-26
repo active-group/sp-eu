@@ -183,3 +183,39 @@ elderly") and a geographic area defined by longitude and latitude
 ranges. As described in the previous section, all read and search
 requests explicitly refer to a git commit hash and can be considered
 pure functions.
+
+The following sequence diagram shows a sample interaction between the
+relevant components handling a search query. In this scenario the
+corresponding cache is not yet populated.
+
+#+BEGIN_SRC mermaid
+sequenceDiagram
+    Frontend->>Access: search for commit id 8aaab...
+    Access->>Cache: get cached jena graph + lucene index for 8aaab...
+    Cache->>Repository: get jena graph for 8aaab...
+    Repository->>Cache: jena graph
+    Cache->>Cache: Compute lucene index from jena graph
+    Cache->>Access: jena graph + computed lucene index
+    Access->>Lucene index: Lookup fuzzy search term and geographic area
+    Lucene index->>Access: List of relevant URIs
+    Access->>Jena graph: run SPARQL CONSTRUCT query
+    Jena graph->>Access: return result graph
+    Access->>Frontend: return result graph
+#+END_SRC
+
+** Changing
+
+Users can either use the web frontend to modify the knowledge graph or
+directly access the serialized RDF data in the git repository. The
+following sequence diagram shows a sample interaction between the
+relevant components handling a change request from a user of the web
+frontend.
+
+#+BEGIN_SRC mermaid
+sequenceDiagram
+    Frontend->>Access: Change request based on 8aaab...
+    Access->>Repository: Apply changeset based on 8aaab...
+    Repository->>Access: Result commit id: 399be...
+    Access->>Cache: Prepopulate cache for 399be...
+    Access->>Frontend: Result commit id: 399be...
+#+END_SRC
