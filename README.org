@@ -99,7 +99,7 @@ a number of supporting components. The following diagram shows the
 relevant components and their interactions for a search query
 originating at a user of the web frontend.
 
-```mermaid
+#+BEGIN_SRC mermaid
 flowchart TD
     U[User] -->|Search!| A
     A[Web frontend] -->|Search request| B(Backend handler)
@@ -110,7 +110,7 @@ flowchart TD
     C -->|Two| E[Repository access]
     D -->|populate from| E
     E -->|manage files| I{git repository}
-```
+#+END_SRC
 
 *** JGit
 
