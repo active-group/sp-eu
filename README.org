@@ -1,3 +1,19 @@
+* Social Prescribing EU – App
+
+This repository describes a web application to support the efforts of
+the [SP-EU project](https://social-prescribing.eu). Social Prescribing
+is a way to bridge the gap between health service providers (for
+example general practicioners) and non-medical support providers
+called link workers. It's based on the understanding that many health
+issues are related to social, emotional or practical needs such as
+loneliness, isolation, or problems with debt or housing.
+
+This application caters to link workers. The application can be used
+to insert, manage and lookup information about organizations, offers,
+events, etc that seem relevant to the social prescribing effort. For a
+quick introduction to the app you can [watch this short
+tutorial.](https://www.youtube.com/watch?v=VYNv-CsDOEo)
+
 * Development
 
 The project has a flake.nix, so you can enter the development environment with:
@@ -44,3 +60,83 @@ happens continually via CI pipeline.
 
 We use [[https://github.com/ryantm/agenix][agenix]] to manage secrets (mainly the DB password used by the Keycloak
 service). See [[./nix/secrets][this directory]].
+
+* Software Architecture
+
+** Overview
+
+The project consists of a ClojureScript frontend and a Clojure
+backend. The backend application uses a [git](https://git-scm.com)
+repository as its data store. The data model consists of a knowledge
+graph based on the [Resource Description Framework
+(RDF)](https://www.w3.org/RDF/). Knowledge graph data is stored as RDF
+serializations in the git repository. The application periodically
+reads from the git repository and presents the resulting knowledge
+graph to users of the frontend to query and update. Users can modify
+this knowledge graph however they see fit. When they issue a
+modification request, the backend packs the corresponding changes up
+in a git commit and pushes this commit to the origin repository. This
+arrangement has many practical advantages over traditional data stores
+such as RDBMS.
+
+1. Versioning by default: All changes are versioned and can be rolled
+   back if the need arises.
+2. Use of external software: Since we store the knowledge graph data
+   as RDF serializations (N-Triples, JSON-LD), we can leverage the
+   existing ecosystem of the semantic web. For example, a power-user
+   may completely forego our custom web frontend and solely interact
+   with the application's data by using an application like
+   [Protégé](https://protege.stanford.edu).
+3. Bulk import: It may be worthwhile to convert existing data stores
+   to RDF and then import this data into the SP-EU app in bulk. This
+   can easily and transparently be achieved with the git data store
+   model.
+
+** Supporting infrastructure
+
+In addition to the git storage model and the RDF data model there are
+a number of supporting components. The following diagram shows the
+relevant components and their interactions for a search query
+originating at a user of the web frontend.
+
+```mermaid
+flowchart TD
+    U[User] -->|Search!| A
+    A[Web frontend] -->|Search request| B(Backend handler)
+    B --> C{Access module}
+    C -->|lookup| D[Cache]
+    D -->|manage| G{Jena data store}
+    D -->|manage| H{Lucene index}
+    C -->|Two| E[Repository access]
+    D -->|populate from| E
+    E -->|manage files| I{git repository}
+```
+
+*** JGit
+
+We use [JGit](https://github.com/eclipse-jgit/jgit) to talk to the git
+repository. We mostly use the lower-level plumbing APIs.
+
+*** Apache Jena
+
+Knowledge graphs are managed with the help of the [Apache
+Jena](https://jena.apache.org) library ecosystem. Jena handles
+serialization, deserialization and querying (with SPARQL) of knowledge
+graphs. We use Jena graphs in-memory and not as storage devices. The
+single-source-of-truth is always to be found in the serialized files
+in the git repository. Jena knowledge graphs are created on demand,
+predictively or kept in caches.
+
+*** Apache Lucene
+
+SPARQL -- the query language of the semantic web and therefore the
+language supported by Apache Jena -- lacks expressivity for our
+purposes. Most of our queries are two-dimensional: Users look for a
+fuzzy search term ("Sports for elderly") in a specific map area. Both
+fuzzy semantic searches and geo-searches are badly supported by
+SPARQL. We therefore use a two-layered system to resolve user
+queries. We first lookup fuzzy semantic search terms and geo queries
+in a separate Lucene index. This presents us with a list of URIs
+(resource identifiers) which we then use in a SPARQL query passed to a
+Jena knowledge graph. Lucene indices are sometimes created on demand
+(very slow), and mostly kept in caches.
