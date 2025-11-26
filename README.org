@@ -107,8 +107,7 @@ flowchart TD
     C -->|lookup| D[Cache]
     D -->|manage| G{Jena data store}
     D -->|manage| H{Lucene index}
-    C -->|Two| E[Repository access]
-    D -->|populate from| E
+    D -->|populate from| E[Repository access]
     E -->|manage files| I{git repository}
 #+END_SRC
 
