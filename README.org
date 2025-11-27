@@ -219,3 +219,30 @@ sequenceDiagram
     Access->>Cache: Prepopulate cache for 399be...
     Access->>Frontend: Result commit id: 399be...
 #+END_SRC
+
+** Skolemization
+
+RDF supports so called blank nodes. A blank node doesn't have an
+explicit URI but can still appear in triples. Blank nodes are assigned
+temporary blank node IDs. However, the RDF standard fails to mention
+how far these temporary IDs reach. There are no explicit introductions
+of blank node IDs. This makes it impossible to work with blank nodes
+in a larger context. We therefore require all resources to be assigned
+explicit URIs whenever knowledge graph fragments or derived
+information moves from the backend to the frontend. We call the
+process of assigning explicit URIs: skolemization.
+
+When a user creates resources in the frontend, they are allowed to use
+blank nodes during editing. A user can then commit their changes to
+the backend ("write"). Later they issue queries to the knowledge graph
+where the result may contain information that they previously
+committed ("query"). In order to fulfill the constraint that all
+knowledge graph fragments must be skolemized when they move from
+backend to frontend, we could either skolemize eagerly on "write", we
+could skolemize lazily on "read" or we could decide to skolemize at
+any point in between. Currently, we [[https://github.com/active-group/sp-eu/blob/main/wisen/src/main/wisen/backend/handler.clj#L117][skolemize eagerly]] for writes
+originating at the web frontend and we [[https://github.com/active-group/sp-eu/blob/main/wisen/src/main/wisen/backend/access.clj#L106][skolemize lazily]] for writes
+directly to the git repository.
+
+** Geocoding
+
