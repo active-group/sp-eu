@@ -246,3 +246,13 @@ directly to the git repository.
 
 ** Geocoding
 
+Users can insert knowledge graph fragments however they see fit. In
+order to make the geo search work, however, we have to have geo
+information attached to resources. This could in theory be done by
+explicitly assigning longitude and latitude values, but that's very
+cumbersome and error-prone in practice. We therefore provide a service
+that translates postal address information (e.g. "Hechinger Str. 12/1
+in 72072 Tübingen, Germany") into longitude and latitude. It's not
+vital that this "geocoding" process happens eagerly on every
+write. Currently, we decide to kick-off geocoding asynchronously[[https://github.com/active-group/sp-eu/blob/main/wisen/src/main/wisen/backend/access.clj#L184]]. It
+can also be [[https://github.com/active-group/sp-eu/blob/main/wisen/src/main/wisen/backend/handler.clj#L320][triggered manually.]]
