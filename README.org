@@ -14,6 +14,23 @@ events, etc that seem relevant to the social prescribing effort. For a
 quick introduction to the app you can [[https://www.youtube.com/watch?v=VYNv-CsDOEo][watch this short
 tutorial.]]
 
+* Configuration
+
+The app stores its state in a temporary file system directory. It
+clones a git repository that can be configured via the environment
+variable `REPOSITORY`. By default this points to a repository on the local file system:
+
+```
+REPOSITORY="/model.git"
+```
+
+For skolemization the application needs a prefix that should match the
+publicly accessible address of the server. Currently that is:
+
+```
+PREFIX = "https://sp-eu.active-group.de";
+```
+
 * Development
 
 The project has a flake.nix, so you can enter the development environment with:
