@@ -85,7 +85,9 @@
             (str (get row "description"))))
          res)))
 
-(defn- model->index [model]
+(defn- model->index
+  "Returns a new index object"
+  [model]
   (index/new-in-memory-index
    (concat
     (direct-index-records model)

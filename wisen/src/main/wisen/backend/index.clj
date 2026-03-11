@@ -80,7 +80,13 @@
 
 (defn search-text-and-geo
   "Returns a `search-result`"
-  [index text box range]
+  [
+   index ; the index object
+   text  ; the fuzzy search term
+   box   ; the geo area
+   range ; for pagination
+   ]
+
   (lucene/run-query!
    index
    (combine-queries

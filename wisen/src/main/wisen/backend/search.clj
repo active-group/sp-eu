@@ -46,7 +46,7 @@
     (gather-results '() results)))
 
 (defn run-construct-query
-  "Run a SPARQL SELECT query"
+  "Run a SPARQL CONSTRUCT query. Returns the constructed model."
   [model q]
   (let [qexec (QueryExecutionFactory/create q model)
         graph (.execConstruct qexec)]
