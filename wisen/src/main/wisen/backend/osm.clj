@@ -129,7 +129,8 @@
           res (http/get
                url
                {:accept :json
-                :as :json-string-keys})
+                :as :json-string-keys
+                :headers {"User-Agent" "Triples/0.1"}})
           status (:status res)
           body (:body res)]
       (cond
