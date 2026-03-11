@@ -126,6 +126,7 @@
     (let [url (str
                "https://nominatim.openstreetmap.org/search?format=jsonv2&q="
                (urlencode-address address))
+          _ (event-logger/log-event! :info (str "OSM URL: " url))
           res (http/get
                url
                {:accept :json
@@ -136,19 +137,28 @@
       (cond
         (= 200 status)
         (if (and (coll? body) (not-empty body))
-          (search-success
-           search-success-longitude (bigdec (get (first body) "lon"))
-           search-success-latitude (bigdec (get (first body) "lat")))
+          (do
+            (event-logger/log-event! :info "OSM lookup successfull")
+            (search-success
+             search-success-longitude (bigdec (get (first body) "lon"))
+             search-success-latitude (bigdec (get (first body) "lat"))))
           (make-search-failure "OSM address not found"))
 
         (= status 404)
-        (make-search-failure "OSM resource not found")
+        (do
+          (event-logger/log-event! :info "OSM lookup failed: 404")
+          (make-search-failure "OSM resource not found"))
 
         (>= status 500)
-        (make-search-failure "OSM server error")
+        (do
+          (event-logger/log-event! :info "OSM lookup failed: 500")
+          (make-search-failure "OSM server error"))
 
         :else
-        (make-search-failure "Unexpected response from OSM server")))
+        (do
+          (event-logger/log-event! :info "OSM lookup failed: Unexcepted response")
+          (make-search-failure "Unexpected response from OSM server"))))
 
     (catch Exception e
+      (event-logger/log-event! :info "OSM lookup failed: Request failed exceptionally")
       (make-search-failure (str "Request failed: " (.getMessage e))))))
