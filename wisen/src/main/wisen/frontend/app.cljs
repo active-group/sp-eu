@@ -93,6 +93,8 @@
                         :justify-content "space-between"
                         :gap "2em"}}
 
+               (ds/sp-eu-logo "32")
+
                (dom/a {:style {:font-weight "bold"}
                        :href (pages.routes/href routes/home)}
                       (context/text ctx tr/search))

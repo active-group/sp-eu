@@ -257,7 +257,7 @@
                                               :border-radius "20px"}})))
 
          (ds/button-primary {:type "submit"
-                             :style {:background "#923dd2"
+                             :style {:background "#9A498F"
                                      :padding "6px 16px"
                                      :border-radius "20px"
                                      :color "white"}}
