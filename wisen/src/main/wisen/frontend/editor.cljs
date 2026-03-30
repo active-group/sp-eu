@@ -509,7 +509,7 @@
                    (modal/modal-button (context/text ctx tr/update) #(link-organization-with-osm-button ctx osm-uri %)))
                   (modal/modal-button (context/text ctx tr/link-with-open-street-map) #(link-organization-with-osm-button ctx nil %))))
 
-              (modal/modal-button (ds/lightbulb-icon "21") (partial ask-ai ctx))))))
+              #_(modal/modal-button (ds/lightbulb-icon "21") (partial ask-ai ctx))))))
 
 (defn- valid-uri? [x]
   (and (string? x)
