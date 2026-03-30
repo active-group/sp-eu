@@ -173,3 +173,12 @@
             (.-statements schema)))))
 
 (def all-predicates (memoize all-predicates*))
+
+(defn- all-types* [schema]
+  (map #(.-value %)
+       (js->clj
+        (rdf/predicate-object-subjects schema
+                                       (rdf/make-symbol "http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
+                                       (rdf/make-symbol "http://www.w3.org/2000/01/rdf-schema#Class")))))
+
+(def all-types (memoize all-types*))

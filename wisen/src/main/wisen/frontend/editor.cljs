@@ -195,13 +195,22 @@
                                                   set-reference-action-new-uri new-uri
                                                   set-reference-action-predicate predicate))))
                  :disabled (when-not editing? "disabled")}
-                (map (fn [type-uri]
-                       (dom/option {:value type-uri}
-                                   (schema/label-for-type (context/schema ctx) type-uri)))
-                     (sort
-                      (distinct
-                       (conj types
-                             (edit-tree/tree-uri etree)))))))
+                (let [type-option (fn [type-uri]
+                                    (dom/option {:value type-uri}
+                                                (schema/label-for-type (context/schema ctx) type-uri)))]
+                  [(apply
+                    forms/optgroup
+                    {:label "Recommended types"}
+                    (map type-option
+                         (sort
+                          (distinct
+                           (conj types
+                                 (edit-tree/tree-uri etree))))))
+                   (apply
+                    forms/optgroup
+                    {:label "All types"}
+                    (map type-option
+                         (schema/all-types (context/schema ctx))))])))
 
       (and (or (= predicate "http://schema.org/logo")
                (= predicate "http://schema.org/image"))
