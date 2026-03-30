@@ -377,7 +377,7 @@
                 (let [prep-preds (fn [preds]
                                    (map (fn [pred]
                                           (forms/option {:value pred} (schema/label-for-predicate ctx pred)))
-                                        preds))]
+                                        (sort preds)))]
                   [(apply forms/optgroup
                           {:label (context/text ctx tr/recommended-predicates)}
                           (prep-preds predicates))

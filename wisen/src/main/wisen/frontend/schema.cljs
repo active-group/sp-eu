@@ -163,12 +163,13 @@
           (sorts-for-predicate schema predicate)))
 
 (defn- all-predicates* [schema]
-  (mapcat (fn [stmt]
-            (let [pred (.-predicate stmt)]
-              (when (= (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
-                       pred)
-                [(rdf/symbol-uri (.-object stmt))])))
-          (js->clj
-           (.-statements schema))))
+  (distinct
+   (mapcat (fn [stmt]
+             (let [pred (.-predicate stmt)]
+               (when (= (rdf/make-symbol "http://www.w3.org/ns/shacl#path")
+                        pred)
+                 [(rdf/symbol-uri (.-object stmt))])))
+           (js->clj
+            (.-statements schema)))))
 
 (def all-predicates (memoize all-predicates*))
