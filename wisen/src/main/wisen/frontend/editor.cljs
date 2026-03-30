@@ -382,7 +382,7 @@
                           {:label (context/text ctx tr/recommended-predicates)}
                           (prep-preds predicates))
                    (apply forms/optgroup
-                          {:label (context/text ctx tr/recommended-predicates)}
+                          {:label (context/text ctx tr/all-predicates)}
                           (prep-preds (schema/all-predicates (context/schema ctx))))])))
 
       (ds/button-primary
