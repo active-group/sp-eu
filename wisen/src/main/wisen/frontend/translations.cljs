@@ -467,6 +467,11 @@
     en "Prerequisites"
     de "Voraussetzungen")
 
+   "http://schema.org/courseSchedule"
+   (text
+    en "Course schedule"
+    de "Kursplan")
+
    "http://schema.org/hasCourseInstance"
    (text
     en "Course instance"
