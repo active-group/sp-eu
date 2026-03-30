@@ -510,7 +510,7 @@ rdf-import-epilog;"Ihr LLM wird Ihnen dann wahrscheinlich einen Codeblock präse
 "https://schema.org/encodings";;;;;;;;;;;
 "https://schema.org/endDate";;;;;;;;;;;
 "https://schema.org/endOffset";;;;;;;;;;;
-"https://schema.org/endTime";;;;;;;;;;;
+"https://schema.org/endTime";"Endzeit";"End time";;;;;;;;;
 "https://schema.org/endorsee";;;;;;;;;;;
 "https://schema.org/endorsers";;;;;;;;;;;
 "https://schema.org/energyEfficiencyScaleMax";;;;;;;;;;;
@@ -1313,7 +1313,7 @@ rdf-import-epilog;"Ihr LLM wird Ihnen dann wahrscheinlich einen Codeblock präse
 "https://schema.org/starRating";;;;;;;;;;;
 "https://schema.org/startDate";;;;;;;;;;;
 "https://schema.org/startOffset";;;;;;;;;;;
-"https://schema.org/startTime";;;;;;;;;;;
+"https://schema.org/startTime";"Startzeit";"Start time";;;;;;;;;
 "https://schema.org/status";;;;;;;;;;;
 "https://schema.org/steeringPosition";;;;;;;;;;;
 "https://schema.org/step";;;;;;;;;;;
