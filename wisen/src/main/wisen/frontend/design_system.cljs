@@ -105,7 +105,7 @@
                  :id id
                  :style {:position "absolute"
                          :width "min-content"
-                         :height "min-content"
+                         :height "auto"
                          :margin "0"
                          :border border
                          :border-radius "0px 6px 6px 6px"
