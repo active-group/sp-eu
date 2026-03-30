@@ -178,6 +178,70 @@
          edit-node-is-postal-address-value?
          edit-node-is-opening-hours-specification-value?)
 
+(c/defn-item ^:private default-component-for-predicate [predicate ctx types editable? editing? background-color compare-edit-tree adornment]
+  (dom/div
+   {:style {:display "flex"
+            :flex-wrap "wrap"
+            :align-items "flex-start"
+            :gap "0.5em"}}
+   (when editing?
+     (c/focus (edit-tree/make-edit-tree-kind-lens
+               (partial default/default-tree-for-predicate-and-kind predicate))
+              (c/with-state-as kind
+                (apply
+                 ds/select
+                 {:disabled (when-not editing? "disabled")}
+                 (map (fn [kind]
+                        (forms/option {:value kind} (label-for-kind ctx kind)))
+                      (distinct
+                       (conj (schema/kinds-for-predicate (context/schema ctx) predicate)
+                             kind)))))))
+   (edit-tree-component*
+    ctx
+    (schema/types-for-predicate (context/schema ctx) predicate)
+    editable?
+    editing?
+    background-color
+    compare-edit-tree
+    adornment)))
+
+(defn- pr-iso8601-date-duration-kind [kind]
+  (condp = kind
+    "Y" "years"
+    "M" "months"
+    "D" "days"
+    "W" "weeks"
+    "?"))
+
+(defn- pr-iso8601-time-duration-kind [kind]
+  (condp = kind
+    "H" "hours"
+    "M" "minutes"
+    "S" "seconds"
+    "?"))
+
+(defn- pr-iso8601-duration [s]
+  (when (= \P (first s))
+    (let [[d t] (string/split (subs s 1) #"T")]
+      (str
+       "Every "
+       (string/join
+        ", "
+        (map
+         (fn [[n kind]]
+           (str n " " (pr-iso8601-date-duration-kind kind)))
+         (partition 2 d)))
+
+       (when t
+         (str
+          ", "
+          (string/join
+           ", "
+           (map
+            (fn [[n kind]]
+              (str n " " (pr-iso8601-time-duration-kind kind)))
+            (partition 2 t)))))))))
+
 (c/defn-item ^:private component-for-predicate [predicate ctx types editable? editing? background-color compare-edit-tree adornment]
   (c/with-state-as etree
     (cond
@@ -322,14 +386,6 @@
                                   :placeholder "https://example.com"
                                   :disabled (when-not editing? "disabled")})))
 
-      #_#_(and
-       (= predicate "http://schema.org/address")
-       (edit-tree/edit-node? etree)
-       (= (tree/type-uri (edit-node-type etree)) "http://schema.org/PostalAddress")
-       (edit-node-is-postal-address-value? etree))
-      (value-node/as-value-node
-       (postal-address-component schema editable? editing?))
-
       (= predicate "https://wisen.active-group.de/target-group")
       (c/focus (lens/pattern [edit-tree/literal-string-value
                               (lens/>> edit-tree/literal-string-focused?
@@ -340,32 +396,18 @@
                 (forms/option {:value "queer"} (context/text ctx tr/queer))
                 (forms/option {:value "immigrants"} (context/text ctx tr/immigrants))))
 
-      :else
+      (= predicate "http://schema.org/repeatFrequency")
       (dom/div
        {:style {:display "flex"
-                :flex-wrap "wrap"
-                :align-items "flex-start"
-                :gap "0.5em"}}
-       (when editing?
-         (c/focus (edit-tree/make-edit-tree-kind-lens
-                   (partial default/default-tree-for-predicate-and-kind predicate))
-                  (c/with-state-as kind
-                    (apply
-                     ds/select
-                     {:disabled (when-not editing? "disabled")}
-                     (map (fn [kind]
-                            (forms/option {:value kind} (label-for-kind ctx kind)))
-                          (distinct
-                           (conj (schema/kinds-for-predicate (context/schema ctx) predicate)
-                                 kind)))))))
-       (edit-tree-component*
-        ctx
-        (schema/types-for-predicate (context/schema ctx) predicate)
-        editable?
-        editing?
-        background-color
-        compare-edit-tree
-        adornment)))))
+                :align-items "baseline"
+                :gap "1em"}}
+       (default-component-for-predicate predicate ctx types editable? editing? background-color compare-edit-tree adornment)
+       (when (edit-tree/literal-string? etree)
+         (pr-iso8601-duration
+          (edit-tree/literal-string-value etree))))
+
+      :else
+      (default-component-for-predicate predicate ctx types editable? editing? background-color compare-edit-tree adornment))))
 
 (c/defn-item add-property-button [ctx predicates]
   (c/with-state-as [node predicate :local schemaorg/default-predicate]
