@@ -258,6 +258,14 @@
   de "Zum Ergebnis"
   en "Go to result")
 
+(define-text recommended-predicates
+  de "Empfohlene Prädikate"
+  en "Recommended predicates")
+
+(define-text all-predicates
+  de "Alle Prädikate"
+  en "All predicates")
+
 ;; RDF predicates
 
 (def predicates

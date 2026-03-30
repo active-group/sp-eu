@@ -374,9 +374,16 @@
                          :border-right "1px solid #888"
                          :border-top-right-radius "0px"
                          :border-bottom-right-radius "0px"}}
-                (map (fn [pred]
-                       (forms/option {:value pred} (schema/label-for-predicate ctx pred)))
-                     predicates)))
+                (let [prep-preds (fn [preds]
+                                   (map (fn [pred]
+                                          (forms/option {:value pred} (schema/label-for-predicate ctx pred)))
+                                        preds))]
+                  [(apply forms/optgroup
+                          {:label (context/text ctx tr/recommended-predicates)}
+                          (prep-preds predicates))
+                   (apply forms/optgroup
+                          {:label (context/text ctx tr/recommended-predicates)}
+                          (prep-preds (schema/all-predicates (context/schema ctx))))])))
 
       (ds/button-primary
        {:style {:padding "2px 12px"
