@@ -1,6 +1,7 @@
 (ns wisen.backend.index
   (:require [wisen.backend.lucene :as lucene]
             [wisen.backend.embedding :as embedding]
+            [active.clojure.logger.event :refer [log-event! log-msg]]
             [active.data.record :refer [def-record]]))
 
 (def search-result lucene/search-result)
@@ -41,6 +42,7 @@
    index-record-description description))
 
 (defn new-in-memory-index [index-records]
+  (log-event! :info (log-msg "Creating new in-memory-index ..."))
   (let [i (lucene/make-in-memory-directory)]
     (doall (for [irec index-records]
              (lucene/insert!
@@ -51,6 +53,7 @@
                                                         (index-record-latitude irec))
                lucene/id-geo-vec-vec (embedding-vector-for-retrieval (index-record-name irec)
                                                                      (index-record-description irec))))))
+    (log-event! :info (log-msg "... done creating new in-memory-index"))
     i))
 
 (def search-result lucene/search-result)
