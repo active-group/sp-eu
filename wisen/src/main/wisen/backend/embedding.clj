@@ -10,7 +10,7 @@
            [java.nio.file Files FileSystems Paths]))
 
 (defn make-cache [m]
-  (cache/lru-cache-factory m 65536))
+  (cache/lru-cache-factory m :threshold 65536))
 
 ;; Cache for embeddings (to avoid re-computing)
 (def embedding-cache (atom (make-cache {})))
