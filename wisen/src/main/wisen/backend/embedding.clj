@@ -77,9 +77,9 @@
       (getBatchifier [_] nil))))
 
 (defn initialize-model []
-  (println "Initializing embedding model:" model-name)
-  (println "Model path:" model-path)
-  (println "Tokenizer path:" tokenizer-path)
+  (event-logger/log-event! :info (event-logger/log-msg "Initializing embedding model:" model-name))
+  (event-logger/log-event! :info (event-logger/log-msg "Model path:" model-path))
+  (event-logger/log-event! :info (event-logger/log-msg "Tokenizer path:" tokenizer-path))
 
   (let [translator (custom-translator tokenizer-path)
         criteria (-> (Criteria/builder)
