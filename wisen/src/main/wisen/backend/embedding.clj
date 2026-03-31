@@ -1,14 +1,38 @@
 (ns wisen.backend.embedding
-  (:require [clojure.core.cache :as cache])
+  (:require [clojure.core.cache :as cache]
+            [clojure.edn :as edn]
+            [active.clojure.logger.event :as event-logger])
   (:import [ai.djl.huggingface.tokenizers HuggingFaceTokenizer]
            ;; [ai.djl.huggingface.translator TextEmbeddingTranslatorFactory]
            [ai.djl.ndarray NDList]
            [ai.djl.repository.zoo Criteria ModelZoo]
            [ai.djl.translate Translator]
-           [java.nio.file Paths]))
+           [java.nio.file Files FileSystems Paths]))
+
+(defn make-cache [m]
+  (cache/lru-cache-factory m 65536))
 
 ;; Cache for embeddings (to avoid re-computing)
-(def embedding-cache (atom (cache/ttl-cache-factory {} :ttl (* 24 60 60 1000)))) ;; 24 hours
+(def embedding-cache (atom (make-cache {})))
+
+(defn store! [embeddings filename]
+  (spit filename (pr-str embeddings)))
+
+(defn store!! [filename]
+  (store! @embedding-cache filename))
+
+(defn load! [filename]
+  (try
+    (edn/read-string
+     (slurp filename))
+    (catch Exception e
+      (event-logger/log-event! :error (str "Couldn't load embedding cache from file: " filename))
+      {})))
+
+(defn load!! [filename]
+  (reset! embedding-cache
+          (make-cache
+           (load! filename))))
 
 (def model-name (System/getenv "TS_MODEL_NAME"))
 

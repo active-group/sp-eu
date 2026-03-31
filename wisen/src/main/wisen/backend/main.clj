@@ -3,7 +3,8 @@
             [wisen.backend.server :as server]
             [wisen.backend.git :as git]
             [active.clojure.logger.event :as event-logger]
-            [nrepl.server :as nrepl])
+            [nrepl.server :as nrepl]
+            [wisen.backend.embedding :as embedding])
   (:gen-class))
 
 (def opts
@@ -26,6 +27,13 @@
        (event-logger/log-event! :info (str "Setup done: " ~name))
        result#)))
 
+(defn register-embedding-cache-shutdown-hook! [embedding-cache-file]
+  (.addShutdownHook (Runtime/getRuntime)
+                    (Thread. ^Runnable
+                             (fn [& args]
+                               (event-logger/log-event! :info (str "Storing embedding cache: " embedding-cache-file))
+                               (embedding/store!! embedding-cache-file)))))
+
 (defn main [opts]
   (cond
     (:errors opts)
@@ -43,7 +51,15 @@
     (let [options (:options opts)
           config-path (:config options)
           repo-uri (System/getenv "REPOSITORY")
-          prefix (System/getenv "PREFIX")]
+          prefix (System/getenv "PREFIX")
+          embedding-cache-file (or (System/getenv "EMBEDDINGCACHEFILE")
+                                   "embeddings.cache")]
+
+      (setup! (str "Embedding cache: " embedding-cache-file)
+              (embedding/load!! embedding-cache-file))
+
+      (setup! "Registering shutdown hook for embedding cache storage"
+              (register-embedding-cache-shutdown-hook! embedding-cache-file))
 
       (setup! "Web server"
               (server/start! config-path repo-uri prefix))
