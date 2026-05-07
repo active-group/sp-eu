@@ -24,7 +24,7 @@
 (defn load! [filename]
   (try
     (let [res (edn/read-string (slurp filename))]
-      (event-logger/log-event! :error (str "Successfully loaded " (count res) " embeddings from file: " filename))
+      (event-logger/log-event! :info (str "Successfully loaded " (count res) " embeddings from file: " filename))
       res)
     (catch Exception e
       (event-logger/log-event! :error (str "Couldn't load embedding cache from file: " filename))
