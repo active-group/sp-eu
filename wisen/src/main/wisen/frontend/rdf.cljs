@@ -116,17 +116,19 @@
                     edges)]
     (loop [reachable #{}
            B #{}]
-      (if (= reachable all-nodes)
-        B
-        (let [remaining (set/difference all-nodes reachable)
-              ;; For each node, count how many remaining nodes it can reach
-              best (apply max-key
-                          (fn [x]
-                            (count (set/intersection remaining (bfs-reachable adj x))))
-                          remaining)
-              newly-reached (bfs-reachable adj best)]
-          (recur (set/union reachable newly-reached)
-                 (conj B best)))))))
+      (let [remaining (set/difference all-nodes reachable)]
+        (if (empty? remaining)
+          B
+          (let [remaining (set/difference all-nodes reachable)
+                ;; For each node, count how many remaining nodes it can reach
+                best (apply max-key
+                            (fn [x]
+                              (count (set/intersection remaining (bfs-reachable adj x))))
+                            remaining)
+                newly-reached (bfs-reachable adj best)
+                ]
+            (recur (set/union reachable newly-reached)
+                   (conj B best))))))))
 
 (defn- statement->edge [stmt]
   (let [s (.-subject stmt)
