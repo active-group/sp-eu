@@ -110,9 +110,7 @@
 
 (defn get-embedding [text]
   (if (cache/has? @embedding-cache text)
-    (do
-      (println "CACHE HIT")
-      (cache/lookup @embedding-cache text))
+    (cache/lookup @embedding-cache text)
     (let [{:keys [predictor]} (ensure-model-loaded)
           embedding (.predict predictor text)]
       (swap! embedding-cache cache/miss text embedding)
