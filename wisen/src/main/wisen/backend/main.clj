@@ -71,4 +71,5 @@
 
 (defn -main
   [& args]
+  (event-logger/set-global-log-events-config-from-map! {:min-level :info})
   (main (cli/parse-opts args opts)))
