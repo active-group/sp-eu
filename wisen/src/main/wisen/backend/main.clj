@@ -71,5 +71,7 @@
 
 (defn -main
   [& args]
-  (event-logger/set-global-log-events-config-from-map! {:min-level :info})
+  (let [min-log-level :info]
+    (println "Setting minimum log level: " (pr-str min-log-level))
+    (event-logger/set-global-log-events-config-from-map! {:min-level min-log-level}))
   (main (cli/parse-opts args opts)))
