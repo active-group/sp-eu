@@ -146,19 +146,19 @@
 
         (= status 404)
         (do
-          (event-logger/log-event! :info "OSM lookup failed: 404")
+          (event-logger/log-event! :error "OSM lookup failed: 404")
           (make-search-failure "OSM resource not found"))
 
         (>= status 500)
         (do
-          (event-logger/log-event! :info "OSM lookup failed: 500")
+          (event-logger/log-event! :error "OSM lookup failed: 500")
           (make-search-failure "OSM server error"))
 
         :else
         (do
-          (event-logger/log-event! :info "OSM lookup failed: Unexcepted response")
+          (event-logger/log-event! :error "OSM lookup failed: Unexcepted response")
           (make-search-failure "Unexpected response from OSM server"))))
 
     (catch Exception e
-      (event-logger/log-event! :info "OSM lookup failed: Request failed exceptionally")
+      (event-logger/log-event! :error "OSM lookup failed: Request failed exceptionally")
       (make-search-failure (str "Request failed: " (.getMessage e))))))
