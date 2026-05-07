@@ -45,15 +45,14 @@
   (log-event! :info (log-msg "Creating new in-memory-index ..."))
   (let [i (lucene/make-in-memory-directory)]
     (doall (for [irec index-records]
-             (time
-              (lucene/insert!
-               i
-               (lucene/id-geo-vec
-                lucene/id-geo-vec-id (index-record-id irec)
-                lucene/id-geo-vec-geo (lucene/make-point (index-record-longitude irec)
-                                                         (index-record-latitude irec))
-                lucene/id-geo-vec-vec (embedding-vector-for-retrieval (index-record-name irec)
-                                                                      (index-record-description irec)))))))
+             (lucene/insert!
+              i
+              (lucene/id-geo-vec
+               lucene/id-geo-vec-id (index-record-id irec)
+               lucene/id-geo-vec-geo (lucene/make-point (index-record-longitude irec)
+                                                        (index-record-latitude irec))
+               lucene/id-geo-vec-vec (embedding-vector-for-retrieval (index-record-name irec)
+                                                                     (index-record-description irec))))))
     (log-event! :info (log-msg "... done creating new in-memory-index"))
     i))
 
