@@ -1,6 +1,7 @@
 (ns wisen.backend.jena
   (:require [wisen.backend.jsonld]
-            [wisen.common.change-api :as change-api])
+            [wisen.common.change-api :as change-api]
+            [clojure.string :as str])
   (:import
    (java.io File)
    (org.apache.jena.rdf.model Model ModelFactory)
@@ -25,9 +26,22 @@
       (.parse model))
     model))
 
-(defn model->nt [model]
+(defn sort-lines [s]
+  (let [sorted (->> s
+                    (str/split-lines)
+                    (remove str/blank?)
+                    (sort)
+                    (str/join "\n"))]
+    (if (str/blank? sorted)
+      ""
+      (str sorted "\n"))))
+
+(defn model->nt* [model]
   (with-out-str
     (.write model *out* "NTRIPLES")))
+
+(defn model->nt [model]
+  (sort-lines (model->nt* model)))
 
 (defn unwrap [node]
   (cond

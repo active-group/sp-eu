@@ -14,7 +14,7 @@
              (git-tree/make-file
               "{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})))))
 
-  (is (= "<http://x.com> <http://schema.org/name> \"Quarki\" .\n<http://x.com> <http://schema.org/description> \"foo\" .\n"
+  (is (= "<http://x.com> <http://schema.org/description> \"foo\" .\n<http://x.com> <http://schema.org/name> \"Quarki\" .\n"
          (jena/model->nt
           (r/folder->model
            (git-tree/make-folder
@@ -48,7 +48,7 @@
        (git-tree/make-folder
         {"24.nt"
          (git-tree/make-file
-          "<http://x.com> <http://schema.org/name> \"Quarki\" .\n<http://x.com> <http://schema.org/email> \"bla@bar.com\" .\n"
+          "<http://x.com> <http://schema.org/email> \"bla@bar.com\" .\n<http://x.com> <http://schema.org/name> \"Quarki\" .\n"
           #_"{\n    \"@id\": \"http://x.com\",\n    \"http://schema.org/email\": \"bla@bar.com\",\n    \"http://schema.org/name\": \"Quarki\"\n}\n")})
 
        (r/merge-folders
