@@ -21,10 +21,8 @@
                       NOT EXISTS { ?address <http://www.w3.org/2003/01/geo/wgs84_pos#long> ?long }
                       ||
                       NOT EXISTS { ?address <http://www.w3.org/2003/01/geo/wgs84_pos#lat> ?lat }
-                     )
-
-                     LIMIT 5
-                   }")
+                     )}
+                    LIMIT 5")
         ;; 2. for all results:
         ;;    fetch geo coordinates from OSM/Nominatim
         changed? (reduce (fn [changed? result]
