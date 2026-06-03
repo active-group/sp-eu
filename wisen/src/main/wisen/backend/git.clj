@@ -9,7 +9,7 @@
             [wisen.backend.git-tree :as git-tree])
   (:import
    (java.io File)
-   (java.nio.file Files)
+   (java.nio.file Files Path Paths)
    (java.nio.charset StandardCharsets)
    (org.eclipse.jgit.lib Repository FileMode Constants CommitBuilder TreeFormatter AnyObjectId RefUpdate$Result PersonIdent)
    (org.eclipse.jgit.dircache DirCache DirCacheEditor DirCacheEditor$PathEdit DirCacheEntry)
@@ -45,18 +45,35 @@
 (defn- folder->jgit-tree! [repo folder]
   (git-tree/to-jgit repo folder))
 
-(defn- create-temp-dir! [name]
+(defn- get-home-directory! []
+  (System/getProperty "user.home"))
+
+(defn- get-app-directory! []
+  (str
+   (get-home-directory!)
+   "/"
+   ".speu"))
+
+(defn- get-new-git-base-directory! []
+  (str (get-app-directory!)
+       "/"
+       (random-uuid)
+       "/"))
+
+(defn- create-working-directory! []
   (.toFile
-   (Files/createTempDirectory
-    name
-    (make-array java.nio.file.attribute.FileAttribute 0))))
+   (Paths/get
+    ""
+    (into-array
+     [(get-new-git-base-directory!)]))))
 
 (defn clone!
   "Returns an object that's used as a handle for subsequent operations"
   ([uri]
-   (clone! (create-temp-dir! "git") uri))
+   (clone! (create-working-directory!) uri))
   ([dir uri]
    (event-logger/log-event! :info (str "(clone! " uri ")"))
+   (event-logger/log-event! :info (str "Cloning into directory " dir))
    (-> (Git/cloneRepository)
        (.setBare true)
        (.setDirectory dir)
