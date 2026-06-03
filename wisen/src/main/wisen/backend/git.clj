@@ -57,7 +57,7 @@
   (str
    (get-base-directory!)
    "/"
-   ".speu"))
+   "speu"))
 
 (defn- get-new-git-base-directory! []
   (str (get-app-directory!)
