@@ -24,6 +24,8 @@ in
     systemd.services.sp-eu =
       let
         configArgs = lib.optionalString (cfg.configFile != null) "-c ${cfg.configFile}";
+        runtimeSubDir = "speu";
+        runtimeDir = "/run/" + runtimeSubDir;
       in
       {
         environment = {
@@ -31,6 +33,7 @@ in
           TS_MODEL_DIR = pkgs.active-group.embeddingModel;
           PREFIX = "https://sp-eu.active-group.de";
           REPOSITORY = "/model.git";
+          SPEU_BASE_DIR = runtimeDir;
         };
         wantedBy = [ "multi-user.target" ];
         after = [ "keycloak.service" ];
@@ -39,6 +42,7 @@ in
           User = "root";
           ExecStart = "${pkgs.jdk}/bin/java -jar ${pkgs.active-group.wisen}/lib/app.jar ${configArgs}";
           TimeoutStartSec = "0";
+          RuntimeDirectory = runtimeSubDir;
         };
       };
 

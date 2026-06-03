@@ -48,9 +48,14 @@
 (defn- get-home-directory! []
   (System/getProperty "user.home"))
 
+(defn- get-base-directory! []
+  (or
+   (System/getenv "SPEU_BASE_DIR")
+   (get-home-directory!)))
+
 (defn- get-app-directory! []
   (str
-   (get-home-directory!)
+   (get-base-directory!)
    "/"
    ".speu"))
 
