@@ -2,6 +2,7 @@
   (:require [reacl-c.core :as c :include-macros true]
             [reacl-c.dom :as dom :include-macros true]
             [active.clojure.lens :as lens]
+            [active.clojure.functions :as f]
             [reacl-c-basics.forms.core :as forms]
             [reacl-c-basics.ajax :as ajax]
             [wisen.frontend.design-system :as ds]
@@ -1279,19 +1280,20 @@
                                  compare-edit-tree
                                  adornment)))))
 
-(defn- make-compare-with-uri-order [uri-order]
-  (let [get-position (fn [etree]
-                       (cond
-                         (edit-tree/edit-node? etree)
-                         (index-of
-                          uri-order
-                          (edit-tree/edit-node-uri etree))
+(let [get-position (fn [uri-order etree]
+                     (cond
+                       (edit-tree/edit-node? etree)
+                       (index-of
+                        uri-order
+                        (edit-tree/edit-node-uri etree))
 
-                         (edit-tree/ref? etree)
-                         (index-of
-                          uri-order
-                          (edit-tree/ref-uri etree))))]
-    (fn [etree-1 etree-2]
+                       (edit-tree/ref? etree)
+                       (index-of
+                        uri-order
+                        (edit-tree/ref-uri etree))))]
+
+  (defn- compare-with-uri-order [uri-order etree-1 etree-2]
+    (let [get-position (f/partial get-position uri-order)]
       (let [pos-1 (get-position etree-1)
             pos-2 (get-position etree-2)]
         (cond
@@ -1321,7 +1323,7 @@
                             editable?
                             force-editing?
                             background-color
-                            (make-compare-with-uri-order uri-order)
+                            (f/partial compare-with-uri-order uri-order)
                             adornment)
       (c/handle-action (fn [etree action]
                          (if (is-a? set-reference-action action)
