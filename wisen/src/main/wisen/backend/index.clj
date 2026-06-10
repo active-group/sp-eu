@@ -2,22 +2,23 @@
   (:require [wisen.backend.lucene :as lucene]
             [wisen.backend.embedding :as embedding]
             [active.clojure.logger.event :refer [log-event! log-msg]]
-            [active.data.record :refer [def-record]]))
+            [active.data.record :refer [def-record]]
+            [active.data.realm :as realm]))
 
 (def search-result lucene/search-result)
 (def search-result-total-hits lucene/search-result-total-hits)
 (def search-result-uris lucene/search-result-uris)
 
-(defn- prepare-for-retrieval [name description]
-  (str name "\n" description))
+(defn- prepare-for-retrieval [name description keywords]
+  (str name "\n" description "\n\nKeywords: " keywords))
 
 (defn- prepare-for-query [text]
   (str text))
 
-(defn- embedding-vector-for-retrieval [name description]
+(defn- embedding-vector-for-retrieval [name description keywords]
   (lucene/make-vector
    (embedding/get-embedding
-    (prepare-for-retrieval name description))))
+    (prepare-for-retrieval name description keywords))))
 
 (defn- embedding-vector-for-query [text]
   (lucene/make-vector
@@ -31,15 +32,17 @@
    index-record-longitude
    index-record-latitude
    index-record-name
-   index-record-description])
+   index-record-description
+   index-record-keywords :- realm/string])
 
-(defn make-index-record [id lon lat name description]
+(defn make-index-record [id lon lat name description keywords]
   (index-record
    index-record-id id
    index-record-longitude lon
    index-record-latitude lat
    index-record-name name
-   index-record-description description))
+   index-record-description description
+   index-record-keywords keywords))
 
 (defn new-in-memory-index [index-records]
   (log-event! :info (log-msg "Creating new in-memory-index ..."))
@@ -52,7 +55,8 @@
                lucene/id-geo-vec-geo (lucene/make-point (index-record-longitude irec)
                                                         (index-record-latitude irec))
                lucene/id-geo-vec-vec (embedding-vector-for-retrieval (index-record-name irec)
-                                                                     (index-record-description irec))))))
+                                                                     (index-record-description irec)
+                                                                     (index-record-keywords irec))))))
     (log-event! :info (log-msg "... done creating new in-memory-index"))
     i))
 

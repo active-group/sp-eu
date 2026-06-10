@@ -20,10 +20,11 @@
          model
          "PREFIX schema: <http://schema.org/>
           PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
-          SELECT ?id ?lon ?lat ?name ?description
+          SELECT ?id ?lon ?lat ?name ?description ?keywords
           WHERE {
             ?id schema:name ?name .
             OPTIONAL { ?id schema:description ?description . }
+            OPTIONAL { ?id schema:keywords ?keywords . }
             ?id (schema:location? / schema:address? / schema:geo?) ?geo .
             ?geo (schema:longitude | wgs84:long)  ?lon .
             ?geo (schema:latitue | wgs84:lat) ?lat .
@@ -34,7 +35,8 @@
             (.getDouble (get row "lon"))
             (.getDouble (get row "lat"))
             (str (get row "name"))
-            (str (get row "description"))))
+            (str (get row "description"))
+            (str (get row "keywords"))))
          res)))
 
 (defn- via-event-index-records [model]
@@ -43,10 +45,11 @@
          model
          "PREFIX schema: <http://schema.org/>
           PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
-          SELECT ?id ?lon ?lat ?name ?description
+          SELECT ?id ?lon ?lat ?name ?description ?keywords
           WHERE {
             ?id schema:name ?name .
             OPTIONAL { ?id schema:description ?description . }
+            OPTIONAL { ?id schema:keywords ?keywords . }
             ?parent (schema:event | schema:events) ?id .
             ?parent (schema:location? / schema:address? / schema:geo?) ?geo .
             ?geo (schema:longitude | wgs84:long)  ?lon .
@@ -58,7 +61,8 @@
             (.getDouble (get row "lon"))
             (.getDouble (get row "lat"))
             (str (get row "name"))
-            (str (get row "description"))))
+            (str (get row "description"))
+            (str (get row "keywords"))))
          res)))
 
 (defn- via-contact-point-index-records [model]
@@ -67,10 +71,11 @@
          model
          "PREFIX schema: <http://schema.org/>
           PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
-          SELECT ?id ?lon ?lat ?name ?description
+          SELECT ?id ?lon ?lat ?name ?description ?keywords
           WHERE {
             ?id schema:name ?name .
             OPTIONAL { ?id schema:description ?description . }
+            OPTIONAL { ?id schema:keywords ?keywords . }
             ?parent schema:contactPoint ?id .
             ?parent (schema:location? / schema:address? / schema:geo?) ?geo .
             ?geo (schema:longitude | wgs84:long)  ?lon .
@@ -82,7 +87,8 @@
             (.getDouble (get row "lon"))
             (.getDouble (get row "lat"))
             (str (get row "name"))
-            (str (get row "description"))))
+            (str (get row "description"))
+            (str (get row "keywords"))))
          res)))
 
 (defn- model->index

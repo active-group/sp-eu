@@ -4,7 +4,7 @@
 
 (deftest senioren-test
   (let [make-index-record (fn [id title description]
-                            (i/make-index-record id 1.0 1.0 title description))
+                            (i/make-index-record id 1.0 1.0 title description ""))
 
         irecs [
                (make-index-record
@@ -91,6 +91,54 @@
 
     (is (= "gleichstellungsbeauftragte"
            (search "gleichstellung")))
+
+    (is (= "senioren"
+           (search "Alte Menschen")))))
+
+(deftest keywords-test
+  (let [make-index-record (fn [id keywords]
+                            (i/make-index-record id 1.0 1.0 "some title" "some description" keywords))
+
+        irecs [
+               (make-index-record
+                "senioren"
+
+                "senioren, elderly, rentner")
+
+               (make-index-record
+                "queerfeministisch"
+
+                "queer, lgbtq, gay, homosexual, trans")
+
+               (make-index-record
+                "fussball"
+
+                "football, sports")
+               ]
+
+        idx (i/new-in-memory-index irecs)
+
+        search (fn [text]
+                 (first
+                  (i/search-result-uris
+                   (i/search-text-and-geo idx
+                                          text
+                                          (i/make-bounding-box
+                                           0.0 2.0
+                                           0.0 2.0)
+                                          [0 99]))))]
+
+    (is (= "senioren"
+           (search "Seniorenberatung")))
+
+    (is (= "senioren"
+           (search "Senioren")))
+
+    (is (= "queerfeministisch"
+           (search "queer")))
+
+    (is (= "fussball"
+           (search "footy")))
 
     (is (= "senioren"
            (search "Alte Menschen")))))
