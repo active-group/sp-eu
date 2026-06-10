@@ -67,12 +67,10 @@
 (defn make-geo-query [box]
   (lucene/geo-query box))
 
-(defn make-fuzzy-text-query [text]
-  (lucene/knn-query
-   (embedding-vector-for-query text)))
-
-(defn combine-queries [q1 q2]
-  (lucene/combine-queries q1 q2))
+(defn fuzzy-text-in-box-query [text box]
+  (lucene/knn-float-vector-query
+   (embedding-vector-for-query text)
+   box))
 
 (defn make-bounding-box [min-lat max-lat min-lon max-lon]
   (lucene/make-bounding-box min-lat max-lat min-lon max-lon))
@@ -96,7 +94,5 @@
 
   (lucene/run-query!
    index
-   (combine-queries
-    (make-geo-query box)
-    (make-fuzzy-text-query text))
+   (fuzzy-text-in-box-query text box)
    range))

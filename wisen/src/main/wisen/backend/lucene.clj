@@ -22,6 +22,7 @@
                             IndexWriterConfig)
    (org.apache.lucene.search IndexSearcher
                              KnnVectorQuery
+                             KnnFloatVectorQuery
                              Query
                              ScoreDoc
                              TopDocs
@@ -129,18 +130,13 @@
         geo-query (.makeQuery strategy args)]
     geo-query))
 
-(defn knn-query [vec]
-  (KnnVectorQuery. "embedding" vec desired-number-of-search-results))
-
-(defn combine-queries [q1 q2]
-  (let [query-builder (BooleanQuery$Builder.)
-        _ (.add query-builder q1 BooleanClause$Occur/MUST)
-        _ (.add query-builder q2 BooleanClause$Occur/MUST)]
-    (.build query-builder)))
+(defn knn-float-vector-query [vec box]
+  (KnnFloatVectorQuery. "embedding" vec desired-number-of-search-results
+                        (geo-query box)))
 
 (defn run-query!
-  "Takes query built with `knn-query`, `geo-query`, or
-  `combine-queries`. Returns `search-result`."
+  "Takes query built with `knn-float-vector-query` or
+  `geo-query`. Returns `search-result`."
   [dir query [from cnt]]
   (with-searcher!
     dir
