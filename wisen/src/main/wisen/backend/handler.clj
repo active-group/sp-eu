@@ -20,7 +20,6 @@
             [wisen.backend.config :as config]
             [wisen.backend.resource :as r]
             [wisen.backend.jsonld :as jsonld]
-            [wisen.backend.embedding :as embedding]
             [wisen.backend.skolem2 :as skolem2]
             [wisen.backend.llm :as llm]
             [wisen.backend.osm :as osm]
