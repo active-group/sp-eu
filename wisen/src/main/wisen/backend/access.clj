@@ -27,7 +27,7 @@
             OPTIONAL { ?id schema:keywords ?keywords . }
             ?id (schema:location? / schema:address? / schema:geo?) ?geo .
             ?geo (schema:longitude | wgs84:long)  ?lon .
-            ?geo (schema:latitue | wgs84:lat) ?lat .
+            ?geo (schema:latitude | wgs84:lat) ?lat .
           }")]
     (map (fn [row]
            (index/make-index-record
@@ -53,7 +53,7 @@
             ?parent (schema:event | schema:events) ?id .
             ?parent (schema:location? / schema:address? / schema:geo?) ?geo .
             ?geo (schema:longitude | wgs84:long)  ?lon .
-            ?geo (schema:latitue | wgs84:lat) ?lat .
+            ?geo (schema:latitude | wgs84:lat) ?lat .
           }")]
     (map (fn [row]
            (index/make-index-record
@@ -79,7 +79,7 @@
             ?parent schema:contactPoint ?id .
             ?parent (schema:location? / schema:address? / schema:geo?) ?geo .
             ?geo (schema:longitude | wgs84:long)  ?lon .
-            ?geo (schema:latitue | wgs84:lat) ?lat .
+            ?geo (schema:latitude | wgs84:lat) ?lat .
           }")]
     (map (fn [row]
            (index/make-index-record
